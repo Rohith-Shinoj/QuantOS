@@ -3,8 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchAllStocks } from '../api';
 import { Link, useNavigate } from 'react-router-dom';
 import { createColumnHelper, flexRender, getCoreRowModel, getSortedRowModel, getFilteredRowModel, useReactTable, type SortingState } from '@tanstack/react-table';
-import { Search, ArrowUpDown, AlertTriangle } from 'lucide-react';
+import { Search, ArrowUpDown, AlertTriangle, Rocket, Landmark, Sparkles } from 'lucide-react';
 import { InfoTooltip } from '../components/InfoTooltip';
+import { StockLogo } from '../components/StockLogo';
 
 type Stock = {
   slug: string;
@@ -36,7 +37,12 @@ export const Screener = ({ isPanel = false }: { isPanel?: boolean }) => {
   const columns = [
     columnHelper.accessor('ticker', {
       header: 'Ticker',
-      cell: info => <span className="font-bold text-text-primary">{info.getValue() || 'N/A'}</span>,
+      cell: info => (
+        <div className="flex items-center gap-2">
+          <StockLogo ticker={info.getValue() || ''} className="w-6 h-6" textClass="text-[8px]" fallbackClass="bg-surface border border-border text-text-primary" />
+          <span className="font-bold text-text-primary">{info.getValue() || 'N/A'}</span>
+        </div>
+      ),
     }),
     columnHelper.accessor('alpha_score', {
       header: () => <span className="flex items-center">AI Score <InfoTooltip text="A proprietary machine-learning score (0-100) indicating the stock's probability of market outperformance." position="bottom" /></span>,
@@ -162,21 +168,21 @@ export const Screener = ({ isPanel = false }: { isPanel?: boolean }) => {
         <div className="flex gap-3 mb-6">
           <button 
             onClick={() => setActiveFilter(activeFilter === 'ai' ? null : 'ai')}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${activeFilter === 'ai' ? 'bg-alpha text-canvas' : 'bg-surface border border-border text-text-secondary hover:text-text-primary'}`}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${activeFilter === 'ai' ? 'bg-alpha text-canvas' : 'bg-surface border border-border text-text-secondary hover:text-text-primary'}`}
           >
-            ✨ Top AI Scores
+            <Sparkles size={16} /> Top AI Scores
           </button>
           <button 
             onClick={() => setActiveFilter(activeFilter === 'momentum' ? null : 'momentum')}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${activeFilter === 'momentum' ? 'bg-alpha text-canvas' : 'bg-surface border border-border text-text-secondary hover:text-text-primary'}`}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${activeFilter === 'momentum' ? 'bg-alpha text-canvas' : 'bg-surface border border-border text-text-secondary hover:text-text-primary'}`}
           >
-            🚀 High Momentum
+            <Rocket size={16} /> High Momentum
           </button>
           <button 
             onClick={() => setActiveFilter(activeFilter === 'inst' ? null : 'inst')}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${activeFilter === 'inst' ? 'bg-alpha text-canvas' : 'bg-surface border border-border text-text-secondary hover:text-text-primary'}`}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${activeFilter === 'inst' ? 'bg-alpha text-canvas' : 'bg-surface border border-border text-text-secondary hover:text-text-primary'}`}
           >
-            🏦 Strong Inst. Buying
+            <Landmark size={16} /> Strong Inst. Buying
           </button>
         </div>
       )}

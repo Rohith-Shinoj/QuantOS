@@ -4,6 +4,7 @@ import { fetchAllStocks } from '../api';
 import { Link } from 'react-router-dom';
 import { Search, Plus, Trash2, AlertTriangle, BellRing } from 'lucide-react';
 import { InfoTooltip } from '../components/InfoTooltip';
+import { StockLogo } from '../components/StockLogo';
 
 export const Watchlists = ({ isPanel = false }: { isPanel?: boolean }) => {
   const [watchlists, setWatchlists] = useState<{ id: string, name: string, slugs: string[] }[]>([]);
@@ -191,7 +192,10 @@ export const Watchlists = ({ isPanel = false }: { isPanel?: boolean }) => {
                     <div className="absolute top-full right-0 mt-2 bg-surface border border-border rounded-lg shadow-xl z-50 w-48 overflow-hidden">
                       {searchResults.map((s: any) => (
                         <div key={s.slug} className="p-2 hover:bg-surface-hover cursor-pointer text-xs" onClick={() => addStock(s.slug)}>
-                          <div className="font-bold text-text-primary">{s.ticker}</div>
+                          <div className="flex items-center gap-2">
+                            <StockLogo ticker={s.ticker} className="w-5 h-5" textClass="text-[8px]" fallbackClass="bg-surface-hover border border-border text-text-primary" />
+                            <div className="font-bold text-text-primary">{s.ticker}</div>
+                          </div>
                           <div className="text-text-secondary truncate">{s.name}</div>
                         </div>
                       ))}
@@ -226,8 +230,11 @@ export const Watchlists = ({ isPanel = false }: { isPanel?: boolean }) => {
                         return (
                           <tr key={slug} className="hover:bg-surface-hover/50 transition-colors group">
                             <td className="p-4">
-                              <Link to={`/stock/${slug}`} className="font-bold text-text-primary hover:text-alpha">{stock.ticker}</Link>
-                              <div className="text-xs text-text-secondary truncate max-w-[200px]">{stock.name}</div>
+                              <Link to={`/stock/${slug}`} className="flex items-center gap-3 font-bold text-text-primary hover:text-alpha">
+                                <StockLogo ticker={stock.ticker} className="w-6 h-6" textClass="text-[8px]" fallbackClass="bg-surface border border-border text-text-primary" />
+                                {stock.ticker}
+                              </Link>
+                              <div className="text-xs text-text-secondary truncate max-w-[200px] mt-1">{stock.name}</div>
                             </td>
                             <td className="p-4 text-right tabular-nums">₹{stock.close ? stock.close.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : stock.livePrice || '-'}</td>
                             <td className={`p-4 text-right tabular-nums font-bold ${getScoreColor(alphaScore)}`}>{alphaScore}</td>

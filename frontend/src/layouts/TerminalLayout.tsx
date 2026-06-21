@@ -18,6 +18,7 @@ import { NewsSentiment } from '../pages/CompanySnapshot/NewsSentiment';
 import { RelatedStocks } from '../pages/CompanySnapshot/RelatedStocks';
 import { PairTrading } from '../pages/PairTrading';
 import { Watchlists } from '../pages/Watchlists';
+import { StockLogo } from '../components/StockLogo';
 import { fetchAllStocks, fetchStockData } from '../api';
 
 const GlobalSearch = () => {
@@ -54,7 +55,7 @@ const GlobalSearch = () => {
           {filtered.map((stock: any) => (
             <div 
               key={stock.slug}
-              className="px-3 py-2 hover:bg-surface-hover cursor-pointer border-b border-border/50 last:border-0"
+              className="px-4 py-3 hover:bg-surface-hover cursor-pointer border-b border-border last:border-0 flex items-center gap-3"
               onMouseDown={() => {
                 setSelectedStockSlug(stock.slug);
                 navigate(`/terminal/${stock.slug}`);
@@ -62,11 +63,14 @@ const GlobalSearch = () => {
                 setIsOpen(false);
               }}
             >
-              <div className="flex justify-between items-center">
-                <span className="font-bold text-text-primary text-sm">{stock.ticker}</span>
-                <span className="text-[10px] text-text-secondary px-1.5 py-0.5 bg-canvas rounded uppercase">{stock.industry || 'Equity'}</span>
+              <StockLogo ticker={stock.ticker} className="w-8 h-8 shrink-0" textClass="text-[10px]" fallbackClass="bg-canvas border border-border text-text-primary" />
+              <div className="flex flex-col flex-1 overflow-hidden">
+                <div className="flex justify-between items-center w-full">
+                  <span className="font-bold text-text-primary text-sm">{stock.ticker}</span>
+                  <span className="text-[10px] text-text-secondary px-1.5 py-0.5 bg-canvas rounded uppercase shrink-0">{stock.industry || 'Equity'}</span>
+                </div>
+                <div className="text-xs text-text-secondary truncate mt-0.5">{stock.name}</div>
               </div>
-              <div className="text-xs text-text-secondary truncate mt-0.5">{stock.name}</div>
             </div>
           ))}
         </div>
@@ -125,15 +129,6 @@ export const TerminalLayout = () => {
           </div>
           
           <GlobalSearch />
-          
-          <div className="h-6 w-[1px] bg-border mx-2"></div>
-          
-          {abs && (
-            <div className="flex items-center gap-4">
-              <span className="font-extrabold text-lg tracking-tight">{abs.ticker}</span>
-              <span className="font-bold text-lg">{abs.absolute_data?.["live price"]}</span>
-            </div>
-          )}
         </div>
 
         <div className="flex flex-1 justify-center gap-1">
@@ -162,7 +157,7 @@ export const TerminalLayout = () => {
             onClick={() => setIsAIOverlayOpen(true)}
             className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-500/20 transition-all shadow-[0_0_10px_rgba(99,102,241,0.15)]"
           >
-            <BrainCircuit size={14} /> AI Memo
+            <BrainCircuit size={14} /> AI Analysis
           </button>
         </div>
 
@@ -199,7 +194,7 @@ export const TerminalLayout = () => {
                 {/* Central Canvas (Chart) */}
                 <div className="w-full min-h-[600px] flex flex-col relative shrink-0">
                   {centralMode === 'PRICE' && stockData && <PriceChart data={stockData} />}
-                  {centralMode === 'PAIRS' && <PairTrading isPanel />}
+                  {centralMode === 'PAIRS' && <PairTrading isPanel initialAssetA={slug} />}
                   {centralMode === 'FINANCIALS' && stockData && <DeepFinancials data={stockData} />}
                 </div>
 

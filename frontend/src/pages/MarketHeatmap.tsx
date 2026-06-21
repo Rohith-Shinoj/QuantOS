@@ -4,6 +4,7 @@ import { fetchAllStocks } from '../api';
 import { Share, Settings, Expand, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { Treemap, ResponsiveContainer, Tooltip } from 'recharts';
 import { useNavigate } from 'react-router-dom';
+import { StockLogo } from '../components/StockLogo';
 
 const parseDayChange = (changeStr: string) => {
   if (!changeStr) return 0;
@@ -87,6 +88,11 @@ const CustomizedContent = (props: any) => {
     // Minimum readable font size is ~9px. If we can't even render 9px, hide text.
     const canFitTicker = tickerFontSize >= 9 && height >= 20;
     const canFitPct = pctFontSize >= 9 && height >= 36;
+    
+    // Logo scaling logic
+    const minSide = Math.min(width, height);
+    const logoSize = Math.max(16, Math.floor(minSide * 0.3));
+    const canFitLogo = minSide >= 40 && height >= (logoSize + tickerFontSize * 1.5 + 10);
 
     return (
       <g>
@@ -102,6 +108,19 @@ const CustomizedContent = (props: any) => {
           onClick={() => onClickNode(payload || props)}
           className="transition-opacity hover:opacity-80"
         />
+        
+        {/* Logo rendered via foreignObject */}
+        {canFitLogo && payload?.slug && (
+          <foreignObject
+            x={Math.round(x + width / 2 - logoSize / 2)}
+            y={Math.round(canFitPct ? y + height / 2 - tickerFontSize * 0.1 - logoSize - 8 : y + height / 2 + tickerFontSize * 0.35 - tickerFontSize - logoSize - 8)}
+            width={logoSize}
+            height={logoSize}
+            style={{ pointerEvents: 'none' }}
+          >
+            <StockLogo ticker={payload.slug} name={name} className="w-full h-full" textClass="hidden" fallbackClass="bg-canvas border border-border text-text-primary" />
+          </foreignObject>
+        )}
         
         {/* Text rendering without clipPath to prevent WebKit antialiasing loss */}
         {canFitTicker && (
@@ -119,7 +138,7 @@ const CustomizedContent = (props: any) => {
               stroke="none"
               style={{ WebkitFontSmoothing: 'antialiased', MozOsxFontSmoothing: 'grayscale' }}
             >
-              {name}
+              {name === '1' ? 'BSE SENSEX' : name}
             </text>
             
             {/* % Change (Only show if height is big enough to separate it from ticker) */}

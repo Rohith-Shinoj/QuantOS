@@ -25,6 +25,7 @@ interface AIState {
   activeTicker: string | null;
   agentHistory: any[];
   activeMemo: string;
+  memoHistory: {role: 'user'|'assistant', content: string}[];
   setProcessing: (status: boolean) => void;
   addMessage: (message: ChatMessage) => void;
   updateLastMessageString: (chunk: string) => void;
@@ -35,6 +36,7 @@ interface AIState {
   setActiveTicker: (ticker: string | null) => void;
   addEvent: (e: any) => void;
   appendMemo: (m: string) => void;
+  addMemoHistory: (msg: {role: 'user'|'assistant', content: string}) => void;
   clearHistory: () => void;
 }
 
@@ -44,12 +46,21 @@ export const useAIStore = create<AIState>((set) => ({
   activeTicker: null,
   agentHistory: [],
   activeMemo: '',
+  memoHistory: [],
   
   setProcessing: (status) => set({ isProcessing: status }),
   setActiveTicker: (ticker) => set({ activeTicker: ticker }),
   addEvent: (e) => set((state) => ({ agentHistory: [...state.agentHistory, e] })),
-  appendMemo: (m) => set((state) => ({ activeMemo: state.activeMemo + m })),
-  clearHistory: () => set({ agentHistory: [], activeMemo: '' }),
+  appendMemo: (m) => set((state) => {
+    // If we're appending to activeMemo, let's also update the last assistant message in memoHistory
+    const hist = [...state.memoHistory];
+    if (hist.length > 0 && hist[hist.length - 1].role === 'assistant') {
+      hist[hist.length - 1].content += m;
+    }
+    return { activeMemo: state.activeMemo + m, memoHistory: hist };
+  }),
+  addMemoHistory: (msg) => set((state) => ({ memoHistory: [...state.memoHistory, msg] })),
+  clearHistory: () => set({ agentHistory: [], activeMemo: '', memoHistory: [] }),
   
   addMessage: (message) => set((state) => ({ 
     messages: [...state.messages, message] 

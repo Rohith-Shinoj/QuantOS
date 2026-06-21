@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import type { ChatMessage } from '../store/aiStore';
 import { useAIStore } from '../store/aiStore';
 import { useAgentStream } from '../hooks/useAgentStream';
-import { Search, Loader2, AlertTriangle, ExternalLink, ShieldCheck, ShieldAlert, Cpu } from 'lucide-react';
+import { Search, Loader2, AlertTriangle, ExternalLink, ShieldCheck, ShieldAlert, Cpu, SquarePen } from 'lucide-react';
 import { InfoTooltip } from '../components/InfoTooltip';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, 
@@ -10,7 +10,7 @@ import {
 } from 'recharts';
 
 export const AIResearchDesk: React.FC = () => {
-  const { isProcessing, messages, activeTicker, setActiveTicker } = useAIStore();
+  const { isProcessing, messages, activeTicker, setActiveTicker, clearWorkspace } = useAIStore();
   const { streamQuery } = useAgentStream();
   const [query, setQuery] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -44,61 +44,81 @@ export const AIResearchDesk: React.FC = () => {
     await streamQuery(newTicker, currentQuery);
   };
 
-  return (
-    <div className="min-h-screen bg-[#0A0A0A] text-gray-200 font-sans flex flex-col pt-16">
-      {/* Search Header */}
-      <div className="w-full bg-[#111]/90 backdrop-blur-md border-b border-gray-800 p-4 sticky top-16 z-30 shadow-xl shadow-black/50">
-        <form onSubmit={handleSubmit} className="max-w-4xl mx-auto flex gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Query ticker (e.g., Why did SBIN drop today? or Evaluate HDFC)..."
-              className="w-full bg-[#1A1A1A] border border-gray-700 rounded-lg py-3 pl-12 pr-4 text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all shadow-inner"
-              disabled={isProcessing}
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={isProcessing || !query.trim()}
-            className="px-8 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center"
+  const handleNewChat = () => {
+    clearWorkspace();
+    setActiveTicker(null);
+  };
+
+  const renderSearchBar = (isHero: boolean) => (
+    <div className={`w-full ${isHero ? 'max-w-3xl mx-auto' : 'bg-[#0A0A0A] border-t border-gray-800 p-4 sticky bottom-0 z-30'}`}>
+      <form onSubmit={handleSubmit} className={`max-w-4xl mx-auto flex gap-4 ${isHero ? '' : 'items-center'}`}>
+        {!isHero && (
+          <button 
+            type="button" 
+            onClick={handleNewChat}
+            className="p-3 text-gray-400 hover:text-white hover:bg-gray-800 rounded-full transition-colors"
+            title="New Chat"
           >
-            {isProcessing ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
-            {isProcessing ? 'Routing...' : 'Analyze'}
+            <SquarePen className="w-5 h-5" />
           </button>
-        </form>
-      </div>
-
-      {/* Infinite Artifact Feed */}
-      <div className="flex-1 overflow-y-auto pb-32">
-        <div className="max-w-5xl mx-auto p-6 space-y-12">
-          {messages.length === 0 && (
-            <div className="h-64 flex flex-col items-center justify-center text-gray-600 font-mono text-sm tracking-widest uppercase opacity-60">
-              <Cpu className="w-12 h-12 mb-4 opacity-50" />
-              Workspace Idle. Awaiting Prompt.
-            </div>
-          )}
-
-          {messages.map((msg) => (
-            <div key={msg.id} className="w-full">
-              {msg.role === 'user' ? (
-                <div className="flex justify-end mb-4">
-                  <div className="bg-blue-600/20 border border-blue-500/30 text-blue-100 px-6 py-4 rounded-2xl rounded-tr-sm max-w-2xl backdrop-blur-sm">
-                    {msg.rawString}
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-col w-full">
-                  <AssistantMessage payload={msg} />
-                </div>
-              )}
-            </div>
-          ))}
-          <div ref={bottomRef} />
+        )}
+        <div className="relative flex-1">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search companies, macro events, or ask a specific question. (e.g., Why did SBIN drop today?)..."
+            className={`w-full bg-[#1A1A1A] border border-gray-700 rounded-2xl py-4 pl-12 pr-4 text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all shadow-inner ${isHero ? 'text-xs' : ''}`}
+            disabled={isProcessing}
+          />
         </div>
-      </div>
+        <button
+          type="submit"
+          disabled={isProcessing || !query.trim()}
+          className="px-8 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-medium transition-colors disabled:opacity-50 flex items-center"
+        >
+          {isProcessing ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
+          {isProcessing ? 'Routing...' : 'Analyze'}
+        </button>
+      </form>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-[#0A0A0A] text-gray-200 font-sans flex flex-col pt-16 relative">
+      {messages.length === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center p-6 -mt-20">
+          <div className="flex items-center justify-center space-x-4 mb-8">
+            <h1 className="text-4xl md:text-5xl font-light text-white tracking-tight text-center">
+              What would you like to analyze?
+            </h1>
+          </div>
+          {renderSearchBar(true)}
+        </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col">
+          <div className="flex-1 w-full max-w-5xl mx-auto p-6 space-y-12 pb-8">
+            {messages.map((msg) => (
+              <div key={msg.id} className="w-full">
+                {msg.role === 'user' ? (
+                  <div className="flex justify-end mb-4">
+                    <div className="bg-[#1E1E1E] border border-gray-800 text-gray-100 px-6 py-4 rounded-3xl rounded-tr-sm max-w-2xl text-lg font-light leading-relaxed">
+                      {msg.rawString}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col w-full">
+                    <AssistantMessage payload={msg} />
+                  </div>
+                )}
+              </div>
+            ))}
+            <div ref={bottomRef} />
+          </div>
+          {renderSearchBar(false)}
+        </div>
+      )}
     </div>
   );
 };

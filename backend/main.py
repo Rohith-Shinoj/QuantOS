@@ -82,7 +82,8 @@ async def list_stocks():
                 slug, ticker, name, market_cap_type, market_cap, 
                 pe_ratio, day_change, industry, inst_accum, 
                 volatility_squeeze, qes_flag, rs_rating,
-                alpha_score, shap_reason_1, shap_reason_2, shap_reason_3
+                alpha_score, shap_reason_1, shap_reason_2, shap_reason_3,
+                absolute_data->>'$.\"live price\"'
             FROM stocks
         """
         result = con.execute(query).fetchall()
@@ -104,7 +105,8 @@ async def list_stocks():
                 "alpha_score": r[12] if r[12] is not None else 0.0,
                 "shap_reason_1": r[13],
                 "shap_reason_2": r[14],
-                "shap_reason_3": r[15]
+                "shap_reason_3": r[15],
+                "livePrice": r[16]
             } for r in result
         ]
         return _search_cache

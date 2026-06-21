@@ -1,11 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 // BACKUP: Was using lightweight-charts, switched to ApexCharts to remove TradingView watermark
 // import { createChart, ColorType, type IChartApi, type ISeriesApi } from 'lightweight-charts';
 import { useQuery } from '@tanstack/react-query';
 import { fetchAllStocks, fetchPairAnalysis } from '../api';
 import Chart from 'react-apexcharts';
 import type { ApexOptions } from 'apexcharts';
-import { Search, ArrowRightLeft, TrendingUp } from 'lucide-react';
+import { Search, ArrowRightLeft, TrendingUp, AlertTriangle, BarChart2, CheckCircle2, Circle, ArrowUpRight, ArrowDownRight, PauseCircle, XCircle } from 'lucide-react';
+import { StockLogo } from '../components/StockLogo';
 
 const StockSelector = ({ value, onChange, stocks, label }: any) => {
   const [query, setQuery] = useState('');
@@ -47,7 +48,10 @@ const StockSelector = ({ value, onChange, stocks, label }: any) => {
                 setIsOpen(false);
               }}
             >
-              <div className="font-bold text-text-primary">{stock.ticker}</div>
+              <div className="flex items-center gap-2">
+                <StockLogo ticker={stock.ticker} className="w-6 h-6" textClass="text-[8px]" fallbackClass="bg-surface-hover border border-border text-text-primary" />
+                <div className="font-bold text-text-primary">{stock.ticker}</div>
+              </div>
               <div className="text-xs text-text-secondary truncate">{stock.name}</div>
             </div>
           ))}
@@ -58,39 +62,39 @@ const StockSelector = ({ value, onChange, stocks, label }: any) => {
 };
 
 // --- Helper: Z-Score plain-English interpretation ---
-const getZScoreExplanation = (z: number): string => {
+const getZScoreExplanation = (z: number): React.ReactNode => {
   const absZ = Math.abs(z);
-  if (absZ > 2) return '⚠️ Extreme divergence — potential mean-reversion opportunity';
-  if (absZ > 1) return '📊 Moderate spread — monitor closely';
-  return '✅ Trading near historical average';
+  if (absZ > 2) return <span className="flex items-center gap-1.5"><AlertTriangle size={14} className="text-beta" /> Extreme divergence — potential mean-reversion opportunity</span>;
+  if (absZ > 1) return <span className="flex items-center gap-1.5"><BarChart2 size={14} className="text-alpha" /> Moderate spread — monitor closely</span>;
+  return <span className="flex items-center gap-1.5"><CheckCircle2 size={14} className="text-emerald-400" /> Trading near historical average</span>;
 };
 
 // --- Helper: Correlation plain-English interpretation ---
-const getCorrelationExplanation = (corr: number): string => {
-  if (corr >= 0.80) return '🟢 Strong pair — suitable for pair trading';
-  if (corr >= 0.60) return '🟡 Moderate pair — use with caution';
-  return '🔴 Weak pair — not recommended for pair trading';
+const getCorrelationExplanation = (corr: number): React.ReactNode => {
+  if (corr >= 0.80) return <span className="flex items-center gap-1.5"><Circle size={10} fill="currentColor" className="text-emerald-400" /> Strong pair — suitable for pair trading</span>;
+  if (corr >= 0.60) return <span className="flex items-center gap-1.5"><Circle size={10} fill="currentColor" className="text-yellow-400" /> Moderate pair — use with caution</span>;
+  return <span className="flex items-center gap-1.5"><Circle size={10} fill="currentColor" className="text-red-400" /> Weak pair — not recommended for pair trading</span>;
 };
 
 // --- Helper: Algorithmic signal plain-English interpretation ---
-const getSignalExplanation = (correlation: number, recommendedAction: string): { text: string; style: string } => {
+const getSignalExplanation = (correlation: number, recommendedAction: string): { text: React.ReactNode; style: string } => {
   if (correlation < 0.60) {
     return {
-      text: '❌ Not Recommended — These stocks don\'t move together reliably enough.',
+      text: <span className="flex items-center gap-1.5"><XCircle size={16} /> Not Recommended — These stocks don't move together reliably enough.</span>,
       style: 'bg-surface border-border text-text-secondary',
     };
   }
   if (correlation < 0.70) {
     return {
-      text: '⚠️ Proceed with Caution — Correlation is below the ideal threshold of 0.70.',
+      text: <span className="flex items-center gap-1.5"><AlertTriangle size={16} /> Proceed with Caution — Correlation is below the ideal threshold of 0.70.</span>,
       style: 'bg-surface border-border text-text-secondary',
     };
   }
   // Correlation >= 0.70 — translate raw action to plain English
-  const actionMap: Record<string, string> = {
-    'LONG_SPREAD': '📈 Go Long on the Spread — Asset A is undervalued relative to Asset B',
-    'SHORT_SPREAD': '📉 Go Short on the Spread — Asset A is overvalued relative to Asset B',
-    'HOLD': '⏸️ Hold — No actionable divergence detected right now',
+  const actionMap: Record<string, React.ReactNode> = {
+    'LONG_SPREAD': <span className="flex items-center gap-1.5"><ArrowUpRight size={16} className="text-emerald-400" /> Go Long on the Spread — Asset A is undervalued relative to Asset B</span>,
+    'SHORT_SPREAD': <span className="flex items-center gap-1.5"><ArrowDownRight size={16} className="text-red-400" /> Go Short on the Spread — Asset A is overvalued relative to Asset B</span>,
+    'HOLD': <span className="flex items-center gap-1.5"><PauseCircle size={16} /> Hold — No actionable divergence detected right now</span>,
   };
   const friendly = actionMap[recommendedAction] ?? recommendedAction;
   const isHold = recommendedAction === 'HOLD';
@@ -100,10 +104,16 @@ const getSignalExplanation = (correlation: number, recommendedAction: string): {
   };
 };
 
-export const PairTrading = ({ isPanel = false }: { isPanel?: boolean }) => {
-  const [assetA, setAssetA] = useState('state-bank-of-india');
+export const PairTrading = ({ isPanel = false, initialAssetA }: { isPanel?: boolean, initialAssetA?: string }) => {
+  const [assetA, setAssetA] = useState(initialAssetA || 'state-bank-of-india');
   const [assetB, setAssetB] = useState('hdfc-bank-ltd');
   const [lookback, setLookback] = useState(252);
+
+  useEffect(() => {
+    if (initialAssetA) {
+      setAssetA(initialAssetA);
+    }
+  }, [initialAssetA]);
 
   // BACKUP: removed chartContainerRef — no longer needed with ApexCharts
   // const chartContainerRef = useRef<HTMLDivElement>(null);

@@ -4,6 +4,7 @@ import { Search, ChevronRight, BarChart2, Info, TrendingUp, TrendingDown, ArrowR
 import { useQuery } from '@tanstack/react-query';
 import { fetchAllStocks, fetchStockData, fetchMacroData } from '../api';
 import Chart from 'react-apexcharts';
+import { StockLogo } from '../components/StockLogo';
 import type { ApexOptions } from 'apexcharts';
 
 const filterSeriesByTimeframe = (seriesData: {x: number, y: number}[], timeframe: string) => {
@@ -111,9 +112,7 @@ const HorizontalStockCards = ({ title, stocks }: { title: string, stocks: any[] 
             <Link key={s.slug} to={`/terminal/${s.slug}`} className="min-w-[240px] bg-surface border border-border rounded-xl p-4 hover:border-alpha/50 transition-colors flex flex-col justify-between group">
               <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-canvas border border-border flex items-center justify-center font-bold text-xs text-alpha uppercase">
-                    {s.ticker.substring(0, 2)}
-                  </div>
+                  <StockLogo ticker={s.ticker} className="w-8 h-8" textClass="text-xs" fallbackClass="bg-canvas border border-border text-alpha" />
                   <div className="overflow-hidden pr-2">
                     <div className="font-bold text-sm text-text-primary group-hover:text-alpha transition-colors truncate">{s.ticker}</div>
                     <div className="text-[10px] text-text-secondary truncate">{s.name}</div>
@@ -183,9 +182,7 @@ const MarketSummaryChart = ({ slug }: { slug: string }) => {
       {isLoading && <div className="absolute inset-0 bg-surface/80 z-10 flex items-center justify-center font-bold text-text-secondary rounded-xl">Loading real-time data...</div>}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-canvas flex items-center justify-center font-bold text-text-primary text-xl border border-border shadow-lg uppercase">
-            {ticker ? ticker.substring(0, 2) : '..'}
-          </div>
+          <StockLogo ticker={ticker || ''} className="w-12 h-12 shadow-lg" textClass="text-xl" fallbackClass="bg-canvas border border-border text-text-primary" />
           <div>
             <div className="text-sm font-bold text-text-primary flex items-center gap-2 uppercase">
               {ticker || 'Loading...'} <span className="px-1.5 py-0.5 bg-canvas border border-border rounded text-[10px] text-text-secondary">{ticker?.includes('NIFTY') || ticker?.includes('SENSEX') || ticker?.includes('VIX') ? 'INDEX' : 'STOCK'}</span>
@@ -268,9 +265,7 @@ const ComplexMarketCard = ({ stock }: { stock: any }) => {
       <div className="p-4 flex-1 flex flex-col border-b border-border cursor-pointer hover:bg-surface-hover transition-colors">
         <div className="flex justify-between items-start">
           <div className="flex items-center gap-2 overflow-hidden pr-2">
-            <div className={`w-6 h-6 rounded-full bg-canvas border border-border flex items-center justify-center text-[8px] text-text-primary uppercase shrink-0`}>
-              {stock.ticker.substring(0, 2)}
-            </div>
+            <StockLogo ticker={stock.ticker} className="w-6 h-6" textClass="text-[8px]" fallbackClass="bg-canvas border border-border text-text-primary" />
             <div className="text-sm font-bold text-text-primary group-hover:text-alpha transition-colors truncate">{stock.name}</div>
           </div>
         </div>
@@ -349,16 +344,24 @@ const MiniSectorCard = ({ stock }: { stock: any }) => {
     stroke: { curve: 'straight', width: 1 },
     colors: [color],
     fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.1, opacityTo: 0.0, stops: [0, 100] } },
-    xaxis: { type: 'datetime' },
+    xaxis: { type: 'datetime', tooltip: { enabled: false } },
     yaxis: { show: false, min: yMin, max: yMax },
-    tooltip: { theme: 'dark', x: { format: 'dd MMM yyyy' }, y: { formatter: (val) => val.toFixed(2) } }
+    tooltip: { 
+      theme: 'dark', 
+      x: { show: true, format: 'dd MMM yyyy' }, 
+      y: { formatter: (val) => val.toFixed(2), title: { formatter: () => '' } },
+      fixed: { enabled: false, position: 'topRight' }
+    }
   };
   
   const latestPrice = seriesData.length > 0 ? seriesData[seriesData.length-1].y : 0;
 
   return (
-    <div className="bg-surface border border-border rounded-xl flex flex-col h-[180px] w-[220px] shrink-0 p-4 hover:border-alpha/50 hover:scale-105 transition-all cursor-default overflow-hidden group">
-      <div className="text-sm font-bold text-text-primary group-hover:text-alpha transition-colors truncate mb-2">{displayName}</div>
+    <div className="bg-surface border border-border rounded-xl flex flex-col h-[200px] w-[220px] shrink-0 p-4 hover:border-alpha/50 hover:scale-105 transition-all cursor-default overflow-visible group z-10 relative">
+      <div className="flex items-center gap-2 mb-2">
+        <StockLogo ticker={stock.ticker} className="w-6 h-6" textClass="text-[8px]" fallbackClass="bg-canvas border border-border text-alpha" />
+        <div className="text-sm font-bold text-text-primary group-hover:text-alpha transition-colors truncate">{displayName}</div>
+      </div>
       <div className="flex justify-between items-center mb-2">
         <div className="flex flex-col gap-1">
           <div className="text-lg font-bold text-text-primary">
@@ -375,7 +378,7 @@ const MiniSectorCard = ({ stock }: { stock: any }) => {
       <div className="flex-1 w-full min-h-0 relative">
         <div className="absolute inset-0">
           {chartData.length > 0 && (
-            <Chart options={options} series={[{ name: ' ', data: chartData }]} type="area" height="100%" />
+            <Chart options={options} series={[{ name: 'Value', data: chartData }]} type="area" height="100%" />
           )}
         </div>
       </div>
@@ -418,7 +421,7 @@ const CommodityRowCard = ({ stock }: { stock: any }) => {
     fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.15, opacityTo: 0.0, stops: [0, 100] } },
     xaxis: { type: 'datetime' },
     yaxis: { show: false, min: yMin, max: yMax },
-    tooltip: { theme: 'dark', x: { format: 'dd MMM yyyy' }, y: { formatter: (val) => val.toFixed(2) } }
+    tooltip: { enabled: false }
   };
   
   const displayName = slug.includes('gold-bees') ? 'Gold' : slug.includes('silver-etf') ? 'Silver' : stock.name;
@@ -427,12 +430,16 @@ const CommodityRowCard = ({ stock }: { stock: any }) => {
     <div className="bg-surface border border-border hover:border-alpha/50 rounded-xl p-5 flex flex-col h-[220px] transition-colors cursor-default group overflow-hidden">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-full bg-canvas border border-border flex items-center justify-center text-[12px] font-bold text-text-primary uppercase shrink-0`}>
-            {displayName.substring(0, 2)}
-          </div>
+          <StockLogo 
+            ticker={slug.includes('gold') ? 'gold-metal' : slug.includes('silver') ? 'silver-metal' : stock.slug} 
+            name={displayName} 
+            className="w-10 h-10" 
+            textClass="text-[12px]" 
+            fallbackClass="bg-canvas border border-border text-text-primary" 
+          />
           <div>
             <div className="text-base font-bold text-text-primary group-hover:text-alpha transition-colors">{displayName}</div>
-            <div className={`text-xs font-bold mt-0.5 ${displayColor}`}>{change.isPositive ? '+' : '-'}{change.abs} ({change.pct})</div>
+            <div className={`text-xs font-bold mt-0.5 ${displayColor}`}>{change.pct}</div>
           </div>
         </div>
         <TimeframeSelector selected={timeframe} onSelect={setTimeframe} />
@@ -494,9 +501,7 @@ const IndexMarketCard = ({ stock, isActive }: { stock: any, isActive: boolean })
       <div className="p-5 flex-1 flex flex-col transition-colors relative">
         <div className="flex justify-between items-start mb-4">
           <div className="flex items-center gap-3 overflow-hidden pr-2">
-            <div className={`w-8 h-8 rounded-full bg-canvas border border-border flex items-center justify-center text-[10px] font-bold text-text-primary uppercase shrink-0`}>
-              {stock.ticker.substring(0, 2)}
-            </div>
+            <StockLogo ticker={stock.ticker} className="w-8 h-8" textClass="text-[10px]" fallbackClass="bg-canvas border border-border text-text-primary" />
             <div className="text-base font-bold text-text-primary group-hover:text-alpha transition-colors truncate">{stock.name}</div>
           </div>
           <TimeframeSelector selected={timeframe} onSelect={setTimeframe} />
@@ -549,7 +554,20 @@ const MarketSectors = ({ macro, stocks }: { macro: any, stocks: any[] }) => {
           >
             <div className="text-[10px] font-bold text-text-secondary mb-3">SECTOR MOMENTUM</div>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-8 h-8 rounded bg-canvas border border-border flex items-center justify-center font-bold text-alpha text-xs uppercase shrink-0">{sec.name.substring(0,2)}</div>
+              <img 
+                src={`/logos/sector-logos/${sec.name.toLowerCase().replace(/ /g, '-')}.webp`} 
+                alt={sec.name}
+                className="w-8 h-8 rounded shrink-0 object-cover bg-canvas border border-border"
+                onError={(e) => {
+                   e.currentTarget.style.display = 'none';
+                   if (e.currentTarget.nextElementSibling) {
+                     (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
+                   }
+                }}
+              />
+              <div className="hidden w-8 h-8 rounded bg-canvas border border-border items-center justify-center font-bold text-alpha text-xs uppercase shrink-0">
+                {sec.name.substring(0,2)}
+              </div>
               <div className="overflow-hidden pr-2">
                 <div className="font-bold text-sm text-text-primary group-hover:text-alpha transition-colors truncate">{sec.name}</div>
                 <div className="text-[10px] text-text-secondary truncate">{sec.count} Indexed Assets</div>
@@ -577,9 +595,7 @@ const MarketSectors = ({ macro, stocks }: { macro: any, stocks: any[] }) => {
                return (
                  <Link key={s.slug} to={`/terminal/${s.slug}`} className="bg-canvas border border-border p-4 rounded-lg hover:border-alpha/50 group transition-colors flex justify-between items-center">
                    <div className="flex items-center gap-3 overflow-hidden">
-                     <div className="w-8 h-8 rounded-full bg-surface border border-border flex items-center justify-center font-bold text-[10px] text-alpha uppercase shrink-0">
-                       {s.ticker.substring(0, 2)}
-                     </div>
+                     <StockLogo ticker={s.ticker} className="w-8 h-8" textClass="text-[10px]" fallbackClass="bg-surface border border-border text-alpha" />
                      <div className="overflow-hidden">
                        <div className="font-bold text-sm text-text-primary group-hover:text-alpha truncate">{s.name}</div>
                        <div className="text-[10px] text-text-secondary uppercase">{s.ticker}</div>
@@ -628,9 +644,7 @@ const StockListGrid = ({ stocks }: { stocks: any[] }) => {
           return (
             <Link key={s.slug} to={`/terminal/${s.slug}`} className="flex justify-between items-center p-3 hover:bg-surface border-b border-border/30 last:border-0 rounded-lg group transition-colors">
               <div className="flex items-center gap-4">
-                <div className="w-8 h-8 rounded-full bg-surface border border-border flex items-center justify-center font-bold text-[10px] text-alpha group-hover:bg-alpha/10 transition-colors uppercase shrink-0">
-                  {s.ticker.substring(0, 2)}
-                </div>
+                <StockLogo ticker={s.ticker} className="w-8 h-8 group-hover:opacity-80 transition-opacity" textClass="text-[10px]" fallbackClass="bg-surface border border-border text-alpha group-hover:bg-alpha/10 transition-colors" />
                 <div className="overflow-hidden">
                   <div className="font-bold text-sm text-text-primary group-hover:text-alpha transition-colors flex items-center gap-2">
                     <span className="truncate max-w-[120px] md:max-w-[180px]">{s.name}</span>
@@ -691,8 +705,64 @@ const StockListGrid = ({ stocks }: { stocks: any[] }) => {
   );
 };
 
+const TickerTapeItem = ({ asset }: { asset: any }) => {
+  const navigate = useNavigate();
+  // Fetch missing data if livePrice is empty or missing
+  const needsFetch = !asset.livePrice || !asset.day_change;
+  const { data: stockData } = useQuery({ 
+    queryKey: ['stockData', asset.slug], 
+    queryFn: () => fetchStockData(asset.slug),
+    enabled: needsFetch,
+    staleTime: 60000 // Cache for 1 min
+  });
+
+  let livePrice = asset.livePrice;
+  let rawChange = parseDayChange(asset.day_change);
+
+  let seriesData: any[] = [];
+  if (needsFetch && stockData?.absolute?.OHLCV) {
+    seriesData = stockData.absolute.OHLCV
+      .filter((d: any) => d && d.Date)
+      .map((d: any) => ({ y: d.Close }));
+
+    if (seriesData.length > 0) {
+       livePrice = String(seriesData[seriesData.length - 1].y);
+    }
+  }
+
+  const change = computeFallbackChange(seriesData, rawChange);
+  
+  const isIndex = asset.slug.includes('nifty') || asset.slug.includes('sensex') || asset.slug.includes('vix');
+  let cleanPrice = livePrice?.includes('₹') 
+    ? livePrice.replace('₹', '') 
+    : Number(livePrice || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  
+  const priceDisplay = isIndex ? cleanPrice : `₹${cleanPrice}`;
+
+  const displayName = asset.ticker === '1' ? 'SENSEX' : asset.ticker;
+
+  return (
+    <div 
+      className="inline-flex items-center justify-between w-72 px-5 border-r border-white/10 cursor-pointer hover:bg-surface-hover transition-colors h-10 shrink-0"
+      onClick={() => navigate(`/terminal/${asset.slug}`)}
+    >
+      <div className="flex items-center gap-2">
+        <StockLogo ticker={asset.ticker} className="w-5 h-5 border-white/20" textClass="text-[9px]" />
+        <span className="font-bold text-[11px] text-text-primary uppercase tracking-wider truncate w-28">{displayName}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className={`font-bold text-xs ${change.isPositive ? 'text-alpha' : 'text-beta'}`}>{priceDisplay}</span>
+        <span className={`text-[10px] font-bold ${change.isPositive ? 'text-alpha' : 'text-beta'}`}>
+          {change.isPositive ? '+' : '-'}{change.pct}
+        </span>
+      </div>
+    </div>
+  );
+};
+
 export const LandingPage = () => {
   const [query, setQuery] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
   const navigate = useNavigate();
 
   const { data: stocks } = useQuery({ queryKey: ['allStocks'], queryFn: fetchAllStocks });
@@ -701,6 +771,15 @@ export const LandingPage = () => {
   const safeStocks = (stocks || []).filter((s: any) => 
     s && s.ticker && s.ticker !== 'N/A' && s.name && s.marketCap
   );
+
+  const searchResults = React.useMemo(() => {
+    if (!query) return [];
+    const lowerQuery = query.toLowerCase();
+    return safeStocks.filter((s: any) => 
+      (s.name && s.name.toLowerCase().includes(lowerQuery)) || 
+      (s.ticker && s.ticker.toLowerCase().includes(lowerQuery))
+    ).slice(0, 8);
+  }, [query, safeStocks]);
 
   // Fetch the natively scraped NIFTY index
   const fallbackSlug = (stocks || []).find((s: any) => s.slug === 'nifty')?.slug || safeStocks[0]?.slug;
@@ -733,6 +812,11 @@ export const LandingPage = () => {
   const sectorAssets = getAssets(sectorSlugs);
   const commodityAssets = getAssets(commoditySlugs);
 
+  const [tickerMode, setTickerMode] = useState<'stocks' | 'indices'>('stocks');
+  const indexSlugs = ['nifty', ...coreSlugs, ...sectorSlugs];
+  const indexAssets = getAssets(indexSlugs);
+  const activeTickerItems = tickerMode === 'stocks' ? majorStocks.slice(0, 20) : indexAssets;
+
   return (
     <div className="min-h-full bg-canvas flex flex-col overflow-y-auto">
       {/* Navbar */}
@@ -741,33 +825,89 @@ export const LandingPage = () => {
           <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
             <BarChart2 className="text-alpha" /> QUANT<span className="text-alpha">OS</span>
           </h1>
-          <form onSubmit={handleSearch} className="relative hidden md:block w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" size={16} />
-            <input 
-              type="text" 
-              placeholder="Search stocks..." 
-              className="w-full pl-9 pr-4 py-2 bg-canvas border border-border rounded-full text-sm text-text-primary focus:outline-none focus:border-alpha transition-colors"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </form>
+          <div className="relative hidden md:block w-64" onBlur={(e) => {
+             // Delay hiding to allow click event to fire on dropdown items
+             if (!e.currentTarget.contains(e.relatedTarget)) {
+               setTimeout(() => setShowDropdown(false), 200);
+             }
+          }}>
+            <form onSubmit={handleSearch}>
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" size={16} />
+              <input 
+                type="text" 
+                placeholder="Search stocks..." 
+                className="w-full pl-9 pr-4 py-2 bg-canvas border border-border rounded-full text-sm text-text-primary focus:outline-none focus:border-alpha transition-colors"
+                value={query}
+                onChange={(e) => { setQuery(e.target.value); setShowDropdown(true); }}
+                onFocus={() => { if(query) setShowDropdown(true); }}
+              />
+            </form>
+            {showDropdown && searchResults.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-border rounded-lg shadow-[0_8px_30px_rgb(0,0,0,0.5)] overflow-hidden z-[100] max-h-[300px] overflow-y-auto">
+                {searchResults.map((res: any) => (
+                   <div 
+                     key={res.slug}
+                     className="px-4 py-3 hover:bg-surface-hover cursor-pointer border-b border-border/50 last:border-0 flex justify-between items-center group"
+                     onMouseDown={(e) => {
+                        e.preventDefault(); // Prevents input onBlur from firing before click
+                        setQuery('');
+                        setShowDropdown(false);
+                        navigate(`/terminal/${res.slug}`);
+                     }}
+                   >
+                     <div className="flex flex-col">
+                       <span className="text-sm font-bold text-text-primary group-hover:text-alpha transition-colors truncate">{res.name}</span>
+                       <span className="text-[10px] text-text-secondary uppercase tracking-widest">{res.ticker}</span>
+                     </div>
+                   </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
         <div className="flex gap-6 items-center">
           <Link to="/ai-research" className="flex items-center gap-2 px-4 py-2 bg-indigo-500/10 text-indigo-400 font-bold rounded-lg border border-indigo-500/30 hover:bg-indigo-500/20 transition-all shadow-[0_0_15px_rgba(99,102,241,0.2)]">
             <BrainCircuit size={16} /> AI Research Desk
           </Link>
-          <Link to="/" className="text-sm font-bold text-text-primary hover:text-alpha transition-colors">Products</Link>
-          <Link to="/screener" className="text-sm font-bold text-text-secondary hover:text-white transition-colors">Screener</Link>
-          <Link to="/portfolio" className="text-sm font-bold text-text-secondary hover:text-white transition-colors">Portfolio</Link>
-          <div className="h-4 w-[1px] bg-border"></div>
-          <button className="px-4 py-2 bg-alpha text-white text-sm font-bold rounded hover:bg-alpha-hover transition-colors">Get started</button>
+          <Link to="/overview" className="text-sm font-bold text-text-secondary hover:text-white transition-colors">Market Overview</Link>
+          <Link to="/heatmap" className="text-sm font-bold text-text-secondary hover:text-white transition-colors">Heatmap</Link>
+          <Link to="/pairs" className="text-sm font-bold text-text-secondary hover:text-white transition-colors">Pair Trading</Link>
+          <Link to="/watchlists" className="text-sm font-bold text-text-secondary hover:text-white transition-colors">Watchlists</Link>
+          <Link to="/portfolio" className="text-sm font-bold text-text-secondary hover:text-white transition-colors">Portfolio Analyzer</Link>
+        </div>
+      </div>
+
+      {/* Ticker Tape Controls */}
+      <div className="w-full flex justify-center bg-surface border-b border-border py-1.5 relative z-10">
+        <div className="flex items-center gap-1 bg-canvas rounded-lg p-0.5 shadow-inner border border-border/50">
+           <button 
+             onClick={() => setTickerMode('stocks')}
+             className={`text-[9px] font-bold px-5 py-1 rounded-md transition-all tracking-widest ${tickerMode === 'stocks' ? 'text-white bg-surface-hover shadow-sm border border-border' : 'text-text-secondary hover:text-white border border-transparent'}`}
+           >
+             STOCKS
+           </button>
+           <button 
+             onClick={() => setTickerMode('indices')}
+             className={`text-[9px] font-bold px-5 py-1 rounded-md transition-all tracking-widest ${tickerMode === 'indices' ? 'text-white bg-surface-hover shadow-sm border border-border' : 'text-text-secondary hover:text-white border border-transparent'}`}
+           >
+             INDICES
+           </button>
+        </div>
+      </div>
+
+      {/* Ticker Tape */}
+      <div className="w-full overflow-hidden bg-surface border-b border-border flex items-center h-10 select-none">
+        <div 
+          className="flex whitespace-nowrap animate-ticker w-max"
+          style={{ animationDuration: `${activeTickerItems.length * 4}s` }}
+        >
+          {[...activeTickerItems, ...activeTickerItems].map((s: any, idx: number) => (
+            <TickerTapeItem key={`${s.slug}-${idx}`} asset={s} />
+          ))}
         </div>
       </div>
 
       <div className="max-w-[1400px] mx-auto w-full px-6 lg:px-12 py-8">
-        
-        {/* Top Indian Stocks (Horizontal List) */}
-        <HorizontalStockCards title="Top market caps" stocks={majorStocks.slice(0, 10)} />
 
         {/* Market Summary Layout */}
         <div className="mb-16 grid grid-cols-12 gap-6 items-stretch">
@@ -792,17 +932,19 @@ export const LandingPage = () => {
                 {majorStocks.map((s: any) => {
                   const change = parseDayChange(s.day_change);
                   return (
-                    <div 
+                    <Link 
                       key={s.slug} 
-                      className={`flex justify-between items-center p-3 rounded-lg cursor-pointer transition-colors mb-1 ${activeSlug === s.slug ? 'bg-canvas border border-border' : 'hover:bg-canvas border border-transparent'}`}
-                      onClick={() => setSummarySlug(s.slug)}
+                      className={`flex justify-between items-center p-3 rounded-lg cursor-pointer transition-colors mb-1 hover:bg-canvas border border-transparent`}
+                      to={`/terminal/${s.slug}`}
                     >
                       <div className="flex items-center gap-3 overflow-hidden pr-2">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-[10px] shrink-0 uppercase ${activeSlug === s.slug ? 'bg-alpha text-white' : 'bg-surface-hover text-text-primary'}`}>
-                          {s.ticker.substring(0,2)}
-                        </div>
-                        <div className="overflow-hidden">
-                          <div className="font-bold text-sm text-text-primary truncate w-32">{s.name}</div>
+                        <StockLogo 
+                        ticker={s.ticker} 
+                        className={`w-8 h-8 ${activeSlug === s.slug ? 'ring-2 ring-alpha ring-offset-2 ring-offset-surface' : ''}`}
+                        fallbackClass={activeSlug === s.slug ? 'bg-alpha text-white' : 'bg-surface-hover text-text-primary'} 
+                      />
+                        <div className="overflow-hidden flex-1 min-w-0">
+                          <div className="font-bold text-sm text-text-primary truncate">{s.name}</div>
                           <div className="text-[10px] text-text-secondary uppercase">{s.ticker}</div>
                         </div>
                       </div>
@@ -812,7 +954,7 @@ export const LandingPage = () => {
                           {change.isPositive ? '+' : '-'}{change.pct}
                         </div>
                       </div>
-                    </div>
+                    </Link>
                   );
                 })}
               </div>
@@ -824,9 +966,9 @@ export const LandingPage = () => {
 
           {/* Row 2: Secondary Indicators */}
           {coreAssets.map((asset: any) => (
-            <div key={asset.slug} className="col-span-12 md:col-span-4 min-w-0 min-h-0" onClick={() => setSummarySlug(asset.slug)}>
-              <IndexMarketCard stock={asset} isActive={activeSlug === asset.slug} />
-            </div>
+            <Link key={asset.slug} to={`/terminal/${asset.slug}`} className="col-span-12 md:col-span-4 min-w-0 min-h-0 block cursor-pointer transition-transform hover:-translate-y-1">
+              <IndexMarketCard stock={asset} isActive={false} />
+            </Link>
           ))}
 
           {/* Row 3: Sectoral & Market Breadth */}

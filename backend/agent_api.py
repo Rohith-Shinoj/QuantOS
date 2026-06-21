@@ -4,8 +4,9 @@ from pydantic import BaseModel
 import json
 import asyncio
 
-# Import the compiled LangGraph app
+# Import the compiled LangGraph apps
 from agent_engine.graph import app as graph_app
+from agent_engine.memo_graph import memo_app
 from langchain_core.messages import HumanMessage
 
 router = APIRouter()
@@ -87,5 +88,69 @@ async def stream_agent_events(ticker: str, query: str, history: list = None):
 async def research_endpoint(req: ResearchRequest):
     return StreamingResponse(
         stream_agent_events(req.ticker, req.query, req.history),
+        media_type="text/event-stream"
+    )
+
+async def stream_memo_events(ticker: str, query: str, history: list = None):
+    """
+    Generator that runs the memo agent and yields Server-Sent Events (SSE).
+    """
+    from langchain_core.messages import HumanMessage, AIMessage
+    
+    msgs = []
+    if history:
+        for h in history:
+            if h.get("role") == "user":
+                msgs.append(HumanMessage(content=h.get("content", "")))
+            elif h.get("role") == "assistant":
+                msgs.append(AIMessage(content=h.get("content", "")))
+                
+    msgs.append(HumanMessage(content=query))
+    
+    initial_state = {
+        "messages": msgs
+    }
+    
+    try:
+        async for event in memo_app.astream_events(initial_state, version="v2"):
+            kind = event["event"]
+            name = event.get("name")
+            
+            if kind == "on_chat_model_stream":
+                chunk = event["data"]["chunk"]
+                if chunk.content:
+                    content_str = ""
+                    if isinstance(chunk.content, str):
+                        content_str = chunk.content
+                    elif isinstance(chunk.content, list):
+                        for block in chunk.content:
+                            if isinstance(block, dict) and "text" in block:
+                                content_str += block["text"]
+                            elif isinstance(block, str):
+                                content_str += block
+                    if content_str:
+                        yield f"data: {json.dumps({'type': 'token', 'content': content_str})}\n\n"
+                    
+            elif kind == "on_tool_start":
+                tool_name = name
+                yield f"data: {json.dumps({'type': 'tool_start', 'tool': tool_name})}\n\n"
+                
+            elif kind == "on_tool_end":
+                tool_name = name
+                yield f"data: {json.dumps({'type': 'tool_end', 'tool': tool_name})}\n\n"
+                
+            elif kind == "on_chain_end" and name == "LangGraph":
+                yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+            await asyncio.sleep(0)
+            
+    except Exception as e:
+        print(f"\n[AGENT_API ERROR] Fatal exception during memo execution for ticker {ticker}: {str(e)}")
+        yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+
+@router.post("/api/agent/memo")
+async def memo_endpoint(req: ResearchRequest):
+    return StreamingResponse(
+        stream_memo_events(req.ticker, req.query, req.history),
         media_type="text/event-stream"
     )

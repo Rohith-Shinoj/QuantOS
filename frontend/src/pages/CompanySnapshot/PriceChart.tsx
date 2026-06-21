@@ -80,6 +80,7 @@ export const PriceChart = ({ data }: { data: any }) => {
 import React, { useMemo, useState } from 'react';
 import Chart from 'react-apexcharts';
 import type { ApexOptions } from 'apexcharts';
+import { StockLogo } from '../../components/StockLogo';
 
 const TIMEFRAMES = ['5D', '1M', '3M', '6M', '1Y', '5Y', 'ALL'];
 
@@ -98,44 +99,65 @@ export const PriceChart = ({ data }: { data: any }) => {
           y: [d.Open, d.High, d.Low, d.Close] as [number, number, number, number],
         };
       })
-      .sort((a: { x: number }, b: { x: number }) => a.x - b.x);
+      .sort((a: any, b: any) => a.x - b.x);
 
     let filteredData = fullData;
-    if (fullData.length > 0 && timeframe !== 'ALL') {
-      const now = fullData[fullData.length - 1].x;
-      let msToSubtract = 0;
+    const now = new Date().getTime();
+
+    if (timeframe !== 'ALL') {
+      let cutoff = 0;
       switch (timeframe) {
-        case '5D': msToSubtract = 5 * 24 * 60 * 60 * 1000; break;
-        case '1M': msToSubtract = 30 * 24 * 60 * 60 * 1000; break;
-        case '3M': msToSubtract = 90 * 24 * 60 * 60 * 1000; break;
-        case '6M': msToSubtract = 180 * 24 * 60 * 60 * 1000; break;
-        case '1Y': msToSubtract = 365 * 24 * 60 * 60 * 1000; break;
-        case '5Y': msToSubtract = 5 * 365 * 24 * 60 * 60 * 1000; break;
+        case '5D': cutoff = now - 5 * 24 * 60 * 60 * 1000; break;
+        case '1M': cutoff = now - 30 * 24 * 60 * 60 * 1000; break;
+        case '3M': cutoff = now - 90 * 24 * 60 * 60 * 1000; break;
+        case '6M': cutoff = now - 180 * 24 * 60 * 60 * 1000; break;
+        case '1Y': cutoff = now - 365 * 24 * 60 * 60 * 1000; break;
+        case '5Y': cutoff = now - 5 * 365 * 24 * 60 * 60 * 1000; break;
       }
-      const threshold = now - msToSubtract;
-      filteredData = fullData.filter((d: any) => d.x >= threshold);
+      filteredData = fullData.filter((d: any) => d.x >= cutoff);
+    }
+    
+    // Fallback if filter is too restrictive
+    if (filteredData.length === 0 && fullData.length > 0) {
+      filteredData = fullData.slice(-20);
     }
 
-    if (filteredData.length === 0) filteredData = fullData;
-
-    let minVal = undefined;
-    let maxVal = undefined;
-    if (filteredData.length > 0) {
-      const lows = filteredData.map((d: any) => d.y[2]);
-      const highs = filteredData.map((d: any) => d.y[1]);
-      const minRaw = Math.min(...lows);
-      const maxRaw = Math.max(...highs);
-      const padding = (maxRaw - minRaw) * 0.05;
-      minVal = minRaw - padding;
-      maxVal = maxRaw + padding;
-    }
+    const allPrices = filteredData.flatMap((d: any) => d.y);
+    const min = allPrices.length > 0 ? Math.min(...allPrices) : 0;
+    const max = allPrices.length > 0 ? Math.max(...allPrices) : 100;
 
     return { 
-      series: [{ name: 'Candle', data: filteredData }],
-      yMin: minVal,
-      yMax: maxVal
+      series: [{ data: filteredData }],
+      yMin: min * 0.95,
+      yMax: max * 1.05
     };
   }, [data, timeframe]);
+
+  let pctChange = 0;
+  let priceDiff = 0;
+  let rawLivePrice = data?.absolute?.absolute_data?.["live price"];
+  let currentPrice = 0;
+  let startPrice = 0;
+  
+  if (series[0]?.data && series[0].data.length > 0) {
+    const d = series[0].data;
+    const lastClose = d[d.length - 1].y[3];
+    
+    if (typeof rawLivePrice === 'number') {
+      currentPrice = rawLivePrice;
+    } else if (typeof rawLivePrice === 'string') {
+      const parsed = parseFloat(rawLivePrice.replace(/[^0-9.-]+/g,""));
+      currentPrice = isNaN(parsed) ? lastClose : parsed;
+    } else {
+      currentPrice = lastClose;
+    }
+    
+    startPrice = d[0].y[0];
+    priceDiff = currentPrice - startPrice;
+    pctChange = (priceDiff / startPrice) * 100;
+  }
+  
+  const isPositive = priceDiff >= 0;
 
   const options: ApexOptions = {
     chart: {
@@ -220,12 +242,23 @@ export const PriceChart = ({ data }: { data: any }) => {
 
   return (
     <div className="bg-canvas border-b border-border h-full flex flex-col">
-      <div className="flex justify-between items-center p-4 border-b border-border bg-surface shrink-0">
-        <div>
-          <h2 className="text-xl font-bold text-text-primary">Price Action Engine</h2>
-          <p className="text-sm text-text-secondary mt-1">OHLCV Candlestick Data</p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border-b border-border gap-4 shrink-0">
+        <div className="flex items-center gap-4">
+          <StockLogo ticker={data?.absolute?.ticker || ''} className="w-14 h-14 shadow-md" textClass="text-sm" fallbackClass="bg-surface border border-border text-text-primary" />
+          <div className="flex flex-col justify-center gap-0.5">
+            <div className="flex items-center gap-3">
+              <h3 className="text-2xl font-extrabold text-white tracking-tight leading-none">{data?.absolute?.ticker}</h3>
+              <span className="text-sm text-text-secondary leading-none">{data?.absolute?.name}</span>
+            </div>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-lg font-bold text-white leading-none">₹{currentPrice.toFixed(2)}</span>
+              <span className={`text-sm font-semibold leading-none ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
+                {isPositive ? '+' : ''}{priceDiff.toFixed(2)} ({isPositive ? '+' : ''}{pctChange.toFixed(2)}%)
+              </span>
+            </div>
+          </div>
         </div>
-        <div className="flex bg-canvas border border-border p-1 rounded-md gap-1">
+        <div className="flex bg-surface-hover p-1 rounded-md border border-border gap-1">
           {TIMEFRAMES.map(t => (
             <button 
               key={t}

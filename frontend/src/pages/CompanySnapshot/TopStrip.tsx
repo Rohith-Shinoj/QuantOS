@@ -1,5 +1,6 @@
 import React from 'react';
 import { ShieldCheck, ShieldAlert, AlertTriangle, TrendingUp, TrendingDown, Printer } from 'lucide-react';
+import { StockLogo } from '../../components/StockLogo';
 
 export const TopStrip = ({ data }: { data: any }) => {
   const abs = data.absolute || {};
@@ -16,6 +17,7 @@ export const TopStrip = ({ data }: { data: any }) => {
     <div className="bg-surface p-6 rounded-lg border border-border flex justify-between items-center print-header">
       <div>
         <div className="flex items-center gap-3">
+          <StockLogo ticker={abs.ticker || ''} className="w-10 h-10 shadow-md" textClass="text-sm" fallbackClass="bg-canvas border border-border text-text-primary" />
           <h1 className="text-3xl font-bold text-text-primary">{abs.ticker || 'N/A'}</h1>
           {qesFlag ? (
             <span className="px-2 py-1 bg-beta/20 text-beta text-xs font-bold rounded flex items-center gap-1">
