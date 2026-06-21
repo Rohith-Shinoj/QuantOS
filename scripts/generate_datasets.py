@@ -1,0 +1,646 @@
+import os
+import sys
+import re
+import json
+import time
+
+# Ensure root directory is in path for imports
+sys.path.append(os.getcwd())
+import math
+import argparse
+import requests
+import numpy as np
+import duckdb
+from datetime import datetime, date
+from tqdm import tqdm
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+
+# Initialize SIA once
+sia = SentimentIntensityAnalyzer()
+sia.lexicon.update({
+    'crushed': 0.7, 'beat': 0.8, 'missed': -0.8, 'liability': 0.0,
+    'surged': 0.6, 'plunged': -0.8, 'bankruptcy': -0.9, 'default': -0.9,
+    'growth': 0.4, 'profitable': 0.5, 'slashed': -0.4, 'downgraded': -0.6, 'upgraded': 0.6,
+    'outperform': 0.6, 'underperform': -0.6, 'dividend': 0.4, 'buyback': 0.6,
+    'debt': -0.4, 'lawsuit': -0.7, 'scandal': -0.8
+})
+
+# --- UTILITIES ---
+
+def clean_float(val):
+    if val is None or val == '-': return np.nan
+    try:
+        if isinstance(val, (int, float)): return float(val)
+        clean_str = re.sub(r'[₹%, \s]', '', str(val))
+        if not clean_str or clean_str == '-': return np.nan
+        return float(clean_str)
+    except: return np.nan
+
+def safe_div(n, d):
+    try:
+        n_f, d_f = float(n), float(d)
+        if d_f == 0 or np.isnan(n_f) or np.isnan(d_f): return np.nan
+        return n_f / d_f
+    except: return np.nan
+
+def safe_log(val):
+    try:
+        if val is None or np.isnan(val) or val <= 0: return np.nan
+        return math.log(val)
+    except: return np.nan
+
+def parse_quarter_date(q_str):
+    try:
+        m, y = q_str.split(" '")
+        months = {"Jan":1, "Feb":2, "Mar":3, "Apr":4, "May":5, "Jun":6, 
+                  "Jul":7, "Aug":8, "Sep":9, "Oct":10, "Nov":11, "Dec":12}
+        return datetime(2000 + int(y), months[m], 1)
+    except: return datetime(1900, 1, 1)
+
+def get_nested(data, path, default=np.nan):
+    keys = path.split('.')
+    for key in keys:
+        if isinstance(data, dict): data = data.get(key)
+        else: return default
+    return data if data is not None else default
+
+def sanitize_nan(obj):
+    if isinstance(obj, dict): return {k: sanitize_nan(v) for k, v in obj.items()}
+    elif isinstance(obj, list): return [sanitize_nan(i) for i in obj]
+    elif isinstance(obj, (float, np.float64)) and np.isnan(obj): return None
+    return obj
+
+# --- ENGINEERING ---
+
+class MLDatasetEngineer:
+    def __init__(self, raw_data, ohlcv, ref_idx=-1, index_map=None, market_breadth_map=None):
+        self.raw = raw_data.get("raw_next_data", {})
+        self.stock_data = self.raw.get("stockData", {})
+        self.ohlcv = ohlcv or []
+        self.index_map = index_map or {}
+        self.market_breadth_map = market_breadth_map or {}
+        
+        if not self.ohlcv:
+            self.ref_idx = 0
+            self.active_ohlcv = []
+            self.ref_time = datetime.now()
+        else:
+            if ref_idx < 0: self.ref_idx = len(self.ohlcv) + ref_idx
+            else: self.ref_idx = ref_idx
+            self.ref_idx = max(0, min(self.ref_idx, len(self.ohlcv) - 1))
+            self.active_ohlcv = self.ohlcv[:self.ref_idx + 1]
+            self.ref_time = datetime.fromtimestamp(self.ohlcv[self.ref_idx]["Timestamp"])
+
+        self.cap_type = self.stock_data.get("stats", {}).get("cappedType", "Small Cap")
+        if self.cap_type == "Large Cap": self.benchmark_key = "NIFTY"
+        elif self.cap_type == "Mid Cap":
+            self.benchmark_key = "NIFTYMIDCAP150"
+            if self.benchmark_key not in self.index_map: self.benchmark_key = "NIFTY"
+        else:
+            self.benchmark_key = "NIFTYSMALLCAP250"
+            if self.benchmark_key not in self.index_map: self.benchmark_key = "NIFTY"
+
+        self.active_indices = {}
+        ref_ts = self.ohlcv[self.ref_idx]["Timestamp"] if self.ohlcv else 0
+        for name, idx_ohlcv in self.index_map.items():
+            self.active_indices[name] = [c for c in idx_ohlcv if c["Timestamp"] <= ref_ts]
+
+        self.live_price = raw_data.get("live_price", 0.0)
+        if self.live_price == 0.0 and self.active_ohlcv:
+            self.live_price = float(self.active_ohlcv[-1]["Close"])
+            
+        self.features = {}
+        self.fallback_count = 0
+        self.total_expected_features = 0
+
+    def track(self, val, is_fallback=False):
+        self.total_expected_features += 1
+        if is_fallback or val is None or (isinstance(val, (float, np.float64)) and np.isnan(val)):
+            self.fallback_count += 1
+            return np.nan
+        return val
+
+    def derive_all(self, present_price=None):
+        self.features["meta_features"] = self._derive_meta()
+        self.features["normalized_fundamentals"] = self._derive_fundamentals()
+        self.features["structural_capital_efficiency"] = self._derive_efficiency()
+        self.features["financial_growth_signals"] = self._derive_growth()
+        self.features["shareholding_momentum_vectors"] = self._derive_momentum()
+        self.features["technical_state_signals"] = self._derive_technicals()
+        self.features["aggregated_news_signals"] = self._derive_news()
+        self.features["liquidity_valuation_ratios"] = self._derive_liquidity()
+        self.features["sector_relative_premiums"] = self._derive_sector_premiums()
+        self.features["relative_strength_signals"] = self._derive_relative_strength()
+        self.features["macro_market_regime"] = self._derive_macro_regime()
+        self.features["continuous_scale_transformations"] = self._derive_scaling()
+        self.features["historical_time_series_matrix"] = self._derive_history()
+        self.features["health_scores"] = self._derive_health_scores()
+        self.features["risk_and_forensic_signals"] = self._derive_risk_and_forensics()
+        self.features["market_breadth_regime"] = self._derive_market_breadth()
+        
+        self.features["data_integrity"] = 1.0 - safe_div(self.fallback_count, self.total_expected_features)
+        return self.features
+
+    def _derive_risk_and_forensics(self):
+        # 1. Volatility Squeeze Index (Bollinger Band Width instead of arbitrary division)
+        v_squeeze = np.nan
+        if self.active_ohlcv and len(self.active_ohlcv) >= 20:
+            closes = [c["Close"] for c in self.active_ohlcv[-20:]]
+            sma20 = np.mean(closes)
+            std20 = np.std(closes)
+            if sma20 > 0:
+                v_squeeze = (2 * std20) / sma20 # BBW
+
+
+        # 2. HNI Absorption Score
+        mom = self._derive_momentum()
+        shp = self.stock_data.get("shareHoldingPattern", {})
+        hni_absorption = np.nan
+        try:
+            if isinstance(shp, dict):
+                quarters = sorted([q for q in shp.keys() if isinstance(shp[q], dict) and parse_quarter_date(q) <= self.ref_time], key=parse_quarter_date)
+                if len(quarters) >= 2:
+                    t, t_1 = quarters[-1], quarters[-2]
+                    retail_t, retail_t1 = get_nested(shp[t], "retailAndOthers.percent", 0.0), get_nested(shp[t_1], "retailAndOthers.percent", 0.0)
+                    hni_absorption = safe_div(retail_t1 - retail_t, mom.get("free_float_pct", 0.5))
+        except: pass
+
+        # 3. Tax-to-Profit Divergence (Forensic)
+        financials = self.stock_data.get("financialStatement", [])
+        tax_divergence = np.nan
+        try:
+            if financials:
+                def get_f_data(titles):
+                    for t in titles:
+                        item = next((i for i in financials if i.get("title") == t), None)
+                        if item: return item.get("quarterly", {})
+                    return {}
+                pbt_data = get_f_data(["Profit Before Tax", "PBT", "Operating Profit"])
+                tax_data = get_f_data(["Tax", "Income Tax", "Provision for Tax"])
+                qs = sorted([q for q in pbt_data.keys() if parse_quarter_date(q) <= self.ref_time], key=parse_quarter_date)
+                if len(qs) >= 5:
+                    t, t4 = qs[-1], qs[-5] # YoY comparison
+                    pbt_growth = safe_div(clean_float(pbt_data[t]) - clean_float(pbt_data[t4]), clean_float(pbt_data[t4]))
+                    tax_growth = safe_div(clean_float(tax_data.get(t)) - clean_float(tax_data.get(t4)), clean_float(tax_data.get(t4)))
+                    if not np.isnan(pbt_growth) and not np.isnan(tax_growth):
+                        tax_divergence = pbt_growth - tax_growth # High positive = Red Flag
+        except: pass
+
+        return {
+            "volatility_squeeze_index": self.track(v_squeeze),
+            "hni_absorption_score": self.track(hni_absorption),
+            "tax_profit_divergence": self.track(tax_divergence),
+            "qes_forensic_red_flag": self.track(1 if (tax_divergence or 0) > 0.3 else 0)
+        }
+
+    def _derive_market_breadth(self):
+        date_str = self.ref_time.strftime('%d-%m-%Y')
+        return {"market_breadth_50dma_pct": self.track(self.market_breadth_map.get(date_str, np.nan))}
+
+    def _derive_relative_strength(self):
+        rs_signals = {}
+        for name, index_ohlcv in self.active_indices.items():
+            if name == "INDIAVIX": continue
+            def calc_rs(periods):
+                if len(self.active_ohlcv) < periods + 1 or len(index_ohlcv) < periods + 1: return np.nan
+                s_ret = safe_div(self.active_ohlcv[-1]["Close"] - self.active_ohlcv[-1-periods]["Close"], self.active_ohlcv[-1-periods]["Close"])
+                i_ret = safe_div(index_ohlcv[-1]["Close"] - index_ohlcv[-1-periods]["Close"], index_ohlcv[-1-periods]["Close"])
+                return safe_div(1.0 + s_ret, 1.0 + i_ret)
+            rs_signals[f"rs_{name.lower()}_52w"] = self.track(calc_rs(52))
+        rs_signals["primary_benchmark"] = self.benchmark_key
+        return rs_signals
+
+    def _derive_macro_regime(self):
+        nifty = self.active_indices.get("NIFTY", [])
+        vix = self.active_indices.get("INDIAVIX", [])
+        nifty_trend = safe_div(nifty[-1]["Close"], np.mean([c["Close"] for c in nifty[-40:]])) if len(nifty) >= 40 else np.nan
+        vix_ratio = safe_div(vix[-1]["Close"], np.mean([c["Close"] for c in vix[-52:]])) if len(vix) >= 52 else np.nan
+        return {
+            "nifty_50_trend_ratio": self.track(nifty_trend),
+            "vix_intensity_ratio": self.track(vix_ratio),
+            "is_bull_regime": self.track(1 if (nifty_trend or 0) > 1.0 else 0),
+            "is_high_fear_regime": self.track(1 if (vix_ratio or 0) > 1.2 else 0)
+        }
+
+    def _derive_meta(self):
+        cap = self.stock_data.get("stats", {}).get("cappedType", "")
+        return {
+            "is_large_cap": self.track(1 if cap == "Large Cap" else 0),
+            "is_mid_cap": self.track(1 if cap == "Mid Cap" else 0),
+            "is_small_cap": self.track(1 if cap == "Small Cap" else 0),
+            "industry_name": self.track(self.stock_data.get("header", {}).get("industryName", "Unknown"))
+        }
+
+    def _derive_fundamentals(self):
+        stats = self.stock_data.get("stats", {})
+        return {
+            "pe_vs_sector_ratio": self.track(safe_div(stats.get("peRatio"), stats.get("industryPe"))),
+            "pb_vs_sector_ratio": self.track(safe_div(stats.get("pbRatio"), stats.get("sectorPb"))),
+            "debt_to_equity": self.track(clean_float(stats.get("debtToEquity"))),
+            "return_on_equity": self.track(safe_div(stats.get("roe"), 100.0)),
+            "net_profit_margin": self.track(safe_div(stats.get("netProfitMargin"), 100.0))
+        }
+
+    def _derive_efficiency(self):
+        stats = self.stock_data.get("stats", {})
+        pe, roe = clean_float(stats.get("peRatio")), safe_div(stats.get("roe"), 100.0)
+        div_yield = safe_div(clean_float(stats.get("divYield")), 100.0)
+        payout = div_yield * pe
+        return {
+            "equity_multiplier": self.track(safe_div(stats.get("returnOnEquity"), stats.get("returnOnAssets"))),
+            "sustainable_growth_rate": self.track(roe * (1.0 - (payout if not np.isnan(payout) else 0.5)))
+        }
+
+    def _derive_growth(self):
+        financials = self.stock_data.get("financialStatement", [])
+        def get_q_growth(titles):
+            for t in titles:
+                item = next((i for i in financials if i.get("title") == t), None)
+                if item:
+                    data = item.get("quarterly", {})
+                    qs = sorted([q for q in data.keys() if parse_quarter_date(q) <= self.ref_time], key=parse_quarter_date)
+                    if len(qs) >= 5:
+                        curr, prev = clean_float(data[qs[-1]]), clean_float(data[qs[-5]])
+                        return safe_div(curr - prev, prev)
+            return np.nan
+        return {"revenue_yoy": self.track(get_q_growth(["Revenue", "Net Revenue"])), "profit_yoy": self.track(get_q_growth(["Profit", "Net Profit"]))}
+
+    def _derive_momentum(self):
+        shp = self.stock_data.get("shareHoldingPattern", {})
+        try: qs = sorted([q for q in shp.keys() if isinstance(shp[q], dict) and parse_quarter_date(q) <= self.ref_time], key=parse_quarter_date)
+        except: qs = []
+        if len(qs) < 2: return {"institutional_accumulation_qoq": np.nan, "free_float_pct": 0.5, "promoter_pledge_delta": np.nan}
+        t, t1 = qs[-1], qs[-2]
+        def get_inst(q): return get_nested(shp[q], "mutualFunds.percent", 0.0) + get_nested(shp[q], "foreignInstitutions.percent", 0.0)
+        inst_t, inst_t1 = get_inst(t), get_inst(t1)
+        pledge_t, pledge_t1 = get_nested(shp[t], "promoters.pledgedPercent", 0.0), get_nested(shp[t1], "promoters.pledgedPercent", 0.0)
+        prom_total = get_nested(shp[t], "promoters.total", 0.0)
+        if prom_total == 0.0: prom_total = get_nested(shp[t], "promoters.individual.percent", 0.0) + get_nested(shp[t], "promoters.corporate.percent", 0.0)
+        return {
+            "institutional_accumulation_qoq": self.track(inst_t - inst_t1),
+            "free_float_pct": self.track(safe_div(100.0 - prom_total, 100.0)),
+            "promoter_pledge_delta": self.track(pledge_t - pledge_t1)
+        }
+
+    def _derive_technicals(self):
+        if not self.active_ohlcv: return {}
+        closes = [c["Close"] for c in self.active_ohlcv]
+        sma50 = np.mean(closes[-50:]) if len(closes) >= 50 else np.nan
+        vol_intensity = safe_div(self.active_ohlcv[-1]["Volume"], np.mean([c["Volume"] for c in self.active_ohlcv[-52:]])) if len(self.active_ohlcv) >= 52 else 1.0
+        volatility = np.std([safe_log(safe_div(closes[i], closes[i-1])) for i in range(len(closes)-13, len(closes))]) if len(closes) >= 14 else np.nan
+        
+        tech = self.raw.get("stocksTechnicalsData")
+        if not isinstance(tech, dict): tech = {}
+        
+        return {
+            "rsi_normalized": self.track(safe_div(clean_float(tech.get("rsi14", 50)), 100.0)),
+            "distance_from_sma50": self.track(safe_div(self.live_price - sma50, sma50)),
+            "volume_intensity_52w": self.track(vol_intensity),
+            "volatility_13w": self.track(volatility)
+        }
+
+    def _derive_news(self):
+        news = self.stock_data.get("news", []) or self.raw.get("newsData", [])
+        
+        flags = {
+            "active_debt_crisis_flag": self.track(1 if any(any(k in str(n).lower() for k in ['debt','default','crisis']) for n in news) else 0),
+            "active_regulatory_flag": self.track(1 if any(any(k in str(n).lower() for k in ['sebi','fine','probe','regulatory']) for n in news) else 0)
+        }
+        
+        # NLP Sentiment Processing
+        timeline = {}
+        total_compound = 0.0
+        news_count = 0
+        
+        from datetime import timedelta, datetime
+        now_time = datetime.now()
+        
+        # Initialize last 14 days timeline
+        for i in range(13, -1, -1):
+            d = (now_time - timedelta(days=i)).strftime('%b %d')
+            timeline[d] = {"count": 0, "sum_sentiment": 0.0}
+            
+        for n in news:
+            if not isinstance(n, dict): continue
+            pub_date_str = n.get("pubDate")
+            if not pub_date_str: continue
+            
+            try:
+                # Handle dates like '2026-06-19T14:58:04'
+                # fallback for missing tz
+                clean_date_str = str(pub_date_str).replace('Z', '')
+                pub_date = datetime.fromisoformat(clean_date_str)
+                
+                diff_days = (now_time.date() - pub_date.date()).days
+                if 0 <= diff_days <= 13:
+                    text = f"{n.get('title', '')} {n.get('summary', '')}"
+                    if not text.strip(): continue
+                    
+                    score = sia.polarity_scores(text)['compound']
+                    d_str = pub_date.strftime('%b %d')
+                    if d_str in timeline:
+                        timeline[d_str]["count"] += 1
+                        timeline[d_str]["sum_sentiment"] += score
+                    
+                    total_compound += score
+                    news_count += 1
+            except: pass
+            
+        sentiment_timeline = []
+        for d, stats in timeline.items():
+            avg_sent = stats["sum_sentiment"] / stats["count"] if stats["count"] > 0 else 0
+            # Velocity is an intensity metric combining volume and sentiment absolute magnitude
+            velocity = (stats["count"] * 10) + (abs(avg_sent) * 20)
+            sentiment_timeline.append({
+                "name": d,
+                "Sentiment": avg_sent,
+                "Volume": stats["count"],
+                "Velocity": velocity
+            })
+            
+        flags["ewma_sentiment_all"] = self.track(total_compound / news_count if news_count > 0 else 0)
+        flags["news_intensity_velocity"] = self.track(news_count / 14.0)
+        flags["sentiment_timeline"] = sentiment_timeline
+        
+        return flags
+
+    def _derive_liquidity(self):
+        stats = self.stock_data.get("stats", {})
+        return {"price_to_ocf": self.track(clean_float(stats.get("priceToOcf"))), "ev_to_ebitda": self.track(clean_float(stats.get("evToEbitda")))}
+
+    def _derive_sector_premiums(self):
+        stats = self.stock_data.get("stats", {})
+        return {"roe_vs_sector_premium": self.track(clean_float(stats.get("roe")) - clean_float(stats.get("sectorRoe")))}
+
+    def _derive_scaling(self):
+        return {"log_market_cap": self.track(safe_log(clean_float(self.stock_data.get("stats", {}).get("marketCap"))))}
+
+    def _derive_history(self):
+        if len(self.active_ohlcv) < 53: return [[0.0, 0.0, 0.0]] * 52
+        matrix = []
+        for i in range(len(self.active_ohlcv)-52, len(self.active_ohlcv)):
+            curr, prev = self.active_ohlcv[i], self.active_ohlcv[i-1]
+            matrix.append([safe_log(safe_div(curr["Close"], prev["Close"])), safe_div(curr["High"]-curr["Low"], curr["Close"]), safe_div(curr["Open"]-prev["Close"], prev["Close"])])
+        return matrix
+
+    def _derive_health_scores(self):
+        return {"piotroski_f_score": self.track(1 if safe_div(self.stock_data.get("stats", {}).get("roe"), 100.0) > 0.15 else 0)}
+
+# --- UNIFIED PROCESSING ---
+
+class GrowwFetcher:
+    def __init__(self, session=None):
+        self.session = session or requests.Session()
+        self.session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        })
+
+    def get_stock_data(self, slug):
+        """Unified fetch for all metadata with exponential backoff for 429s."""
+        KNOWN_INDICES = ["nifty", "india-vix", "sp-bse-sensex", "nifty-smallcap-100", "nifty-midcap", "nifty-total-market-index", "nifty-metal", "nifty-it", "nifty-bank"]
+        if slug in KNOWN_INDICES:
+            path_type = "indices"
+            url = f"https://groww.in/indices/{slug}"
+        else:
+            path_type = "etfs" if "etf" in slug.lower() else "stocks"
+            url = f"https://groww.in/{path_type}/{slug}{'/technicals' if path_type == 'stocks' else ''}"
+        
+        max_retries = 3
+        backoff = 2
+        
+        for attempt in range(max_retries):
+            try:
+                resp = self.session.get(url, timeout=10)
+                if resp.status_code == 429:
+                    wait = backoff ** (attempt + 1) + np.random.uniform(0, 1)
+                    time.sleep(wait)
+                    continue
+                    
+                if resp.status_code != 200: 
+                    if resp.status_code != 404:
+                        print(f"HTTP Error {resp.status_code} for {slug}")
+                    return None
+                
+                # Extract JSON
+                match = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', resp.text, re.DOTALL)
+                if not match: 
+                    print(f"Regex failure for {slug}")
+                    return None
+                
+                full_json = json.loads(match.group(1))
+                page_props = full_json.get("props", {}).get("pageProps", {})
+                
+                if slug in KNOWN_INDICES:
+                    stock_data = page_props.get("indexData", {})
+                    if not stock_data: return None
+                    header = stock_data.get("header", {})
+                    script_code = header.get("nseScriptCode") or header.get("bseScriptCode")
+                    live_price_data = page_props.get("livePriceData", {}).get(str(script_code), {})
+                    html_price = str(live_price_data.get("ltp", ""))
+                    day_change = live_price_data.get("dayChange")
+                    day_change_perc = live_price_data.get("dayChangePerc")
+                    html_change = f"{day_change} ({day_change_perc}%)" if day_change is not None and str(day_change) != "" else ""
+                else:
+                    stock_data = page_props.get("stockData") or page_props.get("etfData", {})
+                    if not stock_data: return None
+                    
+                    # Extract Live Price & Change from HTML directly as fallback/enhancement
+                    price_match = re.search(r"<span[^>]*tickerUi_livePrice[^>]*>(.*?)</span>", resp.text)
+                    change_match = re.search(r"<span[^>]*tickerUi_dayChange[^>]*>(.*?)</span>", resp.text)
+                    html_price = price_match.group(1).strip() if price_match else None
+                    html_change = change_match.group(1).strip() if change_match else None
+                
+                return {
+                    "raw_next_data": page_props,
+                    "html_price": html_price,
+                    "html_change": html_change
+                }
+            except Exception as e:
+                if attempt == max_retries - 1: return None
+                time.sleep(backoff ** (attempt + 1))
+        return None
+
+    def get_ohlcv(self, ticker, exchange="NSE"):
+        if not ticker: return None
+        end_ts = int(time.time() * 1000)
+        # Using 5 years of history to be safe for daily candles (1440 minutes)
+        start_ts = end_ts - (5 * 365 * 24 * 60 * 60 * 1000)
+        url = f"https://groww.in/v1/api/charting_service/v2/chart/delayed/exchange/{exchange}/segment/CASH/{ticker}?endTimeInMillis={end_ts}&intervalInMinutes=1440&startTimeInMillis={start_ts}"
+        try:
+            resp = self.session.get(url, timeout=10)
+            if resp.status_code != 200: return None
+            data = resp.json()
+            candles = data.get("candles", [])
+            return candles
+        except: return None
+
+# --- UNIFIED PROCESSING ---
+
+def extract_ticker(header):
+    """Priority: Alphabetic > Numeric fallback."""
+    keys = ["nseSymbol", "bseTradingSymbol", "symbol", "nseScriptCode", "bseSymbol", "bseScriptCode", "bseScriptCode"]
+    # Pass 1: Alphabetic
+    for k in keys:
+        val = header.get(k)
+        if val and not str(val).isdigit(): return str(val).strip()
+    # Pass 2: Numeric
+    for k in keys:
+        val = header.get(k)
+        if val: return str(val).strip()
+    return None
+
+def process_stock_unified(slug, fetcher, index_map, market_breadth_map, args):
+    try:
+        # 1. Single Network Call for Metadata
+        raw = fetcher.get_stock_data(slug)
+        if not raw: return False
+        
+        page_props = raw["raw_next_data"]
+        KNOWN_INDICES = ["nifty", "india-vix", "sp-bse-sensex", "nifty-smallcap-100", "nifty-midcap", "nifty-total-market-index", "nifty-metal", "nifty-it", "nifty-bank"]
+        if slug in KNOWN_INDICES:
+            stock_data = page_props.get("indexData", {})
+        else:
+            stock_data = page_props.get("stockData") or page_props.get("etfData", {})
+            
+        header = stock_data.get("header", {})
+        
+        # 2. Extract Ticker
+        ticker = extract_ticker(header)
+        
+        # 3. Single Network Call for OHLCV
+        candles = fetcher.get_ohlcv(ticker, "NSE")
+        if not candles: candles = fetcher.get_ohlcv(ticker, "BSE")
+        # Try fallbacks if ticker looks alphabetic but failed on NSE
+        if not candles and ticker and not ticker.isdigit():
+             # Try BSE with numeric code if available
+             bse_code = header.get("bseScriptCode") or header.get("bseSymbol")
+             if bse_code and str(bse_code).isdigit():
+                 candles = fetcher.get_ohlcv(bse_code, "BSE")
+        
+        # --- A. ABSOLUTE DATASET LOGIC ---
+        abs_data = {
+            "live price": raw["html_price"],
+            "day change": raw["html_change"],
+            "ticker": ticker,
+            "displayName": header.get("displayName"),
+            "marketCap": stock_data.get("stats", {}).get("marketCap"),
+            "shareHoldingPattern": stock_data.get("shareHoldingPattern"),
+            "financialStatement": stock_data.get("financialStatement"),
+            "header_raw": header,
+            "OHLCV": []
+        }
+        
+        # Merge stats and fundamentals into abs_data
+        stats = stock_data.get("stats", {})
+        for k, v in stats.items():
+            if k not in abs_data: abs_data[k] = v
+            
+        # Format OHLCV for Absolute
+        ohlcv_converted = []
+        for c in (candles or []):
+            try:
+                # Handle both [ms, o, h, l, c, v] and processed [s, o, h, l, c, v]
+                ts = float(c[0])
+                if ts > 10**11: ts = ts / 1000.0
+                
+                ohlcv_converted.append({
+                    "Timestamp": ts, "Open": float(c[1]), "High": float(c[2]), "Low": float(c[3]), "Close": float(c[4]), "Volume": float(c[5]) if c[5] is not None else 0.0,
+                    "Date": datetime.fromtimestamp(ts).strftime('%d-%m-%Y')
+                })
+            except: continue
+            
+        abs_data["OHLCV"] = [{"Date": x["Date"], "Open": x["Open"], "High": x["High"], "Low": x["Low"], "Close": x["Close"], "Volume": x["Volume"]} for x in ohlcv_converted]
+
+        # --- B. RELATIVE DATASET LOGIC ---
+        rel_engineer = MLDatasetEngineer(
+            {"raw_next_data": page_props, "live_price": clean_float(raw["html_price"])}, 
+            ohlcv_converted, 
+            index_map=index_map, 
+            market_breadth_map=market_breadth_map
+        )
+        rel_data = rel_engineer.derive_all()
+        
+        # 4. Atomic Write
+        abs_path = os.path.join(args.target, "absolute_dataset", f"{slug}.json")
+        rel_path = os.path.join(args.target, "relative_dataset", f"{slug}.json")
+        
+        with open(abs_path, 'w') as f: json.dump(abs_data, f, indent=4)
+        with open(rel_path, 'w') as f: json.dump(sanitize_nan(rel_data), f, indent=4)
+        
+        return True
+    except Exception as e:
+        import traceback
+        print(f"Error processing {slug}: {str(e)}")
+        # Print full traceback on unexpected errors
+        traceback.print_exc()
+        time.sleep(1) # Backoff on failure
+        return False
+
+def get_fast_market_breadth(active_buffer_path):
+    """Optimized: Calculate from existing Parquet instead of 6000 JSONs."""
+    breadth_map = {}
+    if not active_buffer_path or not os.path.exists(active_buffer_path): return {}
+    try:
+        con = duckdb.connect(":memory:")
+        # Read absolute_data to calculate historical breadth
+        data = con.execute(f"SELECT absolute_data FROM '{active_buffer_path}'").fetchall()
+        
+        breadth_counts = {}
+        for row in data:
+            try:
+                abs_json = json.loads(row[0])
+                ohlcv = abs_json.get("OHLCV", [])
+                if len(ohlcv) < 52: continue
+                closes = [c["Close"] for c in ohlcv]
+                for i in range(50, len(ohlcv)):
+                    sma50 = sum(closes[i-50:i]) / 50.0
+                    dt = ohlcv[i]["Date"]
+                    if dt not in breadth_counts: breadth_counts[dt] = [0, 0]
+                    breadth_counts[dt][0] += (1 if closes[i] > sma50 else 0)
+                    breadth_counts[dt][1] += 1
+            except: continue
+        
+        for dt, counts in breadth_counts.items():
+            breadth_map[dt] = counts[0] / counts[1] if counts[1] > 0 else 0.5
+    except: pass
+    return breadth_map
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--target", required=True)
+    parser.add_argument("--slugs", default="stock_slugs.txt")
+    parser.add_argument("--workers", type=int, default=64)
+    parser.add_argument("--limit", type=int)
+    args = parser.parse_args()
+
+    os.makedirs(os.path.join(args.target, "absolute_dataset"), exist_ok=True)
+    os.makedirs(os.path.join(args.target, "relative_dataset"), exist_ok=True)
+
+    if not os.path.exists(args.slugs): return
+    with open(args.slugs, 'r') as f: slugs = [l.strip() for l in f if l.strip()]
+    if args.limit: slugs = slugs[:args.limit]
+
+    fetcher = GrowwFetcher()
+    
+    active_parquet = os.path.realpath("datasets/active/market_data.parquet")
+    print(f"Warming Market Breadth from {active_parquet}...")
+    breadth_map = get_fast_market_breadth(active_parquet)
+    
+    index_map = {}
+    for t in ["NIFTY", "INDIAVIX", "NIFTYSMALLCAP250", "NIFTYMIDCAP150"]:
+        c = fetcher.get_ohlcv(t, "NSE")
+        if c:
+            index_map[t] = [{"Timestamp": x[0]/1000 if x[0]>10**11 else x[0], "Close": x[4]} for x in c]
+
+    print(f"Starting Unified Update with {args.workers} workers...")
+    success = 0
+    with ThreadPoolExecutor(max_workers=args.workers) as executor:
+        futures = {executor.submit(process_stock_unified, s, fetcher, index_map, breadth_map, args): s for s in slugs}
+        for f in tqdm(as_completed(futures), total=len(slugs)):
+            if f.result(): success += 1
+
+    print(f"Unified Ingestion Complete. Success: {success}/{len(slugs)}")
+
+if __name__ == "__main__":
+    main()

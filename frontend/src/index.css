@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+@theme {
+  --color-canvas: #0a0a0c;
+  --color-surface: #141417;
+  --color-surface-hover: #1e1e24;
+  --color-alpha: #10b981;
+  --color-beta: #ef4444;
+  --color-warning: #f59e0b;
+  --color-text-primary: #f8fafc;
+  --color-text-secondary: #94a3b8;
+  --color-border: #27272a;
+}
+
+@layer base {
+  :root {
+    --background: var(--color-canvas);
+    --foreground: var(--color-text-primary);
+  }
+  
+  html {
+    background-color: var(--background);
+    color: var(--foreground);
+    color-scheme: dark;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+  }
+  
+  body {
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media print {
+  /* Hide sidebar and navigation */
+  aside, header, button.print\:hidden {
+    display: none !important;
+  }
+
+  /* Force light theme for printing to save ink */
+  body {
+    background-color: white !important;
+    color: black !important;
+  }
+  
+  .bg-canvas, .bg-surface, .bg-surface-hover {
+    background-color: white !important;
+    border-color: #e5e7eb !important;
+  }
+  
+  .text-text-primary, .text-white {
+    color: black !important;
+  }
+  
+  .text-text-secondary {
+    color: #4b5563 !important;
+  }
+  
+  /* Reset layout to be linear */
+  main {
+    overflow: visible !important;
+    height: auto !important;
+    padding: 0 !important;
+  }
+  
+  .max-w-\[1600px\] {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+  
+  /* Break pages properly */
+  .grid {
+    display: block !important;
+  }
+  
+  .grid > div {
+    page-break-inside: avoid;
+    margin-bottom: 20px;
+    width: 100%;
+  }
+
+  /* Tabs */
+  .border-b.mb-2 {
+    display: none !important;
+  }
+  
+  /* Ensure charts print nicely */
+  .recharts-wrapper {
+    background: white !important;
+  }
+  .recharts-text {
+    fill: black !important;
+  }
+}
