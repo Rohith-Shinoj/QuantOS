@@ -3,7 +3,11 @@ import type { ChatMessage } from '../store/aiStore';
 import { useAIStore } from '../store/aiStore';
 import { useAgentStream } from '../hooks/useAgentStream';
 import { Search, Loader2, AlertTriangle, ExternalLink, ShieldCheck, ShieldAlert, Cpu } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
+import { InfoTooltip } from '../components/InfoTooltip';
+import { 
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, 
+  LineChart, Line, CartesianGrid, ReferenceLine, ScatterChart, Scatter, ZAxis
+} from 'recharts';
 
 export const AIResearchDesk: React.FC = () => {
   const { isProcessing, messages, activeTicker, setActiveTicker } = useAIStore();
@@ -21,11 +25,23 @@ export const AIResearchDesk: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim() || isProcessing) return;
-    const potentialTicker = query.split(' ')[0].toUpperCase();
-    setActiveTicker(potentialTicker);
+    
+    // Smart Ticker Extraction
+    // Look for explicitly typed tickers (all caps, 3-10 chars)
+    const words = query.split(' ');
+    const foundTicker = words.find(w => /^[A-Z]{3,10}$/.test(w));
+    
+    // If we didn't find an explicit ticker, maintain the existing activeTicker
+    // If there is no activeTicker yet, default to a fallback or let backend handle it
+    const newTicker = foundTicker || activeTicker || "UNKNOWN";
+    
+    if (newTicker !== activeTicker) {
+      setActiveTicker(newTicker);
+    }
+    
     const currentQuery = query;
     setQuery('');
-    await streamQuery(potentialTicker, currentQuery);
+    await streamQuery(newTicker, currentQuery);
   };
 
   return (
@@ -99,12 +115,21 @@ const AssistantMessage = ({ payload }: { payload: ChatMessage }) => {
     );
   }
 
+  const [loadingText, setLoadingText] = useState('[ THINKING ]');
+  
+  useEffect(() => {
+    if (isStreaming && !rawString) {
+      const timer = setTimeout(() => setLoadingText('[ COMPILING RESULTS ]'), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [isStreaming, rawString]);
+
   // Phase 1: Intent Routing (Empty String)
   if (isStreaming && !rawString) {
     return (
-      <div className="flex items-center text-xs font-mono text-blue-400 bg-blue-900/10 border border-blue-900/30 px-4 py-2 rounded-full w-max animate-pulse">
+      <div className="flex items-center text-xs font-mono text-blue-400 bg-blue-900/10 border border-blue-900/30 px-4 py-2 rounded-full w-max animate-pulse transition-all duration-300">
         <Cpu className="w-4 h-4 mr-2" />
-        [ STATUS: ROUTING INTENT ]
+        {loadingText}
       </div>
     );
   }
@@ -120,10 +145,15 @@ const AssistantMessage = ({ payload }: { payload: ChatMessage }) => {
 
   if (!parsedData) return null;
 
-  // Graceful Degradation: Filter out metadata and any keys that the LLM returned as null or undefined
-  const keys = Object.keys(parsedData).filter(
-    k => k !== 'metadata' && parsedData[k] !== null && parsedData[k] !== undefined
-  );
+  // Graceful Degradation: Filter out metadata and any keys that the LLM returned as null, undefined, or empty structures
+  const keys = Object.keys(parsedData).filter(k => {
+    if (k === 'metadata') return false;
+    const val = parsedData[k];
+    if (val === null || val === undefined) return false;
+    if (Array.isArray(val) && val.length === 0) return false;
+    if (typeof val === 'object' && Object.keys(val).length === 0) return false;
+    return true;
+  });
   
   if (keys.length === 0) {
      return (
@@ -230,6 +260,16 @@ const ComponentRegistry = ({ componentKey, data }: { componentKey: string, data:
       return <PeerValuation data={data} />;
     case 'macro_stress_test':
       return <MacroStressTest data={data} />;
+    case 'institutional_accumulation_trend':
+      return <InstitutionalAccumulationTrend data={data} />;
+    case 'promoter_pledge_delta_alert':
+      return <PromoterPledgeDeltaAlert data={data} />;
+    case 'quantitative_earnings_quality_scorecard':
+      return <QuantitativeEarningsQualityScorecard data={data} />;
+    case 'shap_global_feature_driver_plot':
+      return <ShapGlobalFeatureDriverPlot data={data} />;
+    case 'cross_sectional_peer_multiples_table':
+      return <CrossSectionalPeerMultiplesTable data={data} />;
     default:
       return <GenericDataRenderer componentKey={componentKey} data={data} />;
   }
@@ -413,3 +453,158 @@ const MacroStressTest = ({ data }: { data: any[] }) => {
     </div>
   );
 };
+
+// ---------------- Newly Added Quantitative Components ---------------- //
+
+const InstitutionalAccumulationTrend = ({ data }: { data: any }) => {
+  return (
+    <div className="bg-gradient-to-br from-blue-900/20 to-black/40 p-6 rounded-xl border border-blue-900/30">
+      <h3 className="text-sm font-semibold text-blue-400 mb-6 flex items-center uppercase tracking-wider">
+        <ShieldCheck className="w-4 h-4 mr-2" />
+        Institutional Accumulation Trend
+      </h3>
+      <div className="grid grid-cols-2 gap-6">
+        <div className="bg-black/30 p-5 rounded-lg border border-gray-800/50 flex flex-col items-center justify-center">
+          <p className="text-xs text-gray-400 mb-2 uppercase tracking-wide">Net Flow Strength</p>
+          <p className="text-xl font-bold text-emerald-400">{data.net_flow_str}</p>
+        </div>
+        <div className="bg-black/30 p-5 rounded-lg border border-gray-800/50 flex flex-col items-center justify-center">
+          <p className="text-xs text-gray-400 mb-2 uppercase tracking-wide">Overall Trend</p>
+          <p className="text-xl font-bold text-blue-300">{data.trend}</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const PromoterPledgeDeltaAlert = ({ data }: { data: any }) => {
+  const isHighRisk = data.risk_level?.toLowerCase().includes('high') || data.risk_level?.toLowerCase().includes('critical');
+  return (
+    <div className={`p-6 rounded-xl border ${isHighRisk ? 'bg-red-900/10 border-red-900/50' : 'bg-emerald-900/10 border-emerald-900/30'}`}>
+      <h3 className={`text-sm font-semibold mb-6 flex items-center uppercase tracking-wider ${isHighRisk ? 'text-red-400' : 'text-emerald-400'}`}>
+        {isHighRisk ? <ShieldAlert className="w-4 h-4 mr-2" /> : <ShieldCheck className="w-4 h-4 mr-2" />}
+        Promoter Pledge Delta Alert
+      </h3>
+      <div className="flex items-center justify-between bg-black/40 p-5 rounded-lg border border-gray-800/50">
+        <div className="text-center">
+          <p className="text-xs text-gray-400 mb-1">Total Pledged (%)</p>
+          <p className="text-2xl font-bold text-gray-100">{data.pledged_pct}%</p>
+        </div>
+        <div className="text-center">
+          <p className="text-xs text-gray-400 mb-1">Recent Change (%)</p>
+          <p className={`text-2xl font-bold ${data.change_pct > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+            {data.change_pct > 0 ? '+' : ''}{data.change_pct}%
+          </p>
+        </div>
+        <div className="text-center">
+          <p className="text-xs text-gray-400 mb-1">Risk Level</p>
+          <p className={`text-lg font-bold px-3 py-1 rounded-full ${isHighRisk ? 'bg-red-900/50 text-red-300' : 'bg-emerald-900/50 text-emerald-300'}`}>
+            {data.risk_level}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const QuantitativeEarningsQualityScorecard = ({ data }: { data: any }) => {
+  return (
+    <div className="bg-gray-900/30 p-6 rounded-xl border border-gray-800 relative">
+      <div className="absolute top-6 right-6">
+        <InfoTooltip text="QES (Quantitative Earnings Quality Score) measures how much of a company's reported earnings are backed by actual cash flow versus accounting adjustments. A higher score means higher quality, more reliable earnings." />
+      </div>
+      <h3 className="text-sm font-semibold text-purple-400 mb-6 flex items-center uppercase tracking-wider">
+        <Cpu className="w-4 h-4 mr-2" />
+        Quantitative Earnings Quality
+      </h3>
+      <p className="text-xs text-gray-500 mb-6 w-3/4 leading-relaxed">
+        Measures the sustainability and cash-conversion of reported earnings. High quality indicates earnings are backed by hard cash flow rather than accounting accruals.
+      </p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <p className="text-xs text-gray-500 mb-1">QES Score</p>
+          <p className="text-4xl font-black text-gray-100">{data.qes_score}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-xs text-gray-500 mb-1">Quality Tier</p>
+          <p className="text-xl font-semibold text-purple-300">{data.quality_tier}</p>
+        </div>
+      </div>
+      {Array.isArray(data?.flags) && data.flags.length > 0 && (
+        <div className="bg-red-900/20 border border-red-900/30 p-4 rounded-lg">
+          <p className="text-xs text-red-400 font-semibold mb-2">RED FLAGS DETECTED</p>
+          <ul className="list-disc list-inside text-sm text-red-300/80 space-y-1">
+            {data.flags.map((flag: string, i: number) => <li key={i}>{flag}</li>)}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ShapGlobalFeatureDriverPlot = ({ data }: { data: any }) => {
+  const chartData = Array.isArray(data) ? data : [];
+  return (
+    <div className="bg-black/20 p-6 rounded-xl border border-gray-800/50">
+      <h3 className="text-sm font-semibold text-indigo-400 mb-6 uppercase tracking-wider">
+        SHAP Global Feature Driver Plot
+      </h3>
+      
+      {chartData.length === 0 ? (
+        <div className="h-64 w-full flex flex-col items-center justify-center border border-dashed border-gray-800 rounded-lg bg-black/10">
+          <p className="text-gray-500 font-medium">No ML feature driver data available for this equity.</p>
+          <p className="text-gray-600 text-xs mt-2">The quantitative pipeline did not generate SHAP values for this ticker.</p>
+        </div>
+      ) : (
+        <div className="h-64 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+            <XAxis type="number" stroke="#4B5563" fontSize={12} tickFormatter={(val) => val.toFixed(2)} />
+            <YAxis dataKey="feature" type="category" width={120} stroke="#9CA3AF" fontSize={11} />
+            <Tooltip 
+              contentStyle={{ backgroundColor: '#111827', border: '1px solid #374151', borderRadius: '8px' }}
+              itemStyle={{ color: '#E5E7EB' }}
+            />
+            <ReferenceLine x={0} stroke="#4B5563" />
+            <Bar dataKey="contribution" radius={[0, 4, 4, 0]}>
+              {chartData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.contribution > 0 ? '#10B981' : '#EF4444'} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      )}
+    </div>
+  );
+};
+
+const CrossSectionalPeerMultiplesTable = ({ data }: { data: any }) => {
+  const peers = Array.isArray(data) ? data : [];
+  return (
+    <div className="bg-gray-900/20 rounded-xl border border-gray-800 overflow-hidden">
+      <h3 className="text-sm font-semibold text-gray-300 p-5 border-b border-gray-800 uppercase tracking-wider">
+        Cross-Sectional Peer Multiples
+      </h3>
+      <table className="w-full text-sm text-left">
+        <thead className="bg-black/40 text-gray-400 uppercase text-xs">
+          <tr>
+            <th className="px-6 py-3">Ticker</th>
+            <th className="px-6 py-3">P/E Ratio</th>
+            <th className="px-6 py-3">Alpha Score (if any)</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-800/50">
+          {peers.map((peer, i) => (
+            <tr key={i} className="hover:bg-white/5 transition-colors">
+              <td className="px-6 py-4 font-medium text-blue-400">{peer.ticker}</td>
+              <td className="px-6 py-4 text-gray-300">{peer.pe_ratio || peer.pb_ratio || 'N/A'}</td>
+              <td className="px-6 py-4 text-gray-300">{peer.alpha_score !== undefined ? peer.alpha_score : 'N/A'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+

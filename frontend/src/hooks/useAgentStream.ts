@@ -34,10 +34,16 @@ export const useAgentStream = () => {
     let accumulator = "";
 
     try {
+      // Build history payload from current messages
+      const history = useAIStore.getState().messages.map(m => ({
+        role: m.role,
+        content: m.rawString
+      })).slice(-10); // Keep last 10 messages for context
+
       const response = await fetch('http://localhost:8000/api/agent/research', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ticker, query })
+        body: JSON.stringify({ ticker, query, history })
       });
 
       const reader = response.body?.getReader();
