@@ -7,7 +7,10 @@ import numpy as np
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-load_dotenv()
+env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
+load_dotenv(dotenv_path=env_path, override=True)
+
+from agent_api import router as agent_router
 
 app = FastAPI(title="Quant Dashboard API")
 
@@ -18,6 +21,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(agent_router)
 
 # Use absolute path to resolve the symlink relative to this file
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

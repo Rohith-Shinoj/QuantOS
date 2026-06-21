@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, ChevronRight, BarChart2, Info, TrendingUp, TrendingDown, ArrowRight, Activity, ArrowUpRight } from 'lucide-react';
+import { Search, ChevronRight, BarChart2, Info, TrendingUp, TrendingDown, ArrowRight, Activity, ArrowUpRight, BrainCircuit } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchAllStocks, fetchStockData, fetchMacroData } from '../api';
 import Chart from 'react-apexcharts';
@@ -753,6 +753,9 @@ export const LandingPage = () => {
           </form>
         </div>
         <div className="flex gap-6 items-center">
+          <Link to="/ai-research" className="flex items-center gap-2 px-4 py-2 bg-indigo-500/10 text-indigo-400 font-bold rounded-lg border border-indigo-500/30 hover:bg-indigo-500/20 transition-all shadow-[0_0_15px_rgba(99,102,241,0.2)]">
+            <BrainCircuit size={16} /> AI Research Desk
+          </Link>
           <Link to="/" className="text-sm font-bold text-text-primary hover:text-alpha transition-colors">Products</Link>
           <Link to="/screener" className="text-sm font-bold text-text-secondary hover:text-white transition-colors">Screener</Link>
           <Link to="/portfolio" className="text-sm font-bold text-text-secondary hover:text-white transition-colors">Portfolio</Link>

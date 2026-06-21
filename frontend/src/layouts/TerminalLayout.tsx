@@ -2,9 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
 import type { PanelImperativeHandle as ImperativePanelHandle } from 'react-resizable-panels';
-import { Search, Maximize2, Minimize2, Activity, Hexagon, Target, Settings, ActivitySquare, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { Search, Maximize2, Minimize2, Activity, Hexagon, Target, Settings, ActivitySquare, ArrowUpRight, ArrowDownRight, BrainCircuit } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useAppStore } from '../store';
+import { AIAssistantOverlay } from '../components/AIAssistantOverlay';
 
 import { PriceChart } from '../pages/CompanySnapshot/PriceChart';
 import { DeepFinancials } from '../pages/CompanySnapshot/DeepFinancials';
@@ -88,6 +89,7 @@ export const TerminalLayout = () => {
   // Panel Refs for imperative sizing (Max/Min)
   const bottomPanelRef = useRef<ImperativePanelHandle>(null);
   const [isBottomMaximized, setIsBottomMaximized] = useState(false);
+  const [isAIOverlayOpen, setIsAIOverlayOpen] = useState(false);
 
   const [rightTab, setRightTab] = useState<'watchlist'|'peers'>('watchlist');
 
@@ -153,6 +155,15 @@ export const TerminalLayout = () => {
           >
             Deep Financials
           </button>
+          
+          <div className="h-6 w-[1px] bg-border mx-2 self-center"></div>
+          
+          <button 
+            onClick={() => setIsAIOverlayOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-500/20 transition-all shadow-[0_0_10px_rgba(99,102,241,0.15)]"
+          >
+            <BrainCircuit size={14} /> AI Memo
+          </button>
         </div>
 
         <div className="flex items-center gap-4">
@@ -177,7 +188,8 @@ export const TerminalLayout = () => {
         </div>
 
         {/* Resizable Grid */}
-        <div className="flex-1 w-full h-full">
+        <div className="flex-1 w-full h-full relative">
+          <AIAssistantOverlay ticker={abs?.ticker} isOpen={isAIOverlayOpen} onClose={() => setIsAIOverlayOpen(false)} />
           <PanelGroup orientation="horizontal">
             
             {/* Left/Center Column (Chart + Bottom Panel) */}

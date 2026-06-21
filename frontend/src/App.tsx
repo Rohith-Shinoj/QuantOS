@@ -11,6 +11,7 @@ import { PairTrading } from './pages/PairTrading';
 import { PortfolioTracker } from './pages/PortfolioTracker';
 import { Watchlists } from './pages/Watchlists';
 import { LandingPage } from './pages/LandingPage';
+import { AIResearchDesk } from './pages/AIResearchDesk';
 import { TerminalLayout } from './layouts/TerminalLayout';
 import { useAppStore } from './store';
 
@@ -100,6 +101,10 @@ const Layout = () => {
             <LayoutDashboard size={20} className="shrink-0" />
             <span className="text-sm font-medium hidden lg:block">Home</span>
           </Link>
+          <Link to="/ai-research" className="flex items-center gap-3 px-3 py-2.5 rounded-md bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 transition-colors group border border-indigo-500/20">
+            <Activity size={20} className="shrink-0" />
+            <span className="text-sm font-medium hidden lg:block">AI Research Desk</span>
+          </Link>
           <Link to="/overview" className="flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-surface-hover text-text-secondary hover:text-text-primary transition-colors group">
             <Activity size={20} className="shrink-0" />
             <span className="text-sm font-medium hidden lg:block">Macro Overview</span>
@@ -153,6 +158,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<LandingPage />} />
+          <Route path="ai-research" element={<AIResearchDesk />} />
           <Route path="overview" element={<MarketOverview />} />
           <Route path="heatmap" element={<MarketHeatmap />} />
           <Route path="screener" element={<Screener />} />
