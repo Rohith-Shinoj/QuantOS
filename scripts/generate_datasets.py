@@ -483,6 +483,7 @@ def extract_ticker(header):
     # Pass 1: Alphabetic
     for k in keys:
         val = header.get(k)
+        # if val == ""
         if val and not str(val).isdigit(): return str(val).strip()
     # Pass 2: Numeric
     for k in keys:

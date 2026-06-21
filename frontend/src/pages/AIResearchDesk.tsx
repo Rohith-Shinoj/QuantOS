@@ -168,7 +168,7 @@ const AssistantMessage = ({ payload }: { payload: ChatMessage }) => {
   // Graceful Degradation: Filter out metadata and any keys that the LLM returned as null, undefined, or empty structures
   const keys = Object.keys(parsedData).filter(k => {
     if (k === 'metadata') return false;
-    const val = parsedData[k];
+    const val = (parsedData as any)[k];
     if (val === null || val === undefined) return false;
     if (Array.isArray(val) && val.length === 0) return false;
     if (typeof val === 'object' && Object.keys(val).length === 0) return false;

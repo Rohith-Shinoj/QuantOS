@@ -6,6 +6,9 @@ import json
 import numpy as np
 from pydantic import BaseModel
 from dotenv import load_dotenv
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
+from dotenv import load_dotenv
 
 env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
 load_dotenv(dotenv_path=env_path, override=True)
@@ -490,16 +493,148 @@ async def analyze_portfolio(request: PortfolioRequest):
                         for i, weight in enumerate(opt.x):
                             if weight > 0.01:
                                 optimal_weights.append({"ticker": valid_results[i]["ticker"], "weight": round(weight * 100, 2)})
-            except: pass
-
+            except Exception:
+                pass
+                
         return {
             "portfolio_risk_score": avg_risk,
             "stock_analysis": results,
+            "concentration_warnings": concentration_warnings,
             "swap_recommendations": swaps,
-            "optimal_weights": optimal_weights,
-            "concentration_warnings": concentration_warnings
+            "optimal_weights": optimal_weights
         }
     except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+class PortfolioHolding(BaseModel):
+    slug: str
+    amount: float
+
+class PortfolioAIRequest(BaseModel):
+    holdings: list[PortfolioHolding]
+    risk_tolerance: str
+    history: list = []
+    message: str = ""
+
+@app.post("/api/portfolio/ai-analyze")
+async def ai_analyze_portfolio(req: PortfolioAIRequest):
+    try:
+        con = get_db()
+        total_value = sum(h.amount for h in req.holdings)
+        if total_value <= 0:
+            raise HTTPException(status_code=400, detail="Total portfolio value must be greater than 0")
+
+        # Gather data and calculate weights
+        portfolio_data = []
+        for h in req.holdings:
+            stock = con.execute("SELECT ticker, name, industry, pe_ratio, alpha_score, volatility_squeeze FROM stocks WHERE slug = ?", (h.slug,)).fetchone()
+            if stock:
+                weight = (h.amount / total_value) * 100
+                portfolio_data.append({
+                    "ticker": stock[0],
+                    "name": stock[1],
+                    "industry": stock[2],
+                    "pe_ratio": stock[3],
+                    "alpha_score": stock[4],
+                    "volatility_squeeze": stock[5],
+                    "amount_inr": h.amount,
+                    "weight_pct": round(weight, 2)
+                })
+
+        # Call Gemini
+        llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.1)
+        
+        system_prompt = """You are a Chief Investment Officer. Analyze the provided portfolio data.
+You MUST output strictly in JSON format matching this schema exactly, with NO markdown wrappers:
+{
+  "portfolio_risk_score": 0,
+  "profile_alignment": "MATCH | DEVIATION",
+  "concentration_analysis": {
+    "risk_level": "LOW | MODERATE | HIGH",
+    "vulnerable_sectors": ["STR"]
+  },
+  "macro_exposures": [
+    {"factor": "STR", "impact": "STR"}
+  ],
+  "asset_action_plan": [
+    {"asset": "STR", "action": "TRIM | ACCUMULATE | HOLD | LIQUIDATE", "justification": "STR"}
+  ],
+  "strategic_verdict": "STR"
+}"""
+        
+        user_prompt = f"User Risk Tolerance: {req.risk_tolerance}\n\nPortfolio Data:\n{json.dumps(portfolio_data, indent=2)}"
+        
+        messages = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=user_prompt)
+        ]
+        
+        response = await llm.ainvoke(messages)
+        
+        # Clean potential markdown wrappers
+        content = response.content
+        if content.startswith("```json"):
+            content = content[7:]
+        if content.startswith("```"):
+            content = content[3:]
+        if content.endswith("```"):
+            content = content[:-3]
+            
+        return json.loads(content.strip())
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/portfolio/chat")
+async def portfolio_chat(req: PortfolioAIRequest):
+    try:
+        con = get_db()
+        total_value = sum(h.amount for h in req.holdings)
+        
+        portfolio_data = []
+        if total_value > 0:
+            for h in req.holdings:
+                stock = con.execute("SELECT ticker, name, industry FROM stocks WHERE slug = ?", (h.slug,)).fetchone()
+                if stock:
+                    weight = (h.amount / total_value) * 100
+                    portfolio_data.append({
+                        "ticker": stock[0],
+                        "name": stock[1],
+                        "industry": stock[2],
+                        "amount_inr": h.amount,
+                        "weight_pct": round(weight, 2)
+                    })
+
+        llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.3)
+        
+        system_prompt = f"""You are a Chief Investment Officer providing advice to a client.
+Their risk tolerance is: {req.risk_tolerance}.
+Their current portfolio:
+{json.dumps(portfolio_data, indent=2)}
+
+Answer the client's questions directly and concisely."""
+
+        messages = [SystemMessage(content=system_prompt)]
+        
+        for msg in req.history:
+            if msg.get("role") == "user":
+                messages.append(HumanMessage(content=msg.get("content", "")))
+            else:
+                messages.append(AIMessage(content=msg.get("content", "")))
+                
+        messages.append(HumanMessage(content=req.message))
+        
+        response = await llm.ainvoke(messages)
+        
+        return {"response": response.content}
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.websocket("/ws")

@@ -37,3 +37,26 @@ export const fetchPortfolioAnalysis = async (slugs: string[]) => {
   });
   return response.data;
 };
+
+export interface PortfolioHolding {
+  slug: string;
+  amount: number;
+}
+
+export const fetchPortfolioAIAnalysis = async (holdings: PortfolioHolding[], riskTolerance: string) => {
+  const response = await axios.post(`${API_BASE_URL}/portfolio/ai-analyze`, {
+    holdings,
+    risk_tolerance: riskTolerance
+  });
+  return response.data;
+};
+
+export const sendPortfolioChat = async (holdings: PortfolioHolding[], riskTolerance: string, message: string, history: any[]) => {
+  const response = await axios.post(`${API_BASE_URL}/portfolio/chat`, {
+    holdings,
+    risk_tolerance: riskTolerance,
+    message,
+    history
+  });
+  return response.data;
+};
