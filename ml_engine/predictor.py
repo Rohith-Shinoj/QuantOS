@@ -10,7 +10,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 def run_inference(db_path, parquet_path):
-    print(f"🔍 Running Inference on {db_path}...")
+    print(f"Running Inference on {db_path}...")
     
     # Load Models
     model_dir = "ml_engine/models"
@@ -20,7 +20,7 @@ def run_inference(db_path, parquet_path):
         aud_model = joblib.load(os.path.join(model_dir, "auditor.pkl"))
         meta_model = joblib.load(os.path.join(model_dir, "meta_learner.pkl"))
     except Exception as e:
-        print(f"❌ Failed to load models: {e}. Run trainer.py first.")
+        print(f"Failed to load models: {e}. Run trainer.py first.")
         return
 
     fundamental_feats = ['pe_ratio', 'debt_to_equity', 'return_on_equity', 'net_profit_margin', 'equity_multiplier', 'sustainable_growth_rate', 'revenue_yoy', 'profit_yoy']
@@ -71,10 +71,10 @@ def run_inference(db_path, parquet_path):
     # Meta Learner Forward 1Y Alpha Probability
     df['alpha_score'] = meta_model.predict_proba(meta_X)[:, 1]
     
-    # 🚨 FORENSIC VETO: If Auditor signals High Risk (> 0.70), veto the Alpha Score
+    # FORENSIC VETO: If Auditor signals High Risk (> 0.70), veto the Alpha Score
     df.loc[p_aud > 0.70, 'alpha_score'] = 0.01 
     
-    # 📉 REGIME ADAPTATION: Adjust alpha based on macro market fear
+    # REGIME ADAPTATION: Adjust alpha based on macro market fear
     # Extract macro regime from the relative_data of a stable index or large cap (like NIFTY proxy)
     # We can just look at the first row's regime since it's the same market environment for all
     try:
@@ -103,7 +103,7 @@ def run_inference(db_path, parquet_path):
     shap_indices = list(range(0, top_20_idx)) + list(range(bottom_10_idx, n_total))
     df_shap = df.iloc[shap_indices].copy()
     
-    print(f"🧠 Calculating SHAP values for {len(df_shap)} high-signal candidates...")
+    print(f"Calculating SHAP values for {len(df_shap)} high-signal candidates...")
     
     # Use TreeExplainer with approximate=True for speed
     explainer_str = shap.TreeExplainer(str_model)
@@ -156,7 +156,7 @@ def run_inference(db_path, parquet_path):
     df.fillna("", inplace=True) # Blank for stocks that didn't get SHAP
     
     # Update DuckDB
-    print("💾 Persisting scores to DuckDB...")
+    print("Persisting scores to DuckDB...")
     
     # We can create a temp table and update
     con.execute("CREATE TEMP TABLE update_data AS SELECT * FROM df")
@@ -171,11 +171,11 @@ def run_inference(db_path, parquet_path):
         WHERE stocks.slug = update_data.slug
     """)
     
-    print(f"📦 Exporting enriched data back to Parquet: {parquet_path}")
+    print(f"Exporting enriched data back to Parquet: {parquet_path}")
     con.execute(f"COPY stocks TO '{parquet_path}' (FORMAT PARQUET)")
     
     con.close()
-    print("✅ Predictor execution complete.")
+    print("Predictor execution complete.")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Predictive Intelligence Inference Layer")

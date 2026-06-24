@@ -6,7 +6,7 @@ import duckdb
 import joblib
 
 def run_backtest(snapshot_dir="datasets/snapshots", model_dir="ml_engine/models"):
-    print("📈 Initiating Institutional Walk-Forward Backtest...")
+    print("Initiating Institutional Walk-Forward Backtest...")
     
     files = sorted(glob.glob(os.path.join(snapshot_dir, "snapshot_*.parquet")))
     if len(files) < 2:
@@ -20,7 +20,7 @@ def run_backtest(snapshot_dir="datasets/snapshots", model_dir="ml_engine/models"
         aud_model = joblib.load(os.path.join(model_dir, "auditor.pkl"))
         meta_model = joblib.load(os.path.join(model_dir, "meta_learner.pkl"))
     except:
-        print("❌ Models not found. Train models first.")
+        print("Models not found. Train models first.")
         return
 
     fundamental_feats = ['pe_ratio', 'debt_to_equity', 'return_on_equity', 'net_profit_margin', 'equity_multiplier', 'sustainable_growth_rate', 'revenue_yoy', 'profit_yoy']
@@ -119,12 +119,12 @@ def run_backtest(snapshot_dir="datasets/snapshots", model_dir="ml_engine/models"
         print(f"   - Benchmark Return:  {period_benchmark_return*100:.2f}%")
         print(f"   - Alpha Generated:   {alpha:+.2f}%")
         print(f"   - Win Rate:          {hit_rate:.1f}%")
-        print(f"   🎲 Monte Carlo Check:")
+        print(f"   Monte Carlo Check:")
         print(f"      - Random Mean:    {mc_mean*100:.2f}%")
         print(f"      - AI Beat Prob:   {mc_win_prob:.1f}% (AI vs 1000 Random Portfolios)")
         print("-" * 50)
         
-    print(f"\n📊 CUMULATIVE PERFORMANCE")
+    print(f"\nCUMULATIVE PERFORMANCE")
     print(f"   - Total Portfolio Return: {(cumulative_portfolio_return - 1)*100:.2f}%")
     print(f"   - Total Benchmark Return: {(cumulative_benchmark_return - 1)*100:.2f}%")
     print(f"   - Total Alpha:            {((cumulative_portfolio_return - cumulative_benchmark_return)*100):+.2f}%")
@@ -142,7 +142,7 @@ def run_backtest(snapshot_dir="datasets/snapshots", model_dir="ml_engine/models"
     with open("datasets/reports/backtest_summary.json", 'w') as f:
         import json
         json.dump(report, f, indent=4)
-    print("✅ Backtest report saved to datasets/reports/backtest_summary.json")
+    print("Backtest report saved to datasets/reports/backtest_summary.json")
     
     con.close()
 

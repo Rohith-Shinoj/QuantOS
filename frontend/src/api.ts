@@ -60,3 +60,8 @@ export const sendPortfolioChat = async (holdings: PortfolioHolding[], riskTolera
   });
   return response.data;
 };
+
+export const fetchMutualFunds = async (params: { page?: number, limit?: number, category?: string, sort_by?: string, sort_order?: string } = {}) => {
+  const response = await axios.get(`${API_BASE_URL}/mutual_funds`, { params });
+  return response.data;
+};

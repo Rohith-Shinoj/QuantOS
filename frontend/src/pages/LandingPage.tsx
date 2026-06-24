@@ -822,9 +822,9 @@ export const LandingPage = () => {
       {/* Navbar */}
       <div className="w-full px-6 lg:px-12 py-4 flex justify-between items-center border-b border-border bg-surface z-50 sticky top-0">
         <div className="flex items-center gap-8">
-          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-            <BarChart2 className="text-alpha" /> QUANT<span className="text-alpha">OS</span>
-          </h1>
+          <div className="flex items-center">
+            <img src="/logo-nobg.png" alt="Finugreek" className="h-10 w-auto object-contain" />
+          </div>
           <div className="relative hidden md:block w-64" onBlur={(e) => {
              // Delay hiding to allow click event to fire on dropdown items
              if (!e.currentTarget.contains(e.relatedTarget)) {

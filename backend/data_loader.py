@@ -136,7 +136,15 @@ def init_db(target_dir):
     print(f"Exporting to {duckdb_path}...")
     if os.path.exists(duckdb_path): os.remove(duckdb_path)
     con.execute(f"ATTACH '{duckdb_path}' AS db; CREATE TABLE db.stocks AS SELECT * FROM stocks; DETACH db;")
-    
+    # Mutual Funds Processing
+    mf_json_path = os.path.join(target_dir, "mutual_funds.json")
+    if os.path.exists(mf_json_path):
+        print("Processing Mutual Funds...")
+        mf_parquet_path = os.path.join(target_dir, "mutual_funds.parquet")
+        con.execute(f"CREATE TABLE mutual_funds AS SELECT * FROM read_json_auto('{mf_json_path}', maximum_object_size=33554432)")
+        print(f"Exporting Mutual Funds to {mf_parquet_path}...")
+        con.execute(f"COPY mutual_funds TO '{mf_parquet_path}' (FORMAT PARQUET)")
+        
     print(f"Parquet and DuckDB generation complete.")
     con.close()
 

@@ -30,6 +30,7 @@ app.include_router(agent_router)
 # Use absolute path to resolve the symlink relative to this file
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.realpath(os.path.join(BASE_DIR, "datasets/active/market_data.parquet"))
+MF_DB_PATH = os.path.realpath(os.path.join(BASE_DIR, "datasets/active/mutual_funds.parquet"))
 ADMIN_TOKEN = os.getenv("ADMIN_TOKEN")
 
 # Global connection to be reused/reloaded
@@ -43,6 +44,8 @@ def get_db():
         _db_con = duckdb.connect(":memory:")
         # We can also create a view to make queries cleaner
         _db_con.execute(f"CREATE OR REPLACE VIEW stocks AS SELECT * FROM '{DB_PATH}'")
+        if os.path.exists(MF_DB_PATH):
+            _db_con.execute(f"CREATE OR REPLACE VIEW mutual_funds AS SELECT * FROM '{MF_DB_PATH}'")
     return _db_con
 
 def verify_admin_token(x_admin_token: str = Header(...)):
@@ -51,7 +54,7 @@ def verify_admin_token(x_admin_token: str = Header(...)):
 
 @app.post("/api/admin/reload_db")
 def reload_db(token: str = Depends(verify_admin_token)):
-    global _db_con, _search_cache, DB_PATH
+    global _db_con, _search_cache, DB_PATH, MF_DB_PATH
     try:
         # For Parquet, just refresh the view on the same in-memory connection 
         # or recreate the connection to be safe.
@@ -61,6 +64,7 @@ def reload_db(token: str = Depends(verify_admin_token)):
         
         # Resolve the new symlink target using absolute path
         DB_PATH = os.path.realpath(os.path.join(BASE_DIR, "datasets/active/market_data.parquet"))
+        MF_DB_PATH = os.path.realpath(os.path.join(BASE_DIR, "datasets/active/mutual_funds.parquet"))
         
         # Clear cache
         _search_cache = []
@@ -271,7 +275,7 @@ async def analyze_pair(request: PairRequest):
             time_str = f"{parts[2]}-{parts[1]}-{parts[0]}"
             
             chart_data.append({"time": time_str, "value": float(z_score)})
-            price_series_a.append({"time": time_str, "value": ((d["price_a"] / base_a) - 1) * 100 if base_a > 0 else 0})
+            price_series_a.append({"time": time_str, "value": ((d["price_a"] / base_a) - 1) * 100})
             price_series_b.append({"time": time_str, "value": ((d["price_b"] / base_b) - 1) * 100 if base_b > 0 else 0})
 
         current_z = chart_data[-1]["value"]
@@ -646,3 +650,54 @@ async def websocket_endpoint(websocket: WebSocket):
             await websocket.send_text(f"Echo: {data}")
     except:
         pass
+
+@app.get("/api/mutual_funds")
+def get_mutual_funds(
+    page: int = 1,
+    limit: int = 50,
+    category: str = None,
+    sort_by: str = "aum",
+    sort_order: str = "desc"
+):
+    try:
+        db = get_db()
+        offset = (page - 1) * limit
+        
+        # Build query
+        query = "SELECT * FROM mutual_funds"
+        count_query = "SELECT COUNT(*) FROM mutual_funds"
+        
+        conditions = []
+        if category and category != 'undefined':
+            conditions.append(f"category = '{category}'")
+            
+        if conditions:
+            where_clause = " WHERE " + " AND ".join(conditions)
+            query += where_clause
+            count_query += where_clause
+            
+        # Add sorting
+        valid_sort_columns = ['aum', 'expense_ratio', 'return1y', 'return3y', 'groww_rating']
+        if sort_by in valid_sort_columns:
+            order = "ASC" if sort_order.lower() == "asc" else "DESC"
+            query += f" ORDER BY {sort_by} {order} NULLS LAST"
+            
+        # Add pagination
+        query += f" LIMIT {limit} OFFSET {offset}"
+        
+        df = db.execute(query).df()
+        total_count = db.execute(count_query).fetchone()[0]
+        
+        # Safely convert Pandas DataFrame (with nested structs/arrays) to pure Python dicts
+        import json
+        records = json.loads(df.to_json(orient="records", date_format="iso"))
+        
+        return {
+            "total": total_count,
+            "page": page,
+            "limit": limit,
+            "data": records
+        }
+    except Exception as e:
+        print(f"Error fetching mutual funds: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

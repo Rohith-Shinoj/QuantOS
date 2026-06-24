@@ -224,7 +224,7 @@ def synthesize_snapshot(target_dir, snapshot_date):
         """)
         
         con.execute(f"COPY stocks TO '{snapshot_path}' (FORMAT PARQUET)")
-        print(f"✅ Exported to {snapshot_path}")
+        print(f"Exported to {snapshot_path}")
     con.close()
 
 if __name__ == "__main__":

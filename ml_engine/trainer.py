@@ -23,7 +23,7 @@ class QuantEnsembleTrainer:
         self.forensic_feats = ['qes_flag', 'tax_divergence', 'pledge_delta']
 
     def build_panel(self):
-        print("🔨 Constructing Historical Panel and Forward Targets...")
+        print("Constructing Historical Panel and Forward Targets...")
         files = sorted(glob.glob(os.path.join(self.snapshot_dir, "snapshot_*.parquet")))
         if len(files) < 2:
             print("⚠️ Insufficient snapshots for training (need at least 2 with ~1-year gap).")
@@ -94,7 +94,7 @@ class QuantEnsembleTrainer:
         con.close()
         
         if not training_frames:
-            print("❌ No valid training pairs found.")
+            print("No valid training pairs found.")
             return None, None
             
         full_panel = pd.concat(training_frames, ignore_index=True)
@@ -103,11 +103,11 @@ class QuantEnsembleTrainer:
         # XGBoost handles NaNs natively. We only fill categorical flags.
         full_panel['qes_flag'] = full_panel['qes_flag'].fillna(0)
         
-        print(f"✅ Panel constructed with {len(full_panel)} samples.")
+        print(f"Panel constructed with {len(full_panel)} samples.")
         return full_panel, full_panel['target']
 
     def train_committee(self, X, y):
-        print("🚀 Training Committee of Experts with Hyperparameter Optimization...")
+        print("Training Committee of Experts with Hyperparameter Optimization...")
         
         from sklearn.impute import SimpleImputer
         from sklearn.pipeline import Pipeline
@@ -175,12 +175,12 @@ class QuantEnsembleTrainer:
         joblib.dump(meta_model, os.path.join(self.model_dir, "meta_learner.pkl"))
         
         # Feature Pruning Diagnostic
-        print("\n📈 Model Insight (Feature Importance):")
+        print("\nModel Insight (Feature Importance):")
         importances = str_best.feature_importances_
         for feat, imp in zip(self.momentum_feats, importances):
             print(f"    {feat}: {imp:.4f}")
             
-        print("✅ Phase 4: Committee optimized and persisted.")
+        print("Phase 4: Committee optimized and persisted.")
 
 if __name__ == "__main__":
     trainer = QuantEnsembleTrainer()

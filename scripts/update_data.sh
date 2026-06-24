@@ -23,9 +23,13 @@ echo "Step 2: Syncing existing data to inactive buffer..."
 rsync -a --delete "datasets/$CURRENT_TARGET/" "datasets/$INACTIVE_BUFFER/"
 
 # Step 3: Unified Data Generation
-echo "Step 3: Running unified parallel data generation..."
+echo "Step 3: Running unified parallel data generation for stocks..."
 python3 scripts/generate_datasets.py --target "datasets/$INACTIVE_BUFFER" --workers 16
-echo "Data generation complete."
+echo "Stock data generation complete."
+
+echo "Step 3.5: Running data generation for mutual funds..."
+python3 scripts/generate_mf_datasets.py --target "datasets/$INACTIVE_BUFFER"
+echo "Mutual fund data generation complete."
 
 # Step 4: Shadow Ingestion
 echo "Step 4: Compiling Parquet file..."

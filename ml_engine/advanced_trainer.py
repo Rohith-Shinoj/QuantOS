@@ -60,7 +60,7 @@ class AdvancedQuantTrainer:
             return np.nan
 
     def build_panel(self):
-        print("🔨 Constructing Advanced Historical Panel with Microstructure Factors...")
+        print("Constructing Advanced Historical Panel with Microstructure Factors...")
         files = sorted(glob.glob(os.path.join(self.snapshot_dir, "snapshot_*.parquet")))
         if len(files) < 2:
             print("⚠️ Insufficient snapshots for training (need at least 2 with ~1-year gap).")
@@ -139,7 +139,7 @@ class AdvancedQuantTrainer:
         con.close()
         
         if not training_frames:
-            print("❌ No valid training pairs found.")
+            print("No valid training pairs found.")
             return None
             
         full_panel = pd.concat(training_frames, ignore_index=True)
@@ -147,11 +147,11 @@ class AdvancedQuantTrainer:
         # Missing data imputation specific to factor types
         full_panel['qes_flag'] = full_panel['qes_flag'].fillna(0)
         
-        print(f"✅ Advanced Panel constructed with {len(full_panel)} samples.")
+        print(f"Advanced Panel constructed with {len(full_panel)} samples.")
         return full_panel
 
     def train_hmm_regime(self, panel):
-        print("🧠 Fitting Gaussian HMM Market Regime Overlay...")
+        print("Fitting Gaussian HMM Market Regime Overlay...")
         
         # We proxy market regime by looking at the cross-sectional median of volatility & returns per snapshot
         regime_data = panel.groupby('snapshot_date').agg({
@@ -174,7 +174,7 @@ class AdvancedQuantTrainer:
         states = hmm_model.predict(X_hmm)
         regime_data['hmm_state'] = states
         
-        print(f"✅ HMM Fitted. Found {len(set(states))} distinct regimes.")
+        print(f"HMM Fitted. Found {len(set(states))} distinct regimes.")
         joblib.dump(hmm_model, os.path.join(self.model_dir, "advanced_hmm.pkl"))
         
         # Map regimes back to panel
@@ -184,7 +184,7 @@ class AdvancedQuantTrainer:
         return hmm_model
 
     def train_ltr_ranker(self, panel):
-        print("🚀 Training Institutional XGBoost Ranker (LambdaMART) for Cross-Sectional Alpha...")
+        print("Training Institutional XGBoost Ranker (LambdaMART) for Cross-Sectional Alpha...")
         
         # Sort panel by query ID (snapshot_date) which is strictly required by XGBRanker
         panel = panel.sort_values(by='snapshot_date')
@@ -229,12 +229,12 @@ class AdvancedQuantTrainer:
         joblib.dump(ranker, os.path.join(self.model_dir, "advanced_ranker.pkl"))
         joblib.dump(self.all_features, os.path.join(self.model_dir, "advanced_features.pkl"))
         
-        print("📈 Microstructure & Factor Importance (XGB Ranker):")
+        print("Microstructure & Factor Importance (XGB Ranker):")
         for feat, imp in zip(self.all_features, ranker.feature_importances_):
             if imp > 0.01:
                 print(f"    {feat}: {imp:.4f}")
                 
-        print("✅ Phase 4 Upgrades: LTR Model and HMM Regime Overlay persisted.")
+        print("Phase 4 Upgrades: LTR Model and HMM Regime Overlay persisted.")
 
 if __name__ == "__main__":
     trainer = AdvancedQuantTrainer()

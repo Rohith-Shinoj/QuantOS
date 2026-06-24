@@ -28,16 +28,16 @@ def manage_archive(old_db, new_db, snapshot_dir, graveyard_file):
     if os.path.exists(new_db):
         try:
             con = duckdb.connect(new_db, read_only=True)
-            print(f"📸 Exporting snapshot to {snapshot_path}...")
+            print(f"Exporting snapshot to {snapshot_path}...")
             con.execute(f"COPY (SELECT * FROM stocks) TO '{snapshot_path}' (FORMAT PARQUET)")
             con.close()
-            print(f"✅ Snapshot created successfully.")
+            print(f"Snapshot created successfully.")
         except Exception as e:
-            print(f"❌ Snapshot export failed: {e}")
+            print(f"Snapshot export failed: {e}")
             raise
 
     # 2. Graveyard Management (Eliminating Survivorship Bias)
-    print(f"💀 Analyzing graveyard entries...")
+    print(f"Analyzing graveyard entries...")
     old_slugs = get_db_slugs(old_db)
     new_slugs = get_db_slugs(new_db)
     
@@ -46,7 +46,7 @@ def manage_archive(old_db, new_db, snapshot_dir, graveyard_file):
         print("ℹ️ No new graveyard entries identified.")
         return
 
-    print(f"💀 Found {len(dead_slugs)} missing stocks. Extracting full history...")
+    print(f"Found {len(dead_slugs)} missing stocks. Extracting full history...")
     
     # Load existing graveyard
     graveyard = {}
@@ -72,12 +72,12 @@ def manage_archive(old_db, new_db, snapshot_dir, graveyard_file):
                 print(f"  - {slug} added to graveyard.")
         con_old.close()
     except Exception as e:
-        print(f"❌ Graveyard extraction failed: {e}")
+        print(f"Graveyard extraction failed: {e}")
         raise
 
     with open(graveyard_file, 'w') as f:
         json.dump(graveyard, f, indent=4)
-    print(f"✅ Graveyard updated. Total records: {len(graveyard)}")
+    print(f"Graveyard updated. Total records: {len(graveyard)}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Professional ML History & Survivorship Manager.")

@@ -12,6 +12,7 @@ import { PortfolioTracker } from './pages/PortfolioTracker';
 import { Watchlists } from './pages/Watchlists';
 import { LandingPage } from './pages/LandingPage';
 import { AIResearchDesk } from './pages/AIResearchDesk';
+import { MutualFunds } from './pages/MutualFunds';
 import { TerminalLayout } from './layouts/TerminalLayout';
 import { useAppStore } from './store';
 
@@ -92,8 +93,7 @@ const Layout = () => {
       {/* Sidebar Navigation */}
       <aside className="w-16 lg:w-64 border-r border-border bg-surface flex flex-col shrink-0 transition-all duration-300 z-40">
         <div className="h-16 flex items-center justify-center lg:justify-start lg:px-6 border-b border-border shrink-0">
-          <h1 className="hidden lg:block text-xl font-bold text-white tracking-tight">QUANT<span className="text-alpha">OS</span></h1>
-          <h1 className="lg:hidden text-xl font-bold text-white tracking-tight">Q<span className="text-alpha">O</span></h1>
+          <img src="../../logo-nobg.png" alt="Finugreek" className="h-8 w-auto object-contain" />
         </div>
 
         <nav className="flex-1 overflow-y-auto py-6 flex flex-col gap-2 px-2 lg:px-3">
@@ -128,6 +128,10 @@ const Layout = () => {
           <Link to="/portfolio" className="flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-surface-hover text-text-secondary hover:text-text-primary transition-colors group">
             <Search size={20} className="shrink-0" />
             <span className="text-sm font-medium hidden lg:block">Portfolio Analyzer</span>
+          </Link>
+          <Link to="/mutual-funds" className="flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-surface-hover text-text-secondary hover:text-text-primary transition-colors group">
+            <LineChart size={20} className="shrink-0" />
+            <span className="text-sm font-medium hidden lg:block">Mutual Funds</span>
           </Link>
         </nav>
       </aside>
@@ -164,6 +168,7 @@ function App() {
           <Route path="screener" element={<Screener />} />
           <Route path="pairs" element={<PairTrading />} />
           <Route path="portfolio" element={<PortfolioTracker />} />
+          <Route path="mutual-funds" element={<MutualFunds />} />
           <Route path="watchlists" element={<Watchlists />} />
         </Route>
         <Route path="/terminal/:slug" element={<TerminalLayout />} />

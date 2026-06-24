@@ -33,7 +33,7 @@ async def architect_node(state: InvestmentState, config: RunnableConfig):
         f"{registry_str}"
     ))
     
-    model = ChatGoogleGenerativeAI(model="gemini-3.1-flash-lite", temperature=0)
+    model = ChatGoogleGenerativeAI(model="gemini-2.5-flash-lite", temperature=0)
     messages = [sys_msg] + list(state["messages"])
     
     response = await model.ainvoke(messages, config)
@@ -65,7 +65,7 @@ async def architect_node(state: InvestmentState, config: RunnableConfig):
     return {"selected_schemas": selected_keys}
 
 async def execution_node(state: InvestmentState, config: RunnableConfig):
-    model = ChatGoogleGenerativeAI(model="gemini-3.1-flash-lite", temperature=0)
+    model = ChatGoogleGenerativeAI(model="gemini-2.5-flash-lite", temperature=0)
     
     selected = state.get("selected_schemas", [])
     if "narrative_insight" not in selected:
