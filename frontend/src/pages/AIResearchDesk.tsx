@@ -8,6 +8,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, 
   LineChart, Line, CartesianGrid, ReferenceLine, ScatterChart, Scatter, ZAxis
 } from 'recharts';
+import ReactMarkdown from 'react-markdown';
 
 export const AIResearchDesk: React.FC = () => {
   const { isProcessing, messages, activeTicker, setActiveTicker, clearWorkspace } = useAIStore();
@@ -157,8 +158,8 @@ const AssistantMessage = ({ payload }: { payload: ChatMessage }) => {
   // Fallback for raw text if JSON parser fully fails and it's not empty
   if (!parsedData && !isStreaming && rawString.length > 0) {
     return (
-      <div className="bg-[#151515] border border-gray-800 text-gray-300 px-6 py-4 rounded-2xl rounded-tl-sm max-w-3xl font-mono text-xs overflow-x-auto">
-        {rawString}
+      <div className="bg-[#151515] border border-gray-800 text-gray-300 px-6 py-4 rounded-2xl rounded-tl-sm max-w-3xl overflow-x-auto prose prose-invert prose-sm [&>p]:mb-2 last:[&>p]:mb-0 [&>ul]:list-disc [&>ul]:ml-4 [&>ol]:list-decimal [&>ol]:ml-4 [&>li]:mb-1">
+        <ReactMarkdown>{rawString}</ReactMarkdown>
       </div>
     );
   }
@@ -335,8 +336,8 @@ const GenericDataRenderer = ({ componentKey, data }: { componentKey: string, dat
 
 // 1. Narrative Insight
 const NarrativeInsight = ({ data }: { data: any }) => (
-  <div className="prose prose-invert prose-sm max-w-none text-gray-300 leading-relaxed">
-    <p>{data.text || data}</p>
+  <div className="prose prose-invert prose-sm max-w-none [&>p]:mb-2 last:[&>p]:mb-0 [&>ul]:list-disc [&>ul]:ml-4 [&>ol]:list-decimal [&>ol]:ml-4 [&>li]:mb-1">
+    <ReactMarkdown>{data.text || data}</ReactMarkdown>
   </div>
 );
 

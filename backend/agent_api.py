@@ -82,7 +82,27 @@ async def stream_agent_events(ticker: str, query: str, history: list = None):
         print(f"\n[AGENT_API ERROR] Fatal exception during agent execution for ticker {ticker}: {str(e)}")
         import traceback
         traceback.print_exc()
-        yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+        
+        fallback_msg = "Oops, looks like the AI Agent is experiencing high demand currently. Please try again in a while :(\n\n"
+        fallback_msg += f"### Pure-Data Fallback for {ticker}\n"
+        
+        try:
+            from backend.database import get_db
+            con = get_db()
+            stock = con.execute("SELECT name, industry, pe_ratio, alpha_score, volatility_squeeze FROM stocks WHERE ticker = ? OR slug = ?", (ticker, ticker)).fetchone()
+            if stock:
+                fallback_msg += f"- **Name:** {stock[0]}\n"
+                fallback_msg += f"- **Industry:** {stock[1]}\n"
+                fallback_msg += f"- **P/E Ratio:** {stock[2]}\n"
+                fallback_msg += f"- **Alpha Score:** {stock[3]}\n"
+                fallback_msg += f"- **Volatility Squeeze:** {stock[4]}\n"
+            else:
+                fallback_msg += "No pure-data available in the database for this ticker.\n"
+        except Exception as inner_e:
+            pass
+            
+        yield f"data: {json.dumps({'type': 'token', 'content': fallback_msg})}\n\n"
+        yield f"data: {json.dumps({'type': 'done'})}\n\n"
 
 @router.post("/api/agent/research")
 async def research_endpoint(req: ResearchRequest):
@@ -146,7 +166,9 @@ async def stream_memo_events(ticker: str, query: str, history: list = None):
             
     except Exception as e:
         print(f"\n[AGENT_API ERROR] Fatal exception during memo execution for ticker {ticker}: {str(e)}")
-        yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+        fallback_msg = "Oops, looks like the AI Agent is experiencing high demand currently. Please try again in a while :("
+        yield f"data: {json.dumps({'type': 'token', 'content': fallback_msg})}\n\n"
+        yield f"data: {json.dumps({'type': 'done'})}\n\n"
 
 @router.post("/api/agent/memo")
 async def memo_endpoint(req: ResearchRequest):

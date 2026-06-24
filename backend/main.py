@@ -591,7 +591,36 @@ You MUST output strictly in JSON format matching this schema exactly, with NO ma
     except Exception as e:
         import traceback
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+        
+        # Pure-data deterministic fallback
+        action_plan = []
+        high_pe_sectors = set()
+        
+        for h in portfolio_data:
+            pe = float(h.get("pe_ratio") or 0)
+            if pe > 50:
+                action_plan.append({"asset": h["ticker"], "action": "TRIM", "justification": f"High P/E ratio ({pe}) implies overvaluation relative to pure data."})
+                high_pe_sectors.add(h.get("industry", "Unknown"))
+            elif pe > 0 and pe < 20:
+                action_plan.append({"asset": h["ticker"], "action": "ACCUMULATE", "justification": f"Low P/E ratio ({pe}) indicates potential value according to pure data metrics."})
+            else:
+                action_plan.append({"asset": h["ticker"], "action": "HOLD", "justification": "Metrics are neutral. Hold position."})
+                
+        fallback_json = {
+            "_is_fallback": True,
+            "portfolio_risk_score": 50 if req.risk_tolerance == "Moderate" else (70 if req.risk_tolerance == "Aggressive" else 30),
+            "profile_alignment": "MATCH",
+            "concentration_analysis": {
+                "risk_level": "MODERATE" if len(portfolio_data) > 3 else "HIGH",
+                "vulnerable_sectors": list(high_pe_sectors)
+            },
+            "macro_exposures": [
+                {"factor": "Pure-Data Fallback", "impact": "AI is offline due to high demand. Relying on quantitative database metrics."}
+            ],
+            "asset_action_plan": action_plan,
+            "strategic_verdict": "Wait and observe (Pure-Data Fallback Active)"
+        }
+        return fallback_json
 
 @app.post("/api/portfolio/chat")
 async def portfolio_chat(req: PortfolioAIRequest):
@@ -639,7 +668,7 @@ Answer the client's questions directly and concisely."""
     except Exception as e:
         import traceback
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+        return {"response": "Oops, looks like the AI Agent is experiencing high demand currently. Please try again in a while :(\n\n*Pure-Data Fallback Active: I am offline, please refer to the dashboard metrics above.*"}
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):

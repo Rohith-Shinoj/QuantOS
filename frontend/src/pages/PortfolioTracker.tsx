@@ -3,21 +3,43 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchAllStocks, fetchPortfolioAIAnalysis, sendPortfolioChat, type PortfolioHolding } from '../api';
 import { Search, X, PieChart as PieChartIcon, BrainCircuit, AlertTriangle, Send, Loader2, ChevronRight, Activity, Globe, Zap, List } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
+import ReactMarkdown from 'react-markdown';
 
 export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => {
-  const [holdings, setHoldings] = useState<PortfolioHolding[]>([]);
+  const [holdings, setHoldings] = useState<PortfolioHolding[]>(() => {
+    const saved = localStorage.getItem('portfolio_holdings');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [amountInput, setAmountInput] = useState<string>('');
-  const [riskTolerance, setRiskTolerance] = useState<string>('Moderate');
+  const [riskTolerance, setRiskTolerance] = useState<string>(() => {
+    return localStorage.getItem('portfolio_risk') || 'Moderate';
+  });
   
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<any>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
   
   const [chatInput, setChatInput] = useState('');
-  const [chatHistory, setChatHistory] = useState<{role: string, content: string}[]>([]);
+  const [chatHistory, setChatHistory] = useState<{role: string, content: string}[]>(() => {
+    const saved = localStorage.getItem('portfolio_chat');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [isChatting, setIsChatting] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    localStorage.setItem('portfolio_holdings', JSON.stringify(holdings));
+  }, [holdings]);
+
+  useEffect(() => {
+    localStorage.setItem('portfolio_risk', riskTolerance);
+  }, [riskTolerance]);
+
+  useEffect(() => {
+    localStorage.setItem('portfolio_chat', JSON.stringify(chatHistory));
+  }, [chatHistory]);
 
   const { data: allStocks } = useQuery({ queryKey: ['allStocks'], queryFn: fetchAllStocks });
 
@@ -61,11 +83,16 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
   const handleAnalyze = async () => {
     if (holdings.length === 0) return;
     setIsAnalyzing(true);
+    setAiError(null);
     try {
       const result = await fetchPortfolioAIAnalysis(holdings, riskTolerance);
       setAiAnalysis(result);
+      if (result._is_fallback) {
+        setAiError("Oops, looks like the AI Agent is experiencing high demand currently. Please try again in a while :(");
+      }
     } catch (err) {
       console.error("AI Analysis failed", err);
+      setAiError("Oops, looks like the AI Agent is experiencing high demand currently. Please try again in a while :(");
     } finally {
       setIsAnalyzing(false);
     }
@@ -114,7 +141,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
         {/* Left: Inputs & Visual Data */}
         <div className={`bg-surface rounded-lg border border-border flex flex-col min-h-0 ${isPanel ? 'p-4 gap-4' : 'p-6 gap-6'} overflow-y-auto hide-scrollbar`}>
           <div className="flex flex-col gap-4">
-            <div className="flex gap-4">
+            <div className="flex gap-4 items-end">
               <div className="flex-1 relative">
                 <label className="block text-xs text-text-secondary font-bold uppercase mb-2 tracking-widest">Search Asset</label>
                 <div className="relative">
@@ -163,27 +190,12 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                   }}
                 />
               </div>
-            </div>
-            
-            <div className="flex gap-4 items-end">
-              <div className="flex-1">
-                <label className="block text-xs text-text-secondary font-bold uppercase mb-2 tracking-widest">Risk Tolerance</label>
-                <select 
-                  value={riskTolerance}
-                  onChange={e => setRiskTolerance(e.target.value)}
-                  className="w-full px-4 py-2 bg-canvas border border-border rounded-md text-text-primary focus:outline-none focus:border-alpha appearance-none"
-                >
-                  <option>Conservative</option>
-                  <option>Moderate</option>
-                  <option>Aggressive</option>
-                </select>
-              </div>
               <button 
                 onClick={() => {
                   const s = allStocks?.find((st: any) => st.ticker === query || st.slug === query);
                   if (s) addStock(s.slug);
                 }}
-                className="px-6 py-2 bg-surface-hover border border-border rounded-md font-bold hover:bg-border transition-colors text-sm"
+                className="px-6 py-2 h-10 bg-surface-hover border border-border rounded-md font-bold hover:bg-border transition-colors text-sm"
               >
                 Add
               </button>
@@ -272,18 +284,38 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
               <BrainCircuit size={18} /> Chief Investment Officer AI
             </div>
             {holdings.length > 0 && (
-              <button 
-                onClick={handleAnalyze}
-                disabled={isAnalyzing}
-                className="px-4 py-1.5 bg-indigo-500 text-white text-xs font-bold rounded hover:bg-indigo-600 transition-colors flex items-center gap-2 disabled:opacity-50"
-              >
-                {isAnalyzing ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
-                Analyze Portfolio
-              </button>
+              <div className="flex items-center gap-3">
+                <select 
+                  value={riskTolerance}
+                  onChange={e => setRiskTolerance(e.target.value)}
+                  className="bg-canvas border border-border text-xs px-2 py-1.5 rounded text-text-primary focus:outline-none"
+                >
+                  <option>Conservative</option>
+                  <option>Moderate</option>
+                  <option>Aggressive</option>
+                </select>
+                <button 
+                  onClick={handleAnalyze}
+                  disabled={isAnalyzing}
+                  className="px-4 py-1.5 bg-indigo-500 text-white text-xs font-bold rounded hover:bg-indigo-600 transition-colors flex items-center gap-2 disabled:opacity-50"
+                >
+                  {isAnalyzing ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
+                  Analyze Portfolio
+                </button>
+              </div>
             )}
           </div>
 
           <div className="flex-1 overflow-y-auto pt-14 pb-20 px-6 hide-scrollbar flex flex-col">
+            {aiError && (
+              <div className="bg-beta/10 border border-beta/30 text-beta text-xs p-3 mt-6 rounded flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle size={14} />
+                  <span>{aiError}</span>
+                </div>
+                <button onClick={handleAnalyze} className="underline font-bold whitespace-nowrap ml-4 hover:text-beta/80">Refresh</button>
+              </div>
+            )}
             {!aiAnalysis && !isAnalyzing && (
                <div className="flex-1 flex flex-col items-center justify-center text-indigo-400/50">
                  <BrainCircuit size={64} className="mb-4 opacity-20" />
@@ -384,7 +416,9 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                         ? 'bg-alpha/10 border border-alpha/20 text-text-primary rounded-tr-sm' 
                         : 'bg-surface border border-border text-text-secondary rounded-tl-sm'
                     }`}>
-                      {msg.content}
+                      <ReactMarkdown className="prose prose-invert prose-sm max-w-none [&>p]:mb-2 last:[&>p]:mb-0 [&>ul]:list-disc [&>ul]:ml-4 [&>ol]:list-decimal [&>ol]:ml-4 [&>li]:mb-1">
+                        {msg.content}
+                      </ReactMarkdown>
                     </div>
                   </div>
                 ))}
