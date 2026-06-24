@@ -43,25 +43,42 @@ export interface PortfolioHolding {
   amount: number;
 }
 
-export const fetchPortfolioAIAnalysis = async (holdings: PortfolioHolding[], riskTolerance: string) => {
-  const response = await axios.post(`${API_BASE_URL}/portfolio/ai-analyze`, {
-    holdings,
-    risk_tolerance: riskTolerance
-  });
+export const fetchPortfolioAIAnalysis = async (payload: {
+  stockHoldings: PortfolioHolding[],
+  mfHoldings: PortfolioHolding[],
+  stockRisk: string,
+  mfRisk: string,
+  holdingPeriod: string
+}) => {
+  const response = await axios.post(`${API_BASE_URL}/portfolio/ai-analyze`, payload);
   return response.data;
 };
 
-export const sendPortfolioChat = async (holdings: PortfolioHolding[], riskTolerance: string, message: string, history: any[]) => {
-  const response = await axios.post(`${API_BASE_URL}/portfolio/chat`, {
-    holdings,
-    risk_tolerance: riskTolerance,
-    message,
-    history
-  });
+export const sendPortfolioChat = async (payload: {
+  stockHoldings: PortfolioHolding[],
+  mfHoldings: PortfolioHolding[],
+  stockRisk: string,
+  mfRisk: string,
+  holdingPeriod: string,
+  message: string,
+  history: any[]
+}) => {
+  const response = await axios.post(`${API_BASE_URL}/portfolio/chat`, payload);
   return response.data;
 };
 
-export const fetchMutualFunds = async (params: { page?: number, limit?: number, category?: string, sort_by?: string, sort_order?: string } = {}) => {
+export const fetchMutualFunds = async (params?: { 
+  page?: number, 
+  limit?: number,
+  category?: string,
+  sort_by?: string,
+  sort_order?: string
+}) => {
   const response = await axios.get(`${API_BASE_URL}/mutual_funds`, { params });
+  return response.data;
+};
+
+export const fetchMutualFundByCode = async (schemeCode: string) => {
+  const response = await axios.get(`${API_BASE_URL}/mutual_funds/${schemeCode}`);
   return response.data;
 };

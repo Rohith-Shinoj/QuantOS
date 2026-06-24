@@ -115,6 +115,11 @@ export const AIResearchDesk: React.FC = () => {
                 )}
               </div>
             ))}
+            {messages.length > 0 && (
+              <div className="mt-8 text-[10px] text-gray-500 text-center px-4 leading-relaxed">
+                Recommendations involve a hybrid analysis of real metrics and AI output which may be prone to hallucinations. This is not investment advice, always consult your registered investment advisor.
+              </div>
+            )}
             <div ref={bottomRef} />
           </div>
           {renderSearchBar(false)}

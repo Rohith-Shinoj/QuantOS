@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { fetchMutualFunds } from '../api';
 import { 
   ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ZAxis,
@@ -162,8 +163,21 @@ export const MutualFunds = () => {
               ) : funds.map((fund, i) => (
                 <tr key={fund.id || i} className="hover:bg-surface-hover transition-colors">
                   <td className="px-6 py-4">
-                    <div className="font-medium text-sm text-text-primary">{fund.fund_name || fund.scheme_name}</div>
-                    <div className="text-xs text-text-secondary mt-0.5">{fund.fund_manager}</div>
+                    <div className="flex items-center gap-3">
+                      {fund.logo_url ? (
+                        <img src={fund.logo_url} alt="AMC Logo" className="w-8 h-8 rounded-full bg-white object-contain border border-border" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-surface-hover border border-border flex items-center justify-center text-xs font-bold text-text-secondary">
+                          {fund.amc ? fund.amc.substring(0, 2) : 'MF'}
+                        </div>
+                      )}
+                      <div>
+                        <Link to={`/mutual-funds/${fund.scheme_code || fund.direct_search_id}`} className="font-medium text-sm text-text-primary hover:text-indigo-400 transition-colors">
+                          {fund.fund_name || fund.scheme_name}
+                        </Link>
+                        <div className="text-xs text-text-secondary mt-0.5">{fund.fund_manager}</div>
+                      </div>
+                    </div>
                   </td>
                   <td className="px-6 py-4">
                     <span className="px-2 py-1 bg-surface-hover rounded text-xs border border-border text-text-secondary">

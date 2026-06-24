@@ -13,6 +13,7 @@ import { Watchlists } from './pages/Watchlists';
 import { LandingPage } from './pages/LandingPage';
 import { AIResearchDesk } from './pages/AIResearchDesk';
 import { MutualFunds } from './pages/MutualFunds';
+import { MutualFundSnapshot } from './pages/MutualFundSnapshot';
 import { TerminalLayout } from './layouts/TerminalLayout';
 import { useAppStore } from './store';
 
@@ -169,6 +170,7 @@ function App() {
           <Route path="pairs" element={<PairTrading />} />
           <Route path="portfolio" element={<PortfolioTracker />} />
           <Route path="mutual-funds" element={<MutualFunds />} />
+          <Route path="mutual-funds/:code" element={<MutualFundSnapshot />} />
           <Route path="watchlists" element={<Watchlists />} />
         </Route>
         <Route path="/terminal/:slug" element={<TerminalLayout />} />

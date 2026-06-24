@@ -517,8 +517,11 @@ class PortfolioHolding(BaseModel):
     amount: float
 
 class PortfolioAIRequest(BaseModel):
-    holdings: list[PortfolioHolding]
-    risk_tolerance: str
+    stockHoldings: list[PortfolioHolding]
+    mfHoldings: list[PortfolioHolding]
+    stockRisk: str
+    mfRisk: str
+    holdingPeriod: str
     history: list = []
     message: str = ""
 
@@ -526,17 +529,18 @@ class PortfolioAIRequest(BaseModel):
 async def ai_analyze_portfolio(req: PortfolioAIRequest):
     try:
         con = get_db()
-        total_value = sum(h.amount for h in req.holdings)
+        total_value = sum(h.amount for h in req.stockHoldings) + sum(h.amount for h in req.mfHoldings)
         if total_value <= 0:
             raise HTTPException(status_code=400, detail="Total portfolio value must be greater than 0")
 
         # Gather data and calculate weights
         portfolio_data = []
-        for h in req.holdings:
+        for h in req.stockHoldings:
             stock = con.execute("SELECT ticker, name, industry, pe_ratio, alpha_score, volatility_squeeze FROM stocks WHERE slug = ?", (h.slug,)).fetchone()
             if stock:
                 weight = (h.amount / total_value) * 100
                 portfolio_data.append({
+                    "type": "Stock",
                     "ticker": stock[0],
                     "name": stock[1],
                     "industry": stock[2],
@@ -547,10 +551,27 @@ async def ai_analyze_portfolio(req: PortfolioAIRequest):
                     "weight_pct": round(weight, 2)
                 })
 
+        for h in req.mfHoldings:
+            mf = con.execute("SELECT scheme_code, direct_search_id, fund_name, scheme_name, category, return3y, expense_ratio, risk FROM mutual_funds WHERE scheme_code = ? OR direct_search_id = ?", (h.slug, h.slug)).fetchone()
+            if mf:
+                weight = (h.amount / total_value) * 100
+                name = mf[2] or mf[3]
+                portfolio_data.append({
+                    "type": "Mutual Fund",
+                    "ticker": mf[0] or mf[1],
+                    "name": name,
+                    "industry": mf[4],
+                    "return3y": mf[5],
+                    "expense_ratio": mf[6],
+                    "risk": mf[7],
+                    "amount_inr": h.amount,
+                    "weight_pct": round(weight, 2)
+                })
+
         # Call Gemini
         llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.1)
         
-        system_prompt = """You are a Chief Investment Officer. Analyze the provided portfolio data.
+        system_prompt = """You are a Chief Investment Officer. Analyze the provided dual portfolio data (Stocks & Mutual Funds).
 You MUST output strictly in JSON format matching this schema exactly, with NO markdown wrappers:
 {
   "portfolio_risk_score": 0,
@@ -568,7 +589,7 @@ You MUST output strictly in JSON format matching this schema exactly, with NO ma
   "strategic_verdict": "STR"
 }"""
         
-        user_prompt = f"User Risk Tolerance: {req.risk_tolerance}\n\nPortfolio Data:\n{json.dumps(portfolio_data, indent=2)}"
+        user_prompt = f"Stock Risk Tolerance: {req.stockRisk}\nMutual Fund Risk Tolerance: {req.mfRisk}\nHolding Period: {req.holdingPeriod}\n\nPortfolio Data:\n{json.dumps(portfolio_data, indent=2)}"
         
         messages = [
             SystemMessage(content=system_prompt),
@@ -597,18 +618,25 @@ You MUST output strictly in JSON format matching this schema exactly, with NO ma
         high_pe_sectors = set()
         
         for h in portfolio_data:
-            pe = float(h.get("pe_ratio") or 0)
-            if pe > 50:
-                action_plan.append({"asset": h["ticker"], "action": "TRIM", "justification": f"High P/E ratio ({pe}) implies overvaluation relative to pure data."})
-                high_pe_sectors.add(h.get("industry", "Unknown"))
-            elif pe > 0 and pe < 20:
-                action_plan.append({"asset": h["ticker"], "action": "ACCUMULATE", "justification": f"Low P/E ratio ({pe}) indicates potential value according to pure data metrics."})
+            if h.get("type") == "Stock":
+                pe = float(h.get("pe_ratio") or 0)
+                if pe > 50:
+                    action_plan.append({"asset": h["ticker"], "action": "TRIM", "justification": f"High P/E ratio ({pe}) implies overvaluation relative to pure data."})
+                    high_pe_sectors.add(h.get("industry", "Unknown"))
+                elif pe > 0 and pe < 20:
+                    action_plan.append({"asset": h["ticker"], "action": "ACCUMULATE", "justification": f"Low P/E ratio ({pe}) indicates potential value according to pure data metrics."})
+                else:
+                    action_plan.append({"asset": h["ticker"], "action": "HOLD", "justification": "Metrics are neutral. Hold position."})
             else:
-                action_plan.append({"asset": h["ticker"], "action": "HOLD", "justification": "Metrics are neutral. Hold position."})
+                ret = float(h.get("return3y") or 0)
+                if ret < 5:
+                    action_plan.append({"asset": h["ticker"], "action": "TRIM", "justification": f"Low 3Y Return ({ret}%) indicates underperformance."})
+                else:
+                    action_plan.append({"asset": h["ticker"], "action": "ACCUMULATE", "justification": f"Solid 3Y Return ({ret}%). Accumulate."})
                 
         fallback_json = {
             "_is_fallback": True,
-            "portfolio_risk_score": 50 if req.risk_tolerance == "Moderate" else (70 if req.risk_tolerance == "Aggressive" else 30),
+            "portfolio_risk_score": 50 if req.stockRisk == "Moderate" else (70 if req.stockRisk == "Aggressive" else 30),
             "profile_alignment": "MATCH",
             "concentration_analysis": {
                 "risk_level": "MODERATE" if len(portfolio_data) > 3 else "HIGH",
@@ -626,18 +654,32 @@ You MUST output strictly in JSON format matching this schema exactly, with NO ma
 async def portfolio_chat(req: PortfolioAIRequest):
     try:
         con = get_db()
-        total_value = sum(h.amount for h in req.holdings)
+        total_value = sum(h.amount for h in req.stockHoldings) + sum(h.amount for h in req.mfHoldings)
         
         portfolio_data = []
         if total_value > 0:
-            for h in req.holdings:
+            for h in req.stockHoldings:
                 stock = con.execute("SELECT ticker, name, industry FROM stocks WHERE slug = ?", (h.slug,)).fetchone()
                 if stock:
                     weight = (h.amount / total_value) * 100
                     portfolio_data.append({
+                        "type": "Stock",
                         "ticker": stock[0],
                         "name": stock[1],
                         "industry": stock[2],
+                        "amount_inr": h.amount,
+                        "weight_pct": round(weight, 2)
+                    })
+            for h in req.mfHoldings:
+                mf = con.execute("SELECT scheme_code, direct_search_id, fund_name, scheme_name, category FROM mutual_funds WHERE scheme_code = ? OR direct_search_id = ?", (h.slug, h.slug)).fetchone()
+                if mf:
+                    weight = (h.amount / total_value) * 100
+                    name = mf[2] or mf[3]
+                    portfolio_data.append({
+                        "type": "Mutual Fund",
+                        "ticker": mf[0] or mf[1],
+                        "name": name,
+                        "industry": mf[4],
                         "amount_inr": h.amount,
                         "weight_pct": round(weight, 2)
                     })
@@ -645,8 +687,10 @@ async def portfolio_chat(req: PortfolioAIRequest):
         llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.3)
         
         system_prompt = f"""You are a Chief Investment Officer providing advice to a client.
-Their risk tolerance is: {req.risk_tolerance}.
-Their current portfolio:
+Their Stock risk tolerance is: {req.stockRisk}.
+Their Mutual Fund risk tolerance is: {req.mfRisk}.
+Their Holding Period is: {req.holdingPeriod}.
+Their current unified portfolio:
 {json.dumps(portfolio_data, indent=2)}
 
 Answer the client's questions directly and concisely."""
@@ -729,4 +773,22 @@ def get_mutual_funds(
         }
     except Exception as e:
         print(f"Error fetching mutual funds: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/mutual_funds/{scheme_code}")
+def get_mutual_fund(scheme_code: str):
+    try:
+        db = get_db()
+        # The schema uses either scheme_code or direct_search_id, and we fallback to slug/ticker equivalent
+        df = db.execute("SELECT * FROM mutual_funds WHERE scheme_code = ? OR direct_search_id = ?", (scheme_code, scheme_code)).df()
+        
+        if df.empty:
+            raise HTTPException(status_code=404, detail="Mutual fund not found")
+            
+        import json
+        records = json.loads(df.to_json(orient="records", date_format="iso"))
+        return records[0]
+    except HTTPException:
+        raise
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
