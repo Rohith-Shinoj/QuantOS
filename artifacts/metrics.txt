@@ -1,0 +1,120 @@
+# 📈 The Holy Grail: Stock & Mutual Fund Data Dictionary
+
+This document serves as the exhaustive, master reference for all metrics available within the platform's architecture. It contains every field currently existing in the database, the nested JSON structures extracted from live data, and an exhaustive list of advanced quantitative metrics that can be derived instantaneously without external API calls.
+
+---
+
+## 1. Stocks Database Core Schema
+These are the top-level columns inside the `stocks` (market_data.parquet) table.
+
+- `slug` (VARCHAR): Unique identifier (e.g., `tata-consultancy-services-ltd`)
+- `ticker` (VARCHAR): Trading symbol (e.g., `TCS`)
+- `name` (VARCHAR): Full company name
+- `market_cap_type` (VARCHAR): e.g., Large, Mid, Small
+- `market_cap` (DOUBLE): Absolute market capitalization
+- `pe_ratio` (DOUBLE): Price to Earnings ratio
+- `day_change` (VARCHAR): Day's percentage change
+- `industry` (VARCHAR): Sector classification
+- `inst_accum` (DOUBLE): Institutional accumulation metric
+- `volatility_squeeze` (DOUBLE): Proprietary volatility squeeze indicator
+- `qes_flag` (INTEGER): Quantitative screening flag
+- `tax_divergence` (DOUBLE): Tax impact/divergence metric
+- `pledge_delta` (DOUBLE): Change in promoter pledged shares
+- `raw_rank` (DOUBLE): Base quantitative ranking
+- `rs_rating` (DOUBLE): Relative Strength rating
+- `alpha_score` (DOUBLE): Proprietary Alpha generation score
+- `shap_reason_1`, `shap_reason_2`, `shap_reason_3` (VARCHAR): Top 3 Machine Learning feature importance reasons
+
+---
+
+## 2. Absolute Fundamentals (`absolute_data` JSON)
+This payload contains the raw, unpacked financial metrics for a given stock.
+
+**Pricing & Identity:**
+- `live price`, `day change`, `ticker`, `displayName`, `marketCap`, `OHLCV` (Historical Candle Data)
+
+**Valuation Ratios:**
+- `peRatio`, `pbRatio`, `evToSales`, `evToEbitda`, `earningsYield`, `pegRatio`, `priceToOcf`
+
+**Profitability & Efficiency:**
+- `roe` (Return on Equity), `returnOnAssets`, `roic` (Return on Invested Capital), `operatingProfitMargin`, `netProfitMargin`
+
+**Dividends & Health:**
+- `divYield`, `dividendYieldInPercent`, `bookValue`, `epsTtm`, `faceValue`
+- `debtToEquity`, `debtToAsset`, `quickRatio`, `cashRatio`, `currentRatio`
+
+**Sector Benchmarks:**
+- `industryPe`, `sectorPb`, `sectorDivYield`, `sectorRoe`, `sectorRoce`, `sectorPe`
+- `pePremiumVsSector`, `pbPremiumVsSector`, `divYieldVsSector`
+
+**Nested Structs:**
+- `shareHoldingPattern`, `financialStatement`, `header_raw`
+
+---
+
+## 3. Relative Machine Learning Features (`relative_data` JSON)
+This payload contains advanced, normalized, and synthetic features explicitly engineered for ML modeling.
+
+- `meta_features`
+- `normalized_fundamentals`
+- `structural_capital_efficiency`
+- `financial_growth_signals`
+- `shareholding_momentum_vectors`
+- `technical_state_signals`
+- `aggregated_news_signals`
+- `liquidity_valuation_ratios`
+- `sector_relative_premiums`
+- `relative_strength_signals`
+- `macro_market_regime`
+- `continuous_scale_transformations`
+- `historical_time_series_matrix`
+- `health_scores`
+- `risk_and_forensic_signals`
+- `market_breadth_regime`
+- `data_integrity`
+
+---
+
+## 4. Mutual Funds Schema
+Top-level fields from the `mutual_funds` table.
+
+- **Identity**: `scheme_code`, `direct_search_id`, `id`, `search_id`, `fund_name`, `scheme_name`, `amc`, `fund_house`, `logo_url`
+- **Classification**: `category`, `sub_category`, `sub_sub_category`, `scheme_type`, `plan_type`
+- **Metrics**: `nav`, `aum`, `expense_ratio`, `exit_load`, `risk`, `risk_rating`
+- **Historical Returns**: `return1d`, `return3m`, `return6m`, `return1y`, `return3y`, `return5y`, `return7y`, `return10y`, `mean_return`
+- **SIP Returns**: `sipReturn3m`, `sipReturn6m`, `sipReturn1y`, `sipReturn3y`, `sipReturn5y`, `sip_return10y`
+- **Scores**: `groww_rating`, `groww_verdict_score`, `sub_category_average_return3y`
+- **Complex Structs**: `detailed_holdings` (Sector, ratings, percentages), `advanced_stats` (Sharpe, Beta, Alpha, Standard Deviation over 1/3/5Y)
+
+---
+
+> [!TIP]
+> The data below outlines what the system *does not need an API for*. Using the historical `OHLCV` arrays and financial statements from the JSON above, our internal engine can mathematically construct these advanced metrics on the fly.
+
+## 5. Instantaneously Derivable Metrics (AI Generated Additions)
+
+### A. Technical & Trend Indicators (Calculated from OHLCV)
+- **Moving Averages**: SMA (Simple), EMA (Exponential), WMA (Weighted) across standard periods (9, 20, 50, 100, 200).
+- **MACD (Moving Average Convergence Divergence)**: Signal line, MACD line, and Histogram for trend reversals.
+- **RSI (Relative Strength Index)**: Overbought (>70) and Oversold (<30) oscillators.
+- **Bollinger Bands**: Upper, Middle, and Lower bands based on standard deviations of price.
+- **ATR (Average True Range)**: Absolute measure of intraday volatility.
+- **Stochastic Oscillator**: %K and %D lines for momentum.
+- **Volume Profile**: VWAP (Volume Weighted Average Price) and OBV (On-Balance Volume).
+- **Ichimoku Cloud**: Tenkan-sen, Kijun-sen, Senkou Span A/B for macro trend confirmation.
+- **Historical Drawdown**: Max percentage drop from the 52-week high.
+
+### B. Cross-Sectional & Relative Metrics (Calculated by aggregating all rows)
+- **Beta ($\beta$)**: Calculated by covarying the stock's historical returns against the benchmark (e.g., Nifty 50).
+- **Cross-Sectional Z-Scores**: Taking any metric (like P/E) and standardizing it `(Value - Sector Average) / Sector Std Dev` to precisely rank a stock from -3.0 to +3.0 against its peers.
+- **RS Line (Relative Strength Line)**: `Stock Price / Index Price` plotted over time to isolate true market outperformance.
+- **Sector Rotation Momentum**: Tracking the aggregate moving averages of all stocks within an `industry` to detect institutional money flow.
+- **Market Breadth**: "Advance/Decline Line" or "Percentage of stocks above 200 EMA" calculated directly from the database to identify macro-regimes (Bull/Bear).
+
+### C. Advanced Fundamental Constructs (Calculated from `financialStatement` arrays)
+- **Piotroski F-Score**: A 9-point system testing profitability, leverage, and operating efficiency. Perfect for value trap detection.
+- **Altman Z-Score**: A statistical formula predicting the probability of bankruptcy within 2 years.
+- **Beneish M-Score**: A forensic accounting metric to detect earnings manipulation or financial fraud.
+- **Graham Number**: Maximum fair value calculation based on Benjamin Graham's rules `sqrt(22.5 * EPS * BVPS)`.
+- **Free Cash Flow (FCF) Yield**: `(Operating Cash Flow - CapEx) / Market Cap`. A purer measure of profitability than EPS.
+- **DuPont Analysis**: Breaking down ROE into three parts: Profit Margin, Asset Turnover, and Financial Leverage to see *why* ROE is high.

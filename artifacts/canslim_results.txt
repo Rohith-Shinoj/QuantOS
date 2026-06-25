@@ -1,0 +1,36 @@
+
+===============================================================================================
+🚀 TOP 30 STRICT CANSLIM CANDIDATES (Closest Matches) 🚀
+===============================================================================================
+Company Name                   | Industry             | Score/6 | C%     | A%     | Inst% 
+-----------------------------------------------------------------------------------------------
+Cube Highways Trust - (CUBEI   | Infrastructure       | 6/6     | 228.9  | 100.0  | 7.3   
+GHCL Textiles Ltd.             | Textiles             | 6/6     | 109.9  | 100.0  | 18.4  
+Religare Enterprises           | Insurance            | 6/6     | 100.0  | 100.0  | 17.7  
+Pearl Global Industries        | Textiles             | 6/6     | 57.2   | 48.8   | 25.3  
+Kirloskar Oil Engines          | Engineering          | 6/6     | 42.2   | 40.7   | 37.5  
+Pace Digitek                   | Telecom Equipment    | 6/6     | 34.5   | 189.5  | 7.5   
+Diffusion Engineers            | Engineering          | 6/6     | 33.0   | 28.3   | 8.5   
+Uni-Abex Alloy Products        | Engineering          | 5/6     | 4609.9 | 39.8   | 0.0   
+Welspun Living                 | Textiles             | 5/6     | 4030.7 | 8.9    | 16.2  
+Samhi Hotels                   | Hospitality          | 5/6     | 729.7  | 100.0  | 60.7  
+Ramco Systems                  | Information Techno   | 5/6     | 684.1  | 0.0    | 12.1  
+Welspun Enterprises            | Infrastructure       | 5/6     | 429.6  | 68.8   | 12.8  
+Neuland Laboratories           | Pharmaceuticals      | 5/6     | 424.2  | 59.7   | 36.3  
+Wework India Management        | Real Estate          | 5/6     | 292.3  | 100.0  | 46.0  
+SG Mart                        | Metals & Mining      | 5/6     | 286.1  | 452.4  | 10.3  
+RateGain Travel Technologies   | Information Techno   | 5/6     | 164.6  | 191.7  | 26.2  
+Bandhan Bank                   | Banks                | 5/6     | 159.8  | 179.5  | 44.4  
+Cemindia Projects              | Infrastructure       | 5/6     | 118.4  | 68.6   | 9.2   
+Niva Bupa Health Insurance C   | Insurance            | 5/6     | 100.0  | 100.0  | 29.5  
+Adani Green Energy             | Power                | 5/6     | 100.0  | 26.9   | 19.1  
+SIS                            | Professional Servi   | 5/6     | 100.0  | -26.5  | 19.2  
+Delhivery                      | Logistics            | 5/6     | 82.9   | 100.0  | 84.7  
+Ceigall India                  | Infrastructure       | 5/6     | 78.2   | 31.6   | 8.5   
+Arvind                         | Textiles             | 5/6     | 63.0   | 11.1   | 36.1  
+Meghna Infracon Infrastructu   | Real Estate          | 5/6     | 60.9   | 208.3  | 7.9   
+Global Health                  | Healthcare           | 5/6     | 49.1   | 34.9   | 42.6  
+Samvardhana Motherson Intern   | Auto Ancillary       | 5/6     | 45.6   | 71.8   | 43.2  
+Subros                         | Auto Ancillary       | 5/6     | 42.0   | 66.7   | 43.6  
+Karnataka Bank                 | Banks                | 5/6     | 40.4   | 35.8   | 27.9  
+Oracle Financial Services So   | Information Techno   | 5/6     | 38.1   | 8.0    | 17.2  

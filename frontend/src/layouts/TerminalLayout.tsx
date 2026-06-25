@@ -7,10 +7,11 @@ import { useQuery } from '@tanstack/react-query';
 import { useAppStore } from '../store';
 import { AIAssistantOverlay } from '../components/AIAssistantOverlay';
 
-import { PriceChart } from '../pages/CompanySnapshot/PriceChart';
+import { MultidimensionalChart } from '../pages/CompanySnapshot/MultidimensionalChart';
 import { DeepFinancials } from '../pages/CompanySnapshot/DeepFinancials';
 import { PeerComparison } from '../pages/CompanySnapshot/PeerComparison';
 import { FinancialHealth } from '../pages/CompanySnapshot/FinancialHealth';
+import { ValuationGauges } from '../pages/CompanySnapshot/ValuationGauges';
 import { OwnershipTrends } from '../pages/CompanySnapshot/OwnershipTrends';
 import { EarningsQuality } from '../pages/CompanySnapshot/EarningsQuality';
 import { FactorAttribution } from '../pages/CompanySnapshot/FactorAttribution';
@@ -144,12 +145,6 @@ export const TerminalLayout = () => {
           >
             Pair Trading
           </button>
-          <button 
-            onClick={() => setCentralMode('FINANCIALS')}
-            className={`px-3 py-1 rounded text-xs font-bold transition-colors ${centralMode === 'FINANCIALS' ? 'bg-alpha/20 text-alpha' : 'text-text-secondary hover:text-white hover:bg-surface-hover'}`}
-          >
-            Deep Financials
-          </button>
           
           <div className="h-6 w-[1px] bg-border mx-2 self-center"></div>
           
@@ -193,9 +188,8 @@ export const TerminalLayout = () => {
                 
                 {/* Central Canvas (Chart) */}
                 <div className="w-full min-h-[600px] flex flex-col relative shrink-0">
-                  {centralMode === 'PRICE' && stockData && <PriceChart data={stockData} />}
+                  {centralMode === 'PRICE' && stockData && <MultidimensionalChart data={stockData} />}
                   {centralMode === 'PAIRS' && <PairTrading isPanel initialAssetA={slug} />}
-                  {centralMode === 'FINANCIALS' && stockData && <DeepFinancials data={stockData} />}
                 </div>
 
                 {/* Bottom Panel (Quantitative Analytics Grid) */}
@@ -211,9 +205,11 @@ export const TerminalLayout = () => {
                      {stockData ? (
                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-[400px] [&>*]:min-h-0">
                          <FinancialHealth data={stockData} />
+                         <ValuationGauges data={stockData} />
                          <OwnershipTrends data={stockData} />
                          <EarningsQuality data={stockData} />
                          <FactorAttribution data={stockData} />
+                         <DeepFinancials data={stockData} />
                          <NewsSentiment data={stockData} />
                          {selectedStockSlug && <RelatedStocks slug={selectedStockSlug} />}
                        </div>

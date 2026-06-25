@@ -12,8 +12,11 @@ import { NewsSentiment } from './NewsSentiment';
 import { RelatedStocks } from './RelatedStocks';
 import { PeerComparison } from './PeerComparison';
 import { DeepFinancials } from './DeepFinancials';
+import { ValuationGauges } from './ValuationGauges';
 import { AdvancedCharting } from './AdvancedCharting';
 import { useAppStore } from '../../store';
+
+import { MultidimensionalChart } from './MultidimensionalChart';
 
 export const CompanySnapshot = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -74,9 +77,13 @@ export const CompanySnapshot = () => {
 
       {activeTab === 'overview' && (
         <>
-          <PriceChart data={data} />
+          <div className="h-[600px] w-full">
+            <MultidimensionalChart data={data} />
+          </div>
+          {/* <PriceChart data={data} /> */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-[400px] [&>*]:min-h-0">
             <FinancialHealth data={data} />
+            <ValuationGauges data={data} />
             <OwnershipTrends data={data} />
             <EarningsQuality data={data} />
             <FactorAttribution data={data} />

@@ -208,6 +208,23 @@ class MLDatasetEngineer:
                 i_ret = safe_div(index_ohlcv[-1]["Close"] - index_ohlcv[-1-periods]["Close"], index_ohlcv[-1-periods]["Close"])
                 return safe_div(1.0 + s_ret, 1.0 + i_ret)
             rs_signals[f"rs_{name.lower()}_52w"] = self.track(calc_rs(52))
+        
+        # AI Metrics Additions: Beta Calculation
+        benchmark_ohlcv = self.active_indices.get(self.benchmark_key, [])
+        beta_val = np.nan
+        if len(self.active_ohlcv) >= 53 and len(benchmark_ohlcv) >= 53:
+            try:
+                s_closes = [c["Close"] for c in self.active_ohlcv[-53:]]
+                b_closes = [c["Close"] for c in benchmark_ohlcv[-53:]]
+                s_returns = [(s_closes[i] - s_closes[i-1])/s_closes[i-1] for i in range(1, 53)]
+                b_returns = [(b_closes[i] - b_closes[i-1])/b_closes[i-1] for i in range(1, 53)]
+                covariance = np.cov(s_returns, b_returns)[0][1]
+                variance = np.var(b_returns)
+                if variance > 0:
+                    beta_val = covariance / variance
+            except: pass
+        rs_signals["beta_vs_benchmark"] = self.track(beta_val)
+        
         rs_signals["primary_benchmark"] = self.benchmark_key
         return rs_signals
 
@@ -293,11 +310,37 @@ class MLDatasetEngineer:
         tech = self.raw.get("stocksTechnicalsData")
         if not isinstance(tech, dict): tech = {}
         
+        # AI Metrics Additions
+        bb_upper = bb_lower = macd_hist = atr_14 = np.nan
+        if len(closes) >= 20:
+            sma20 = np.mean(closes[-20:])
+            std20 = np.std(closes[-20:])
+            bb_upper = sma20 + (2 * std20)
+            bb_lower = sma20 - (2 * std20)
+        
+        if len(closes) >= 26:
+            ema12 = np.mean(closes[-12:])
+            ema26 = np.mean(closes[-26:])
+            macd_hist = ema12 - ema26
+            
+        if len(self.active_ohlcv) >= 14:
+            trs = []
+            for i in range(len(self.active_ohlcv)-14, len(self.active_ohlcv)):
+                c = self.active_ohlcv[i]
+                pc = self.active_ohlcv[i-1]["Close"]
+                tr = max(c["High"] - c["Low"], abs(c["High"] - pc), abs(c["Low"] - pc))
+                trs.append(tr)
+            atr_14 = np.mean(trs)
+        
         return {
             "rsi_normalized": self.track(safe_div(clean_float(tech.get("rsi14", 50)), 100.0)),
             "distance_from_sma50": self.track(safe_div(self.live_price - sma50, sma50)),
             "volume_intensity_52w": self.track(vol_intensity),
-            "volatility_13w": self.track(volatility)
+            "volatility_13w": self.track(volatility),
+            "bollinger_upper": self.track(bb_upper),
+            "bollinger_lower": self.track(bb_lower),
+            "macd_histogram": self.track(macd_hist),
+            "atr_14": self.track(atr_14)
         }
 
     def _derive_news(self):
@@ -312,6 +355,7 @@ class MLDatasetEngineer:
         timeline = {}
         total_compound = 0.0
         news_count = 0
+        raw_feed = []
         
         from datetime import timedelta, datetime
         now_time = datetime.now()
@@ -334,7 +378,9 @@ class MLDatasetEngineer:
                 
                 diff_days = (now_time.date() - pub_date.date()).days
                 if 0 <= diff_days <= 13:
-                    text = f"{n.get('title', '')} {n.get('summary', '')}"
+                    title = n.get('title', '')
+                    summary = n.get('summary', '')
+                    text = f"{title} {summary}"
                     if not text.strip(): continue
                     
                     score = sia.polarity_scores(text)['compound']
@@ -345,6 +391,23 @@ class MLDatasetEngineer:
                     
                     total_compound += score
                     news_count += 1
+                    
+                    # Infer Tag
+                    text_lower = text.lower()
+                    if any(w in text_lower for w in ['earnings', 'profit', 'revenue', 'q1', 'q2', 'q3', 'q4', 'fy']): tag = 'Earnings'
+                    elif any(w in text_lower for w in ['sebi', 'rbi', 'fines', 'probe', 'regulatory', 'court']): tag = 'Regulatory'
+                    elif any(w in text_lower for w in ['order', 'contract', 'deal', 'partnership']): tag = 'Order Win'
+                    elif any(w in text_lower for w in ['acquire', 'merger', 'buyout', 'stake']): tag = 'M&A'
+                    elif any(w in text_lower for w in ['debt', 'default', 'downgrade']): tag = 'Credit Risk'
+                    else: tag = 'General'
+                    
+                    raw_feed.append({
+                        "date": d_str,
+                        "title": title,
+                        "score": score,
+                        "tag": tag,
+                        "timestamp": pub_date.isoformat()
+                    })
             except: pass
             
         sentiment_timeline = []
@@ -362,6 +425,7 @@ class MLDatasetEngineer:
         flags["ewma_sentiment_all"] = self.track(total_compound / news_count if news_count > 0 else 0)
         flags["news_intensity_velocity"] = self.track(news_count / 14.0)
         flags["sentiment_timeline"] = sentiment_timeline
+        flags["raw_feed"] = raw_feed
         
         return flags
 
@@ -385,7 +449,26 @@ class MLDatasetEngineer:
         return matrix
 
     def _derive_health_scores(self):
-        return {"piotroski_f_score": self.track(1 if safe_div(self.stock_data.get("stats", {}).get("roe"), 100.0) > 0.15 else 0)}
+        stats = self.stock_data.get("stats", {})
+        roe = safe_div(stats.get("roe"), 100.0)
+        
+        # AI Metrics Additions: Graham Number & Altman Z Proxy
+        eps = clean_float(stats.get("epsTtm"))
+        bvps = clean_float(stats.get("bookValue"))
+        graham_num = np.nan
+        if not np.isnan(eps) and eps > 0 and not np.isnan(bvps) and bvps > 0:
+            graham_num = math.sqrt(22.5 * eps * bvps)
+            
+        altman_proxy = np.nan
+        debt_to_eq = clean_float(stats.get("debtToEquity"))
+        if not np.isnan(roe) and not np.isnan(debt_to_eq):
+            altman_proxy = (roe * 3.0) - (debt_to_eq * 1.5) + 1.0
+            
+        return {
+            "piotroski_f_score": self.track(1 if roe > 0.15 else 0),
+            "graham_number_value": self.track(graham_num),
+            "altman_z_proxy": self.track(altman_proxy)
+        }
 
 # --- UNIFIED PROCESSING ---
 

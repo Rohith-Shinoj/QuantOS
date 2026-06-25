@@ -5,7 +5,25 @@ import { InfoTooltip } from '../../components/InfoTooltip';
 
 export const OwnershipTrends = ({ data }: { data: any }) => {
   const rel = data.relative || {};
+  const abs = data.absolute || {};
   const mom = rel.shareholding_momentum_vectors || {};
+  
+  const shp = abs.shareHoldingPattern || {};
+  const quarters = Object.keys(shp);
+  let latestInstPct = 0;
+  let latestQuarter = '';
+  
+  if (quarters.length > 0) {
+    // API returns chronological order usually, take the last key
+    latestQuarter = quarters[quarters.length - 1];
+    const latestData = shp[latestQuarter];
+    if (latestData) {
+      const mf = latestData.mutualFunds?.percent || 0;
+      const fi = latestData.foreignInstitutions?.percent || 0;
+      const ins = latestData.otherDomesticInstitutions?.insurance?.percent || 0;
+      latestInstPct = mf + fi + ins;
+    }
+  }
   
   const chartData = [
     {
@@ -24,10 +42,18 @@ export const OwnershipTrends = ({ data }: { data: any }) => {
 
   return (
     <div className="bg-surface p-4 rounded-lg border border-border h-full flex flex-col">
-      <h3 className="text-lg font-medium text-text-primary mb-4 flex items-center">
-        Ownership Trends
-        <InfoTooltip text="Tracks recent shifts in shareholding. 'Inst. Accumulation' tracks smart money buying. 'Pledge Delta' tracks changes in promoter pledged shares." />
-      </h3>
+      <div className="flex justify-between items-start mb-4">
+        <h3 className="text-lg font-medium text-text-primary flex items-center">
+          Ownership Trends
+          <InfoTooltip text="Tracks recent shifts in shareholding. 'Inst. Accumulation' tracks smart money buying. 'Pledge Delta' tracks changes in promoter pledged shares." />
+        </h3>
+        {latestInstPct > 0 && (
+          <div className="text-right">
+            <div className="text-sm text-text-secondary">Inst. Holding ({latestQuarter})</div>
+            <div className="text-xl font-bold text-alpha">{latestInstPct.toFixed(2)}%</div>
+          </div>
+        )}
+      </div>
       <div className="flex-1 min-h-[250px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>

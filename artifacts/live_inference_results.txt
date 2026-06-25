@@ -1,0 +1,28 @@
+Loading XGBoost Model...
+Loading Latest Market Data...
+Executing predictions for live date: 2026-06-24
+
+==================================================
+🔥 TOP 20 'BUY' SIGNALS FOR THE NEXT 5 DAYS 🔥
+==================================================
+ 1. megasoft-ltd                   | Expected T+5 Return: +2.02%
+ 2. barbequenation-hospitality-ltd | Expected T+5 Return: +1.57%
+ 3. indo-tech-transformers-ltd     | Expected T+5 Return: +1.29%
+ 4. modern-insulators-ltd          | Expected T+5 Return: +1.11%
+ 5. welspun-india-ltd              | Expected T+5 Return: +0.54%
+ 6. jyoti-cnc-automation-ltd       | Expected T+5 Return: +0.51%
+ 7. venus-remedies-ltd             | Expected T+5 Return: +0.51%
+ 8. kitex-garments-ltd             | Expected T+5 Return: +0.37%
+ 9. exide-industries-ltd           | Expected T+5 Return: +0.37%
+10. confidence-petroleum-india-ltd | Expected T+5 Return: +0.37%
+11. aether-industries-ltd          | Expected T+5 Return: +0.32%
+12. rain-industries-ltd            | Expected T+5 Return: +0.31%
+13. polyplex-corporation-ltd       | Expected T+5 Return: +0.27%
+14. pearl-global-industries-ltd    | Expected T+5 Return: +0.26%
+15. jsw-infrastructure-ltd         | Expected T+5 Return: +0.26%
+16. quadrant-future-tek-ltd        | Expected T+5 Return: +0.24%
+17. cupid-ltd                      | Expected T+5 Return: +0.23%
+18. indswift-laboratories-ltd      | Expected T+5 Return: +0.23%
+19. quess-corp-ltd                 | Expected T+5 Return: +0.23%
+20. smc-global-securities-ltd      | Expected T+5 Return: +0.23%
+==================================================

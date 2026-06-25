@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchAllStocks } from '../../api';
 import { Link } from 'react-router-dom';
 import { InfoTooltip } from '../../components/InfoTooltip';
+import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 export const PeerComparison = ({ data: currentStockData, isPanel = false }: { data: any, isPanel?: boolean }) => {
   const { data: allStocks, isLoading } = useQuery({
@@ -42,6 +43,18 @@ export const PeerComparison = ({ data: currentStockData, isPanel = false }: { da
     return "text-text-secondary";
   };
 
+  const scatterData = peers
+    .filter((p: any) => p.peRatio != null && p.roe != null)
+    .map((p: any) => ({
+      name: p.ticker,
+      slug: p.slug,
+      pe: p.peRatio,
+      roe: p.roe,
+      alpha: Math.round((p.alpha_score || 0) * 100),
+      marketCap: p.marketCap || 1,
+      isCurrent: p.slug === currentStockData?.absolute?.slug
+    }));
+
   return (
     <div className={`bg-surface rounded-lg border border-border overflow-hidden flex flex-col ${isPanel ? 'h-full' : ''}`}>
       {!isPanel && (
@@ -55,6 +68,47 @@ export const PeerComparison = ({ data: currentStockData, isPanel = false }: { da
       {isPanel && (
         <div className="p-3 border-b border-border bg-surface-hover/30 shrink-0">
            <h2 className="text-sm font-bold text-text-primary">{currentIndustry} Peers</h2>
+        </div>
+      )}
+
+      {scatterData.length > 0 && (
+        <div className="h-[250px] w-full p-2 border-b border-border/50 shrink-0 bg-canvas/30">
+          <ResponsiveContainer width="100%" height="100%">
+            <ScatterChart margin={{ top: 15, right: 15, bottom: 15, left: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
+              <XAxis type="number" dataKey="pe" name="P/E Ratio" stroke="#888" tick={{ fontSize: 10 }} domain={['auto', 'auto']} />
+              <YAxis type="number" dataKey="roe" name="ROE" stroke="#888" tick={{ fontSize: 10 }} domain={['auto', 'auto']} />
+              <ZAxis type="number" dataKey="marketCap" range={[50, 400]} name="Market Cap" />
+              <Tooltip 
+                cursor={{ strokeDasharray: '3 3', stroke: '#ffffff30' }} 
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    const data = payload[0].payload;
+                    return (
+                      <div className="bg-surface border border-border p-2 rounded shadow-xl text-xs">
+                        <p className="font-bold text-text-primary mb-1">{data.name}</p>
+                        <p className="text-text-secondary">P/E: <span className="text-text-primary font-medium">{data.pe.toFixed(2)}</span></p>
+                        <p className="text-text-secondary">ROE: <span className="text-text-primary font-medium">{data.roe.toFixed(2)}%</span></p>
+                        <p className="text-text-secondary">Alpha: <span className={getScoreColor(data.alpha)}>{data.alpha}</span></p>
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Scatter data={scatterData}>
+                {scatterData.map((entry: any, index: number) => (
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={entry.alpha >= 80 ? '#42bd7f' : entry.alpha <= 30 ? '#f23645' : '#888'} 
+                    fillOpacity={0.7}
+                    stroke={entry.isCurrent ? '#FFD700' : 'none'}
+                    strokeWidth={entry.isCurrent ? 2 : 0}
+                  />
+                ))}
+              </Scatter>
+            </ScatterChart>
+          </ResponsiveContainer>
         </div>
       )}
 
