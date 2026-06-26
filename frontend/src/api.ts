@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
 export const fetchStockData = async (slug: string) => {
   const response = await axios.get(`${API_BASE_URL}/stocks/${slug}`);
@@ -9,6 +9,11 @@ export const fetchStockData = async (slug: string) => {
 
 export const fetchAllStocks = async () => {
   const response = await axios.get(`${API_BASE_URL}/stocks`);
+  return response.data;
+};
+
+export const fetchBatchStockData = async (slugs: string[]) => {
+  const response = await axios.post(`${API_BASE_URL}/stocks/batch`, { slugs });
   return response.data;
 };
 
@@ -81,4 +86,21 @@ export const fetchMutualFunds = async (params?: {
 export const fetchMutualFundByCode = async (schemeCode: string) => {
   const response = await axios.get(`${API_BASE_URL}/mutual_funds/${schemeCode}`);
   return response.data;
+};
+
+export interface LiveQuote {
+  slug: string;
+  currentPrice: number;
+  dayChange: number;
+  dayChangePerc: number;
+}
+
+export const fetchLiveQuote = async (slug: string): Promise<LiveQuote> => {
+  const res = await axios.get(`${API_BASE_URL}/quotes/live/${slug}`);
+  return res.data;
+};
+
+export const fetchBatchLiveQuotes = async (slugs: string[]): Promise<Record<string, LiveQuote>> => {
+  const res = await axios.post(`${API_BASE_URL}/quotes/refresh-batch`, { slugs });
+  return res.data;
 };

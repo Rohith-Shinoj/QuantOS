@@ -253,85 +253,102 @@ async def stream_agent_events(ticker: str, query: str, history: list = None):
         else:
             # Qualitative query
             if ticker == "SCREEN":
-                # Qualitative screen makes no sense for langgraph as it needs a specific ticker usually, 
-                # but we will just pass it down and see.
                 pass
+            
+            yield f"data: {json.dumps({'type': 'debug_log', 'log': f'[DB] Fetching qualitative data for {ticker} from DuckDB...'})}\n\n"
+            
+            con = duckdb.connect(DB_PATH, read_only=True)
+            stock = con.execute("SELECT absolute_data, relative_data FROM stocks WHERE ticker = ? OR slug = ?", (ticker, ticker)).fetchone()
+            con.close()
+            
+            if not stock:
+                yield f"data: {json.dumps({'type': 'debug_log', 'log': f'[DB] No data found for {ticker}'})}\n\n"
+                yield f"data: {json.dumps({'type': 'token', 'content': f'No data found for {ticker} in the database.'})}\n\n"
+                yield f"data: {json.dumps({'type': 'done'})}\n\n"
+                return
                 
+            abs_data = json.loads(stock[0]) if stock[0] else {}
+            rel_data = json.loads(stock[1]) if stock[1] else {}
+            
+            yield f"data: {json.dumps({'type': 'debug_log', 'log': f'[DB] Successfully fetched deep qualitative data for {ticker}'})}\n\n"
+            yield f"data: {json.dumps({'type': 'debug_log', 'log': '[LLM] Bypassing LangGraph... Initiating single-shot qualitative analysis...'})}\n\n"
+            
+            from agent_engine.registry import COMPONENT_REGISTRY
+            registry_str = ""
+            for key, val in COMPONENT_REGISTRY.items():
+                if key != "narrative_insight":
+                    registry_str += f"- {key}: {val['description']}\n  Expected Schema: {val['schema']}\n\n"
+                    
+            prompt = f"The user asked about {ticker}: '{query}'\n\n"
+            prompt += f"Deep Database Extract for {ticker}:\n"
+            prompt += f"Absolute Fundamentals: {json.dumps(abs_data)[:5000]}...\n"
+            prompt += f"Relative Metrics: {json.dumps(rel_data)[:5000]}...\n\n"
+            prompt += f"""
+            You are a Qualitative Analysis Engine and Expert Institutional Portfolio Manager.
+            A user asked about {ticker}: "{query}"
+            
+            CRITICAL INSTRUCTION 1: You MUST output strictly in JSON format. NO MARKDOWN WRAPPERS, NO CODE BLOCKS, NO TEXT OUTSIDE THE JSON.
+            CRITICAL INSTRUCTION 2: You MUST include the `narrative_insight` key containing a deep, multi-paragraph qualitative analysis addressing the user's query.
+            CRITICAL INSTRUCTION 3: You MUST select EXACTLY 3 additional UI components from the registry below that best fit the analysis. You must populate their schemas using the data provided.
+            
+            AVAILABLE UI COMPONENTS:
+            {registry_str}
+            
+            REQUIRED OUTPUT JSON SCHEMA:
+            {{
+              "narrative_insight": {{
+                "title": "A compelling title",
+                "summary": "Deep, multi-paragraph analysis addressing the query",
+                "trend": "bullish | bearish | neutral"
+              }},
+              "metadata": {{
+                "ticker": "{ticker}",
+                "industry": "Extracted Industry",
+                "recommendation": "BUY | HOLD | SELL",
+                "current_price": "$0.00"
+              }},
+              // ... inject the 3 components you chose here using their exact keys and expected schemas
+            }}
+            """
+            
+            model = ChatGoogleGenerativeAI(
+                model="gemini-3.1-flash-lite",
+                temperature=0.1
+            )
+            
+            try:
+                raw_text = ""
+                async for chunk in model.astream([HumanMessage(content=prompt)]):
+                    content = chunk.content
+                    if isinstance(content, list):
+                        text_chunk = "".join(block.get("text", "") for block in content if isinstance(block, dict))
+                    else:
+                        text_chunk = str(content)
+                        
+                    if text_chunk:
+                        raw_text += text_chunk
+                        yield f"data: {json.dumps({'type': 'token', 'content': text_chunk})}\n\n"
+                        
+                try:
+                    import re
+                    match = re.search(r'\{.*\}', raw_text, re.DOTALL)
+                    if match:
+                        raw_text = match.group(0)
+                    parsed_json = json.loads(raw_text)
+                    yield f"data: {json.dumps({'type': 'debug_log', 'log': '[LLM] Qualitative JSON parsed successfully!'})}\n\n"
+                except Exception as e:
+                    yield f"data: {json.dumps({'type': 'debug_log', 'log': f'[LLM] Qualitative JSON parse failed: {str(e)}'})}\n\n"
+            except Exception as e:
+                yield f"data: {json.dumps({'type': 'debug_log', 'log': f'[LLM] Unavailable: {type(e).__name__}: {str(e)}'})}\n\n"
+
+            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+            return
+            
     except Exception as e:
         print(f"Hybrid Interceptor Error: {e}")
-        # Fallback to standard agent if router fails
-        pass
-
-    initial_state = {
-        "messages": msgs,
-        "ticker": ticker
-    }
-    
-    try:
-        # We use astream_events with version="v2" as recommended by LangChain
-        async for event in graph_app.astream_events(initial_state, version="v2"):
-            kind = event["event"]
-            name = event.get("name")
-            
-            # Map LangGraph events to our custom frontend UI events
-            if kind == "on_chat_model_stream" and name == "ChatGoogleGenerativeAI":
-                # Ensure we only stream the execution node, not the architect node
-                node_name = event.get("metadata", {}).get("langgraph_node")
-                if node_name == "execution":
-                    chunk = event["data"]["chunk"]
-                    if chunk.content:
-                        content_str = ""
-                        if isinstance(chunk.content, str):
-                            content_str = chunk.content
-                        elif isinstance(chunk.content, list):
-                            for block in chunk.content:
-                                if isinstance(block, dict) and "text" in block:
-                                    content_str += block["text"]
-                                elif isinstance(block, str):
-                                    content_str += block
-                        if content_str:
-                            yield f"data: {json.dumps({'type': 'token', 'content': content_str})}\n\n"
-                    
-            elif kind == "on_tool_start":
-                tool_name = name
-                yield f"data: {json.dumps({'type': 'tool_start', 'tool': tool_name})}\n\n"
-                
-            elif kind == "on_tool_end":
-                tool_name = name
-                # We can choose not to send the full output if it's too large, but for now we just notify
-                yield f"data: {json.dumps({'type': 'tool_end', 'tool': tool_name})}\n\n"
-                
-            elif kind == "on_chain_end" and name == "LangGraph":
-                # Final graph completion
-                yield f"data: {json.dumps({'type': 'done'})}\n\n"
-
-            # Allow other coroutines to run
-            await asyncio.sleep(0)
-            
-    except Exception as e:
-        print(f"\n[AGENT_API ERROR] Fatal exception during agent execution for ticker {ticker}: {str(e)}")
         import traceback
         traceback.print_exc()
-        
-        fallback_msg = "Oops, looks like the AI Agent is experiencing high demand currently. Please try again in a while :(\n\n"
-        fallback_msg += f"### Pure-Data Fallback for {ticker}\n"
-        
-        try:
-            from backend.database import get_db
-            con = get_db()
-            stock = con.execute("SELECT name, industry, pe_ratio, alpha_score, volatility_squeeze FROM stocks WHERE ticker = ? OR slug = ?", (ticker, ticker)).fetchone()
-            if stock:
-                fallback_msg += f"- **Name:** {stock[0]}\n"
-                fallback_msg += f"- **Industry:** {stock[1]}\n"
-                fallback_msg += f"- **P/E Ratio:** {stock[2]}\n"
-                fallback_msg += f"- **Alpha Score:** {stock[3]}\n"
-                fallback_msg += f"- **Volatility Squeeze:** {stock[4]}\n"
-            else:
-                fallback_msg += "No pure-data available in the database for this ticker.\n"
-        except Exception as inner_e:
-            pass
-            
-        yield f"data: {json.dumps({'type': 'token', 'content': fallback_msg})}\n\n"
+        yield f"data: {json.dumps({'type': 'token', 'content': f'Oops, looks like the AI Agent is experiencing high demand currently. Please try again in a while :('})}\n\n"
         yield f"data: {json.dumps({'type': 'done'})}\n\n"
 
 

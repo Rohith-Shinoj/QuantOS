@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { Search, Plus, Trash2, AlertTriangle, BellRing } from 'lucide-react';
 import { InfoTooltip } from '../components/InfoTooltip';
 import { StockLogo } from '../components/StockLogo';
+import { Skeleton } from '../components/Skeleton';
 
 export const Watchlists = ({ isPanel = false }: { isPanel?: boolean }) => {
   const [watchlists, setWatchlists] = useState<{ id: string, name: string, slugs: string[] }[]>([]);
@@ -217,10 +218,22 @@ export const Watchlists = ({ isPanel = false }: { isPanel?: boolean }) => {
                     </tr>
                   </thead>
                     <tbody className="divide-y divide-border/30">
-                      {activeList.slugs.length === 0 && (
+                      {isLoading && (
+                        [...Array(5)].map((_, i) => (
+                          <tr key={i} className="border-b border-border/30">
+                            <td className="p-4"><Skeleton className="h-8 w-32" /></td>
+                            <td className="p-4"><Skeleton className="h-4 w-16 ml-auto" /></td>
+                            <td className="p-4"><Skeleton className="h-4 w-12 ml-auto" /></td>
+                            <td className="p-4"><Skeleton className="h-4 w-12 ml-auto" /></td>
+                            <td className="p-4"><Skeleton className="h-6 w-6 mx-auto" /></td>
+                            <td className="p-4"></td>
+                          </tr>
+                        ))
+                      )}
+                      {!isLoading && activeList.slugs.length === 0 && (
                         <tr><td colSpan={6} className="p-8 text-center text-text-secondary italic">Watchlist is empty. Search above to add stocks.</td></tr>
                       )}
-                      {activeList.slugs.map(slug => {
+                      {!isLoading && activeList.slugs.map(slug => {
                         const stock = allStocks?.find((s: any) => s.slug === slug);
                         if (!stock) return null;
                         const alphaScore = Math.round((stock.alpha_score || 0) * 100);

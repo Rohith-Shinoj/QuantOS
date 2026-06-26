@@ -6,9 +6,7 @@ import requests
 from bs4 import BeautifulSoup
 from time import sleep
 from tqdm import tqdm
-import requests
-from bs4 import BeautifulSoup
-from time import sleep
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 def scrape_detailed_data(search_id):
     url = f"https://groww.in/mutual-funds/{search_id}"
@@ -25,8 +23,28 @@ def scrape_detailed_data(search_id):
                 "stats": mf_data.get("stats", [])
             }
     except Exception as e:
-        print(f"Error scraping {search_id}: {e}")
+        pass
     return {"holdings": [], "stats": []}
+
+def process_fund(fund):
+    search_id = fund.get("direct_search_id") or fund.get("search_id")
+    scheme_code = fund.get("direct_scheme_code") or fund.get("scheme_code")
+    if search_id:
+        details = scrape_detailed_data(search_id)
+        fund["detailed_holdings"] = details["holdings"]
+        fund["advanced_stats"] = details["stats"]
+    
+    if scheme_code:
+        try:
+            graph_url = f"https://groww.in/v1/api/data/mf/web/v1/scheme/{scheme_code}/graph?benchmark=false"
+            headers = {"User-Agent": "Mozilla/5.0"}
+            g_resp = requests.get(graph_url, headers=headers, timeout=10)
+            if g_resp.status_code == 200:
+                fund["historical_navs"] = g_resp.json().get("folio", {}).get("data", [])
+        except Exception as e:
+            pass
+
+    return fund
 
 def fetch_all_mutual_funds(target_dir, full_refresh=False):
     all_funds = []
@@ -63,14 +81,13 @@ def fetch_all_mutual_funds(target_dir, full_refresh=False):
             
     # If full refresh is enabled, fetch detailed data
     if full_refresh:
-        print(f"Starting FULL REFRESH: Scraping detailed data for {len(all_funds)} funds...")
-        for fund in tqdm(all_funds, desc="Scraping details"):
-            search_id = fund.get("direct_search_id") or fund.get("search_id")
-            if search_id:
-                details = scrape_detailed_data(search_id)
-                fund["detailed_holdings"] = details["holdings"]
-                fund["advanced_stats"] = details["stats"]
-                sleep(0.2)  # Prevent rate limiting
+        print(f"Starting FULL REFRESH: Scraping detailed data for {len(all_funds)} funds with 32 workers...")
+        processed_funds = []
+        with ThreadPoolExecutor(max_workers=32) as executor:
+            futures = {executor.submit(process_fund, fund): fund for fund in all_funds}
+            for future in tqdm(as_completed(futures), total=len(all_funds), desc="Scraping details"):
+                processed_funds.append(future.result())
+        all_funds = processed_funds
     else:
         # Load existing static data if it exists
         out_path = os.path.join(target_dir, "mutual_funds.json")

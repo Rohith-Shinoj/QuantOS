@@ -104,6 +104,8 @@ const getSignalExplanation = (correlation: number, recommendedAction: string): {
   };
 };
 
+import { Skeleton } from '../components/Skeleton';
+
 export const PairTrading = ({ isPanel = false, initialAssetA }: { isPanel?: boolean, initialAssetA?: string }) => {
   const [assetA, setAssetA] = useState(initialAssetA || 'state-bank-of-india');
   const [assetB, setAssetB] = useState('hdfc-bank-ltd');
@@ -250,7 +252,16 @@ export const PairTrading = ({ isPanel = false, initialAssetA }: { isPanel?: bool
       </div>
 
       {isLoading || !analysis ? (
-        <div className="h-[400px] bg-surface rounded-lg animate-pulse flex items-center justify-center text-text-secondary">Loading analysis...</div>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <div className="lg:col-span-3">
+            <Skeleton className="w-full h-[450px]" />
+          </div>
+          <div className="flex flex-col gap-4">
+            <Skeleton className="w-full h-[140px]" />
+            <Skeleton className="w-full h-[140px]" />
+            <Skeleton className="w-full h-[140px]" />
+          </div>
+        </div>
       ) : error ? (
         <div className="p-8 text-beta bg-surface rounded border border-border">Error calculating spread matrix. Make sure both assets have enough overlapping historical data.</div>
       ) : (

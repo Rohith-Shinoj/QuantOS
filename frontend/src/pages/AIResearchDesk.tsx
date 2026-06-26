@@ -10,7 +10,7 @@ import {
 } from 'recharts';
 import ReactMarkdown from 'react-markdown';
 
-const AI_Analysis_debug = true;
+const AI_Analysis_debug = false;
 
 export const AIResearchDesk: React.FC = () => {
   const { isProcessing, messages, activeTicker, setActiveTicker, clearWorkspace } = useAIStore();

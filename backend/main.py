@@ -1,5 +1,6 @@
 import os
 from fastapi import FastAPI, HTTPException, WebSocket, Header, Depends
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 import duckdb
 import json
@@ -8,7 +9,20 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
-from dotenv import load_dotenv
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+from bs4 import BeautifulSoup
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# Global HTTP Session for extremely fast connection pooling
+live_quote_session = requests.Session()
+adapter = HTTPAdapter(pool_connections=32, pool_maxsize=32, max_retries=0)
+live_quote_session.mount('http://', adapter)
+live_quote_session.mount('https://', adapter)
+live_quote_session.headers.update({
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+})
 
 env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
 load_dotenv(dotenv_path=env_path, override=True)
@@ -50,7 +64,7 @@ def get_db():
         _db_con.execute(f"CREATE OR REPLACE VIEW stocks AS SELECT * FROM '{DB_PATH}'")
         if os.path.exists(MF_DB_PATH):
             _db_con.execute(f"CREATE OR REPLACE VIEW mutual_funds AS SELECT * FROM '{MF_DB_PATH}'")
-    return _db_con
+    return _db_con.cursor()
 
 def verify_admin_token(x_admin_token: str = Header(...)):
     if not ADMIN_TOKEN or x_admin_token != ADMIN_TOKEN:
@@ -79,6 +93,102 @@ def reload_db(token: str = Depends(verify_admin_token)):
         return {"status": "success", "message": "Database hot-swapped to Parquet: " + DB_PATH}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+class BatchRefreshRequest(BaseModel):
+    slugs: list[str]
+
+def fetch_live_quote(slug: str, session: requests.Session):
+    KNOWN_INDICES = ["nifty", "india-vix", "sp-bse-sensex", "nifty-smallcap-100", "nifty-midcap", "nifty-total-market-index", "nifty-metal", "nifty-it", "nifty-bank"]
+    try:
+        if slug in KNOWN_INDICES:
+            path_type = "indices"
+            url = f"https://groww.in/indices/{slug}"
+        else:
+            path_type = "etfs" if "etf" in slug.lower() else "stocks"
+            url = f"https://groww.in/{path_type}/{slug}"
+            
+        html = session.get(url, timeout=3).text
+        import re
+        match = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', html, re.DOTALL)
+        if match:
+            data = json.loads(match.group(1))
+            props = data.get("props", {}).get("pageProps", {})
+            stock_data = props.get("stockData", {})
+            live_price = props.get("livePriceData", {})
+            
+            nse = stock_data.get("nseSymbol")
+            bse = stock_data.get("bseSymbol")
+            
+            quote = None
+            if nse and nse in live_price:
+                quote = live_price[nse]
+            elif bse and bse in live_price:
+                quote = live_price[bse]
+            elif live_price:
+                best_quote = None
+                for k, v in live_price.items():
+                    if not k.isdigit():
+                        best_quote = v
+                        break
+                quote = best_quote if best_quote else list(live_price.values())[0]
+                
+            # For indices, fallback to checking indexData
+            if not quote and slug in KNOWN_INDICES:
+                index_data = props.get("indexData", {})
+                header = index_data.get("header", {})
+                if header and "livePrice" in header:
+                    quote = {
+                        "ltp": header.get("livePrice"),
+                        "dayChange": header.get("dayChange"),
+                        "dayChangePerc": header.get("dayChangePerc")
+                    }
+                
+            if quote:
+                return {
+                    "slug": slug,
+                    "currentPrice": quote.get("ltp"),
+                    "dayChange": quote.get("dayChange"),
+                    "dayChangePerc": quote.get("dayChangePerc")
+                }
+    except Exception as e:
+        print(f"[BACKEND] fetch_live_quote error for {slug}: {e}")
+    return None
+
+@app.get("/api/quotes/live/{slug}")
+def get_live_quote(slug: str):
+    data = fetch_live_quote(slug, live_quote_session)
+    if data:
+        return data
+    raise HTTPException(status_code=404, detail="Quote not found")
+
+@app.post("/api/admin/log")
+def frontend_log(req: dict):
+    print(f"\n[FRONTEND TRACE]:\n{req.get('message')}\n")
+    return {"status": "ok"}
+
+@app.post("/api/quotes/refresh-batch")
+def refresh_batch(req: BatchRefreshRequest):
+    import time
+    t0 = time.time()
+    results = {}
+    print(f"\n[BACKEND] Starting refresh-batch for {len(req.slugs)} slugs: {req.slugs}")
+    
+    # Mirror generate_datasets.py: Local session and context manager
+    session = requests.Session()
+    session.headers.update({
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    })
+    
+    with ThreadPoolExecutor(max_workers=32) as executor:
+        futures = {executor.submit(fetch_live_quote, slug, session): slug for slug in req.slugs}
+        for future in as_completed(futures):
+            res = future.result()
+            if res:
+                results[res["slug"]] = res
+                
+    t1 = time.time()
+    print(f"[BACKEND] Finished refresh-batch. Took {t1-t0:.2f} seconds.\n")
+    return results
 
 @app.get("/api/stocks")
 async def list_stocks():
@@ -148,6 +258,39 @@ async def get_stock(slug: str):
             "relative": rel_data,
             "benchmark_ohlcv": nifty_ohlcv
         }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class BatchStockRequest(BaseModel):
+    slugs: list[str]
+
+@app.post("/api/stocks/batch")
+async def get_stocks_batch(req: BatchStockRequest):
+    try:
+        con = get_db()
+        results = {}
+        
+        # Fetch Nifty 50 OHLCV for benchmark overlay
+        nifty_result = con.execute("SELECT absolute_data->>'$.OHLCV' FROM stocks WHERE slug = 'nifty'").fetchone()
+        nifty_ohlcv = json.loads(nifty_result[0]) if nifty_result and nifty_result[0] else []
+        
+        # Fetch all requested slugs
+        placeholders = ', '.join(['?'] * len(req.slugs))
+        query = f"SELECT slug, absolute_data, relative_data FROM stocks WHERE slug IN ({placeholders})"
+        rows = con.execute(query, req.slugs).fetchall()
+        
+        for row in rows:
+            slug = row[0]
+            abs_data = json.loads(row[1]) if row[1] else {}
+            rel_data = json.loads(row[2]) if row[2] else {}
+            results[slug] = {
+                "slug": slug, 
+                "absolute": abs_data, 
+                "relative": rel_data,
+                "benchmark_ohlcv": nifty_ohlcv
+            }
+            
+        return results
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -663,7 +806,7 @@ async def ai_analyze_portfolio(req: PortfolioAIRequest):
                 name = mf[2] or mf[3]
                 portfolio_data.append({
                     "type": "Mutual Fund",
-                    "ticker": mf[0] or mf[1],
+                    "ticker": name,
                     "name": name,
                     "industry": mf[4],
                     "return3y": mf[5],
@@ -677,7 +820,12 @@ async def ai_analyze_portfolio(req: PortfolioAIRequest):
         llm = ChatGoogleGenerativeAI(model="gemini-3.1-flash-lite", temperature=0.1)
         
         system_prompt = """You are a Chief Investment Officer. Analyze the provided dual portfolio data (Stocks & Mutual Funds).
-You MUST output strictly in JSON format matching this schema exactly, with NO markdown wrappers:
+You MUST output strictly in JSON format matching this schema exactly, with NO markdown wrappers.
+
+CRITICAL INSTRUCTIONS:
+1. The `asset_action_plan` array MUST contain an action plan for EVERY SINGLE asset provided in the portfolio data, regardless of how many there are. Do not skip any assets.
+2. The `strategic_verdict` MUST be a highly elaborate, multi-paragraph markdown string providing a deep qualitative breakdown of the portfolio's strategy, risk alignment, and macro vulnerabilities. It should read like a comprehensive institutional report.
+
 {
   "portfolio_risk_score": 0,
   "profile_alignment": "MATCH | DEVIATION",
@@ -691,7 +839,7 @@ You MUST output strictly in JSON format matching this schema exactly, with NO ma
   "asset_action_plan": [
     {"asset": "STR", "action": "TRIM | ACCUMULATE | HOLD | LIQUIDATE", "justification": "STR"}
   ],
-  "strategic_verdict": "STR"
+  "strategic_verdict": "Multi-paragraph elaborate markdown string here..."
 }"""
         
         user_prompt = f"Stock Risk Tolerance: {req.stockRisk}\nMutual Fund Risk Tolerance: {req.mfRisk}\nHolding Period: {req.holdingPeriod}\n\nPortfolio Data:\n{json.dumps(portfolio_data, indent=2)}"
@@ -703,16 +851,22 @@ You MUST output strictly in JSON format matching this schema exactly, with NO ma
         
         response = await llm.ainvoke(messages)
         
-        # Clean potential markdown wrappers
+        # Clean potential markdown wrappers and list chunks
         content = response.content
-        if content.startswith("```json"):
-            content = content[7:]
-        if content.startswith("```"):
-            content = content[3:]
-        if content.endswith("```"):
-            content = content[:-3]
+        if isinstance(content, list):
+            content_str = "".join(block.get("text", "") for block in content if isinstance(block, dict))
+        else:
+            content_str = str(content)
             
-        return json.loads(content.strip())
+        content_str = content_str.strip()
+        
+        import re
+        match = re.search(r'\{.*\}', content_str, re.DOTALL)
+        if match:
+            json_str = match.group(0)
+            return json.loads(json_str)
+        else:
+            return json.loads(content_str)
         
     except Exception as e:
         import traceback
@@ -812,7 +966,13 @@ Answer the client's questions directly and concisely."""
         
         response = await llm.ainvoke(messages)
         
-        return {"response": response.content}
+        content = response.content
+        if isinstance(content, list):
+            content_str = "".join(block.get("text", "") for block in content if isinstance(block, dict))
+        else:
+            content_str = str(content)
+            
+        return {"response": content_str}
         
     except Exception as e:
         import traceback

@@ -170,10 +170,10 @@ function App() {
           <Route path="pairs" element={<PairTrading />} />
           <Route path="portfolio" element={<PortfolioTracker />} />
           <Route path="mutual-funds" element={<MutualFunds />} />
-          <Route path="mutual-funds/:code" element={<MutualFundSnapshot />} />
           <Route path="watchlists" element={<Watchlists />} />
         </Route>
         <Route path="/terminal/:slug" element={<TerminalLayout />} />
+        <Route path="/mutual-funds/:code" element={<MutualFundSnapshot />} />
       </Routes>
     </Router>
   );

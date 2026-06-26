@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { createChart, ColorType, CrosshairMode, LineStyle } from 'lightweight-charts';
 import type { IChartApi, ISeriesApi } from 'lightweight-charts';
-import { HelpCircle } from 'lucide-react';
+import { HelpCircle, RefreshCw } from 'lucide-react';
 import { StockLogo } from '../../components/StockLogo';
+import { useQueryClient } from '@tanstack/react-query';
+import { fetchLiveQuote } from '../../api';
 
 const TIMEFRAMES = ['1M', '3M', '6M', '1Y', '5Y', 'ALL'];
 
@@ -51,6 +53,44 @@ export const MultidimensionalChart = ({ data }: { data: any }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   
+  const queryClient = useQueryClient();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    const slug = data?.absolute?.slug;
+    if (!slug) return;
+    setIsRefreshing(true);
+    try {
+      const quote = await fetchLiveQuote(slug);
+      
+      queryClient.setQueryData(['stockData', slug], (old: any) => {
+        if (!old) return old;
+        const isZero = quote.dayChange === 0 && quote.dayChangePerc === 0;
+        return {
+          ...old,
+          absolute: {
+            ...old.absolute,
+            'live price': String(quote.currentPrice),
+            'day change': isZero ? old.absolute['day change'] : `${quote.dayChange > 0 ? '+' : ''}${quote.dayChange} (${quote.dayChangePerc?.toFixed(2)}%)`
+          }
+        };
+      });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const hasFetched = useRef(false);
+  useEffect(() => {
+    const slug = data?.absolute?.slug;
+    if (slug && !hasFetched.current) {
+      hasFetched.current = true;
+      handleRefresh();
+    }
+  }, [data?.absolute?.slug]);
+  
   const [viewMode, setViewMode] = useState<'candles' | 'baseline'>('candles');
   const [showNifty, setShowNifty] = useState(false);
   const [showBands, setShowBands] = useState(false);
@@ -59,6 +99,7 @@ export const MultidimensionalChart = ({ data }: { data: any }) => {
 
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRefs = useRef<any>({});
+  const baseLineRef = useRef<any>(null);
 
   const { parsedData, niftyData, baseValue } = useMemo(() => {
     const ohlcv = data?.absolute?.OHLCV || [];
@@ -159,6 +200,9 @@ export const MultidimensionalChart = ({ data }: { data: any }) => {
       bottomLineColor: '#ef4444',
       bottomFillColor1: 'rgba(239, 68, 68, 0.05)',
       bottomFillColor2: 'rgba(239, 68, 68, 0.28)',
+      baseLineColor: 'rgba(255, 255, 255, 0.4)',
+      baseLineStyle: LineStyle.Dotted,
+      baseLineWidth: 1,
     });
     baselineSeries.setData(parsedData.map(d => ({ time: d.time, value: d.close })));
     seriesRefs.current.baseline = baselineSeries;
@@ -259,6 +303,13 @@ export const MultidimensionalChart = ({ data }: { data: any }) => {
         lineWidth: 1,
         lineStyle: LineStyle.Solid,
         axisLabelVisible: true,
+      });
+      baseLineRef.current = baselineSeries.createPriceLine({
+        price: baseValue,
+        color: 'rgba(255, 255, 255, 0.4)',
+        lineWidth: 1,
+        lineStyle: LineStyle.Dotted,
+        axisLabelVisible: false,
       });
     }
 
@@ -474,6 +525,16 @@ export const MultidimensionalChart = ({ data }: { data: any }) => {
       const years = (new Date(parsedData[parsedData.length - 1].time).getTime() - new Date(parsedData[0].time).getTime()) / (365 * 24 * 60 * 60 * 1000);
       const cagr = years > 0 ? (Math.pow(endPrice / startPrice, 1 / years) - 1) * 100 : 0;
       setPeriodStats({ change: endPrice - startPrice, percentChange: ((endPrice - startPrice) / startPrice) * 100, cagr });
+      if (seriesRefs.current.baseline) {
+        if (baseLineRef.current) seriesRefs.current.baseline.removePriceLine(baseLineRef.current);
+        baseLineRef.current = seriesRefs.current.baseline.createPriceLine({
+          price: startPrice,
+          color: 'rgba(255, 255, 255, 0.4)',
+          lineWidth: 1,
+          lineStyle: LineStyle.Dotted,
+          axisLabelVisible: false,
+        });
+      }
       return;
     }
 
@@ -504,7 +565,17 @@ export const MultidimensionalChart = ({ data }: { data: any }) => {
 
     // Update baseline value to start of visible range for ALL synced series
     const baseValueConfig = { type: 'price' as const, price: parsedData[startIndex].close };
-    if (seriesRefs.current.baseline) seriesRefs.current.baseline.applyOptions({ baseValue: baseValueConfig });
+    if (seriesRefs.current.baseline) {
+      seriesRefs.current.baseline.applyOptions({ baseValue: baseValueConfig });
+      if (baseLineRef.current) seriesRefs.current.baseline.removePriceLine(baseLineRef.current);
+      baseLineRef.current = seriesRefs.current.baseline.createPriceLine({
+        price: parsedData[startIndex].close,
+        color: 'rgba(255, 255, 255, 0.4)',
+        lineWidth: 1,
+        lineStyle: LineStyle.Dotted,
+        axisLabelVisible: false,
+      });
+    }
     if (seriesRefs.current.upperBand) seriesRefs.current.upperBand.applyOptions({ baseValue: baseValueConfig });
     if (seriesRefs.current.lowerBand) seriesRefs.current.lowerBand.applyOptions({ baseValue: baseValueConfig });
     if (seriesRefs.current.sma) seriesRefs.current.sma.applyOptions({ baseValue: baseValueConfig });
@@ -557,6 +628,14 @@ export const MultidimensionalChart = ({ data }: { data: any }) => {
               <span className={`text-sm font-semibold leading-none ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
                 {isPositive ? '+' : ''}{priceDiff.toFixed(2)} ({isPositive ? '+' : ''}{pctChange.toFixed(2)}%) <span className="text-[10px] font-bold text-text-secondary ml-0.5">1D</span>
               </span>
+              <button 
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="ml-2 flex items-center gap-1.5 px-2 py-1 bg-surface-hover hover:bg-border border border-border rounded text-[10px] font-semibold text-text-primary transition-all disabled:opacity-50"
+              >
+                <RefreshCw size={10} className={isRefreshing ? "animate-spin" : ""} />
+                Sync
+              </button>
             </div>
           </div>
         </div>

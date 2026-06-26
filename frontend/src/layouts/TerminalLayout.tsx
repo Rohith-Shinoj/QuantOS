@@ -22,7 +22,7 @@ import { Watchlists } from '../pages/Watchlists';
 import { StockLogo } from '../components/StockLogo';
 import { fetchAllStocks, fetchStockData } from '../api';
 
-const GlobalSearch = () => {
+export const GlobalSearch = () => {
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
@@ -179,7 +179,13 @@ export const TerminalLayout = () => {
 
         {/* Resizable Grid */}
         <div className="flex-1 w-full h-full relative">
-          <AIAssistantOverlay ticker={abs?.ticker} isOpen={isAIOverlayOpen} onClose={() => setIsAIOverlayOpen(false)} />
+          <AIAssistantOverlay 
+            ticker={abs?.ticker} 
+            isOpen={isAIOverlayOpen} 
+            onClose={() => setIsAIOverlayOpen(false)} 
+            displayName={abs?.name}
+            internalPrompt={`Provide a verified expert investment breakdown for ${abs?.ticker} including Executive Analysis, Catalyst Path, Risk Asymmetry, and Execution Roadmap.`}
+          />
           <PanelGroup orientation="horizontal">
             
             {/* Left/Center Column (Chart + Bottom Panel) */}

@@ -367,8 +367,8 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
 
         {/* Right: AI Panel & Chat */}
         <div className={`bg-surface rounded-lg border border-indigo-500/30 flex flex-col min-h-0 relative overflow-hidden shadow-[0_0_30px_rgba(99,102,241,0.05)]`}>
-          {/* Glass Header */}
-          <div className="absolute top-0 left-0 right-0 bg-surface/90 backdrop-blur-md border-b border-border z-10 p-4">
+          {/* Solid Header to prevent scroll overlap */}
+          <div className="absolute top-0 left-0 right-0 bg-surface border-b border-border z-10 p-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2 font-bold text-indigo-400">
                 <BrainCircuit size={18} /> Chief Investment Officer AI
@@ -437,12 +437,16 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                 {/* Score & Verdict Card */}
                 <div className="p-6 bg-indigo-500/5 border border-indigo-500/20 rounded-xl flex flex-col gap-4 relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-3xl rounded-full translate-x-10 -translate-y-10"></div>
-                  <div className="flex justify-between items-start z-10">
-                    <div>
-                      <span className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase">Strategic Verdict</span>
-                      <h3 className="text-lg font-bold text-white mt-1 leading-snug">{aiAnalysis.strategic_verdict}</h3>
+                  <div className="flex justify-between items-start z-10 gap-6">
+                    <div className="flex-1">
+                      <span className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase mb-3 block">Strategic Verdict</span>
+                      <div className="prose prose-invert prose-indigo max-w-none text-sm md:text-base leading-relaxed [&>p]:mb-4 last:[&>p]:mb-0 [&>ul]:list-disc [&>ul]:ml-5 [&>h3]:text-lg [&>h3]:font-bold [&>h3]:mt-4 [&>h3]:mb-2 [&>strong]:text-white">
+                        <ReactMarkdown>
+                          {aiAnalysis.strategic_verdict}
+                        </ReactMarkdown>
+                      </div>
                     </div>
-                    <div className="flex flex-col items-end">
+                    <div className="flex flex-col items-end shrink-0">
                       <span className="text-[10px] font-bold tracking-widest text-text-secondary uppercase">Risk Score</span>
                       <span className={`text-4xl font-black tabular-nums tracking-tighter ${aiAnalysis.portfolio_risk_score > 60 ? 'text-beta' : aiAnalysis.portfolio_risk_score > 30 ? 'text-warning' : 'text-alpha'}`}>
                         {aiAnalysis.portfolio_risk_score}
@@ -476,7 +480,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                        {aiAnalysis.macro_exposures.map((m: any, i: number) => (
                          <div key={i} className="text-xs flex justify-between items-center border-b border-border/50 pb-1 last:border-0 last:pb-0">
                            <span className="text-text-secondary">{m.factor}</span>
-                           <span className="font-bold text-white text-right max-w-[50%] truncate" title={m.impact}>{m.impact}</span>
+                           <span className="font-bold text-white text-right w-1/2 text-xs leading-tight" title={m.impact}>{m.impact}</span>
                          </div>
                        ))}
                      </div>

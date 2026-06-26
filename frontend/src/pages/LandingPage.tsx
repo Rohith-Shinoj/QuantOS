@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, ChevronRight, BarChart2, Info, TrendingUp, TrendingDown, ArrowRight, Activity, ArrowUpRight, BrainCircuit } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { fetchAllStocks, fetchStockData, fetchMacroData } from '../api';
+import { Search, ChevronRight, BarChart2, Info, TrendingUp, TrendingDown, ArrowRight, Activity, ArrowUpRight, BrainCircuit, RefreshCw } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { fetchAllStocks, fetchStockData, fetchMacroData, fetchBatchLiveQuotes, fetchBatchStockData } from '../api';
 import Chart from 'react-apexcharts';
 import { StockLogo } from '../components/StockLogo';
+import { Skeleton } from '../components/Skeleton';
 import type { ApexOptions } from 'apexcharts';
 
 const filterSeriesByTimeframe = (seriesData: {x: number, y: number}[], timeframe: string) => {
@@ -141,8 +142,32 @@ const MarketSummaryChart = ({ slug }: { slug: string }) => {
   const { data: stockData, isLoading } = useQuery({ 
     queryKey: ['stockData', slug], 
     queryFn: () => fetchStockData(slug),
-    enabled: !!slug
+    enabled: !!slug,
+    staleTime: Infinity
   });
+
+  if (isLoading) {
+    return (
+      <div className="w-full h-full flex flex-col bg-surface border border-border rounded-xl p-6 relative min-h-[300px]">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-4">
+            <Skeleton className="w-12 h-12 rounded" />
+            <div>
+              <Skeleton className="w-20 h-4 mb-2" />
+              <div className="flex items-baseline gap-3 mt-1">
+                <Skeleton className="w-32 h-8" />
+                <Skeleton className="w-20 h-5" />
+              </div>
+            </div>
+          </div>
+          <Skeleton className="w-40 h-10 rounded-lg hidden md:block" />
+        </div>
+        <div className="flex-1 w-full mt-6">
+          <Skeleton className="w-full h-full rounded bg-gradient-to-t from-surface-hover/20 to-transparent" />
+        </div>
+      </div>
+    );
+  }
 
   const ohlcv = stockData?.absolute?.OHLCV || [];
   const seriesData = ohlcv
@@ -179,7 +204,6 @@ const MarketSummaryChart = ({ slug }: { slug: string }) => {
   
   return (
     <div className="w-full h-full flex flex-col bg-surface border border-border rounded-xl p-6 relative">
-      {isLoading && <div className="absolute inset-0 bg-surface/80 z-10 flex items-center justify-center font-bold text-text-secondary rounded-xl">Loading real-time data...</div>}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-4">
           <StockLogo ticker={ticker || ''} className="w-12 h-12 shadow-lg" textClass="text-xl" fallbackClass="bg-canvas border border-border text-text-primary" />
@@ -191,7 +215,6 @@ const MarketSummaryChart = ({ slug }: { slug: string }) => {
               <span className="text-3xl font-bold text-text-primary tracking-tight">{latestPrice ? latestPrice.toFixed(2) : '---'}</span>
               {!(ticker?.includes('NIFTY') || ticker?.includes('SENSEX') || ticker?.includes('VIX')) && <span className="text-sm font-bold text-text-secondary">INR</span>}
               
-              {/* Added Nifty Day Change Display */}
               <div className={`flex items-center gap-1 text-sm font-bold px-2 py-0.5 rounded bg-surface border border-border ${changeObj.isPositive ? 'text-alpha' : 'text-beta'}`}>
                 {changeObj.isPositive ? '+' : '-'}{changeObj.abs} ({changeObj.pct})
               </div>
@@ -201,7 +224,6 @@ const MarketSummaryChart = ({ slug }: { slug: string }) => {
         <TimeframeSelector selected={timeframe} onSelect={setTimeframe} />
       </div>
       <div className="flex-1 w-full min-h-[200px] relative overflow-hidden mt-2">
-        {/* NIFTY Trend Overlay if available */}
         {ticker && ticker.toLowerCase().includes('nifty') && (
           <div className="absolute top-4 left-4 z-20 bg-canvas/80 backdrop-blur border border-border px-3 py-2 rounded-lg">
             <div className="text-[10px] font-bold text-text-secondary uppercase">Market Trend</div>
@@ -261,7 +283,6 @@ const ComplexMarketCard = ({ stock }: { stock: any }) => {
 
   return (
     <Link to={`/terminal/${slug}`} className="bg-surface border border-border rounded-xl flex flex-col h-[380px] overflow-hidden group">
-      {/* Top Half: Chart */}
       <div className="p-4 flex-1 flex flex-col border-b border-border cursor-pointer hover:bg-surface-hover transition-colors">
         <div className="flex justify-between items-start">
           <div className="flex items-center gap-2 overflow-hidden pr-2">
@@ -282,7 +303,6 @@ const ComplexMarketCard = ({ stock }: { stock: any }) => {
         </div>
       </div>
       
-      {/* Bottom Half: True Quant Data from API */}
       <div className="p-4 h-[160px] bg-canvas/30">
         <div className="flex flex-col h-full justify-between">
           <div className="text-[10px] font-bold text-text-secondary mb-2 uppercase">{stock.industry || 'General'} Metrics</div>
@@ -308,14 +328,27 @@ const ComplexMarketCard = ({ stock }: { stock: any }) => {
   );
 };
 
-const MiniSectorCard = ({ stock }: { stock: any }) => {
+const MiniSectorCard = ({ stock, stockData, isLoading }: { stock: any, stockData?: any, isLoading?: boolean }) => {
   const slug = stock.slug;
   const [timeframe, setTimeframe] = useState('1Y');
-  const { data: stockData } = useQuery({ 
-    queryKey: ['stockData', slug], 
-    queryFn: () => fetchStockData(slug),
-    enabled: !!slug
-  });
+
+  if (isLoading) {
+    return (
+      <div className="bg-surface border border-border rounded-xl flex flex-col h-[200px] w-[220px] shrink-0 p-4">
+        <div className="flex items-center gap-2 mb-4">
+          <Skeleton className="w-6 h-6 rounded" />
+          <Skeleton className="w-24 h-4" />
+        </div>
+        <div className="mb-4">
+          <Skeleton className="w-16 h-6 mb-2" />
+          <Skeleton className="w-12 h-4" />
+        </div>
+        <div className="flex-1 w-full mt-2">
+          <Skeleton className="w-full h-full rounded" />
+        </div>
+      </div>
+    );
+  }
 
   const ohlcv = stockData?.absolute?.OHLCV || [];
   const seriesData = ohlcv
@@ -455,14 +488,32 @@ const CommodityRowCard = ({ stock }: { stock: any }) => {
   );
 };
 
-const IndexMarketCard = ({ stock, isActive }: { stock: any, isActive: boolean }) => {
+const IndexMarketCard = ({ stock, isActive, stockData, isLoading }: { stock: any, isActive: boolean, stockData?: any, isLoading?: boolean }) => {
   const slug = stock.slug;
   const [timeframe, setTimeframe] = useState('1Y');
-  const { data: stockData } = useQuery({ 
-    queryKey: ['stockData', slug], 
-    queryFn: () => fetchStockData(slug),
-    enabled: !!slug
-  });
+
+  if (isLoading) {
+    return (
+      <div className={`bg-surface border border-border rounded-xl flex flex-col h-[280px] overflow-hidden`}>
+        <div className="p-5 flex-1 flex flex-col">
+          <div className="flex justify-between items-start mb-4">
+            <div className="flex items-center gap-3">
+              <Skeleton className="w-8 h-8 rounded" />
+              <Skeleton className="w-24 h-5" />
+            </div>
+            <Skeleton className="w-32 h-8 rounded-lg" />
+          </div>
+          <div className="mt-2">
+            <Skeleton className="w-24 h-8 mb-2" />
+            <Skeleton className="w-16 h-4" />
+          </div>
+          <div className="flex-1 w-full mt-6 relative">
+            <Skeleton className="absolute inset-0 rounded-none bg-gradient-to-t from-surface-hover/20 to-transparent" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const ohlcv = stockData?.absolute?.OHLCV || [];
   const seriesData = ohlcv
@@ -497,7 +548,6 @@ const IndexMarketCard = ({ stock, isActive }: { stock: any, isActive: boolean })
 
   return (
     <div className={`bg-surface border ${isActive ? 'border-alpha ring-1 ring-alpha shadow-lg shadow-alpha/10' : 'border-border'} rounded-xl flex flex-col h-[280px] overflow-hidden group cursor-pointer hover:border-alpha/50 transition-all`}>
-      {/* Top Half: Chart */}
       <div className="p-5 flex-1 flex flex-col transition-colors relative">
         <div className="flex justify-between items-start mb-4">
           <div className="flex items-center gap-3 overflow-hidden pr-2">
@@ -583,7 +633,6 @@ const MarketSectors = ({ macro, stocks }: { macro: any, stocks: any[] }) => {
         ))}
       </div>
 
-      {/* Expanded Sector Panel */}
       {expandedSector && (
         <div className="mt-4 p-6 bg-surface border border-alpha/30 rounded-xl animate-in slide-in-from-top-2 fade-in duration-200">
            <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
@@ -618,7 +667,6 @@ const MarketSectors = ({ macro, stocks }: { macro: any, stocks: any[] }) => {
 };
 
 const StockListGrid = ({ stocks }: { stocks: any[] }) => {
-  // Calculate High-Conviction Lists (Only >5000 Cr Market Cap to avoid small-cap/penny anomalies)
   const validStocks = stocks?.filter((s: any) => s.ticker && s.day_change && (s.marketCap || 0) >= 5000) || [];
   const highestVolume = [...validStocks].sort((a, b) => (b.inst_accum || 0) - (a.inst_accum || 0)).slice(0, 5);
   const mostVolatile = [...validStocks].sort((a, b) => (b.rs_rating || 0) - (a.rs_rating || 0)).slice(0, 5);
@@ -707,13 +755,12 @@ const StockListGrid = ({ stocks }: { stocks: any[] }) => {
 
 const TickerTapeItem = ({ asset }: { asset: any }) => {
   const navigate = useNavigate();
-  // Fetch missing data if livePrice is empty or missing
   const needsFetch = !asset.livePrice || !asset.day_change;
   const { data: stockData } = useQuery({ 
     queryKey: ['stockData', asset.slug], 
     queryFn: () => fetchStockData(asset.slug),
     enabled: needsFetch,
-    staleTime: 60000 // Cache for 1 min
+    staleTime: 60000 
   });
 
   let livePrice = asset.livePrice;
@@ -760,10 +807,14 @@ const TickerTapeItem = ({ asset }: { asset: any }) => {
   );
 };
 
+const KNOWN_INDICES = ['nifty', 'sp-bse-sensex', 'india-vix', 'nifty-bank', 'nifty-it', 'nifty-metal', 'nifty-smallcap-100', 'nifty-midcap', 'nifty-total-market-index'];
+
 export const LandingPage = () => {
   const [query, setQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const { data: stocks } = useQuery({ queryKey: ['allStocks'], queryFn: fetchAllStocks });
   const { data: macro } = useQuery({ queryKey: ['macroData'], queryFn: fetchMacroData });
@@ -781,7 +832,6 @@ export const LandingPage = () => {
     ).slice(0, 8);
   }, [query, safeStocks]);
 
-  // Fetch the natively scraped NIFTY index
   const fallbackSlug = (stocks || []).find((s: any) => s.slug === 'nifty')?.slug || safeStocks[0]?.slug;
   const [summarySlug, setSummarySlug] = useState<string | null>(null);
 
@@ -800,22 +850,121 @@ export const LandingPage = () => {
     }
   };
 
-  const majorStocks = [...safeStocks].sort((a, b) => b.marketCap - a.marketCap).slice(0, 15);
+  const majorStocks = [...safeStocks].sort((a, b) => b.marketCap - a.marketCap).slice(0, 10);
   
-  const coreSlugs = ['sp-bse-sensex', 'india-vix', 'multi-commodity-exchange-of-india-ltd'];
-  const sectorSlugs = ['nifty-bank', 'nifty-it', 'nifty-metal', 'nifty-smallcap-100', 'nifty-midcap', 'nifty-total-market-index'];
-  const commoditySlugs = ['reliance-etf-gold-bees', 'nippon-life-india-asset-management-ltd-nippon-india-silver-etf'];
+  const indexAssets = useMemo(() => {
+    if (!stocks) return [];
+    return stocks.filter((s: any) => KNOWN_INDICES.includes(s.slug));
+  }, [stocks]);
 
-  const getAssets = (slugs: string[]) => slugs.map(s => (stocks || []).find((stock: any) => stock.slug === s)).filter(Boolean);
+  const coreSlugs = ['india-vix', 'sp-bse-sensex', 'multi-commodity-exchange-of-india-ltd'];
+  const coreAssets = coreSlugs.map(s => (stocks || []).find((stock: any) => stock.slug === s)).filter(Boolean);
+
+  const sectorAssets = indexAssets.filter((a: any) => !['nifty', 'sp-bse-sensex', 'india-vix'].includes(a.slug));
   
-  const coreAssets = getAssets(coreSlugs);
-  const sectorAssets = getAssets(sectorSlugs);
-  const commodityAssets = getAssets(commoditySlugs);
+  const commoditySlugs = ['reliance-etf-gold-bees', 'nippon-life-india-asset-management-ltd-nippon-india-silver-etf'];
+  const commodityAssets = commoditySlugs.map(s => (stocks || []).find((stock: any) => stock.slug === s)).filter(Boolean);
+
+  const indicesToFetch = useMemo(() => {
+    return Array.from(new Set([
+      summarySlug,
+      ...coreAssets.map((a: any) => a.slug),
+      ...sectorAssets.map((a: any) => a.slug),
+      ...commodityAssets.map((a: any) => a.slug)
+    ])).filter(Boolean) as string[];
+  }, [coreAssets, sectorAssets, commodityAssets, summarySlug]);
+
+  const { data: batchStockData, isLoading: isBatchLoading } = useQuery({
+    queryKey: ['batchStockData', indicesToFetch.join(',')],
+    queryFn: async () => {
+      if (indicesToFetch.length === 0) return null;
+      const data = await fetchBatchStockData(indicesToFetch);
+      Object.keys(data).forEach(slug => {
+        queryClient.setQueryData(['stockData', slug], data[slug]);
+      });
+      return data;
+    },
+    enabled: indicesToFetch.length > 0,
+    staleTime: Infinity
+  });
 
   const [tickerMode, setTickerMode] = useState<'stocks' | 'indices'>('stocks');
-  const indexSlugs = ['nifty', ...coreSlugs, ...sectorSlugs];
-  const indexAssets = getAssets(indexSlugs);
-  const activeTickerItems = tickerMode === 'stocks' ? majorStocks.slice(0, 20) : indexAssets;
+  const activeTickerItems = tickerMode === 'stocks' ? majorStocks.slice(0, 10) : indexAssets;
+
+  const handleSyncMarket = async () => {
+    setIsSyncing(true);
+    const trace: string[] = [];
+    const tStart = performance.now();
+    try {
+      const slugsToSync = Array.from(new Set([
+        ...activeTickerItems.map((s: any) => s.slug),
+        ...majorStocks.map((s: any) => s.slug)
+      ]));
+      trace.push(`[${(performance.now() - tStart).toFixed(1)}ms] Extracted ${slugsToSync.length} slugs`);
+      
+      const tFetch = performance.now();
+      const quotes = await fetchBatchLiveQuotes(slugsToSync);
+      trace.push(`[${(performance.now() - tFetch).toFixed(1)}ms] fetchBatchLiveQuotes network call completed`);
+      
+      const tCache1 = performance.now();
+      queryClient.setQueryData(['allStocks'], (old: any) => {
+        if (!old) return old;
+        return old.map((stock: any) => {
+          const q = quotes[stock.slug];
+          if (q) {
+            const isZero = q.dayChange === 0 && q.dayChangePerc === 0;
+            return {
+              ...stock,
+              livePrice: String(q.currentPrice),
+              day_change: isZero ? stock.day_change : `${q.dayChange > 0 ? '+' : ''}${q.dayChange} (${q.dayChangePerc?.toFixed(2)}%)`
+            };
+          }
+          return stock;
+        });
+      });
+      trace.push(`[${(performance.now() - tCache1).toFixed(1)}ms] allStocks cache update (6000+ items) completed`);
+      
+      const tCache2 = performance.now();
+      slugsToSync.forEach(slug => {
+        const q = quotes[slug];
+        if (q) {
+          queryClient.setQueryData(['stockData', slug], (old: any) => {
+            if (!old) return old;
+            const isZero = q.dayChange === 0 && q.dayChangePerc === 0;
+            return {
+              ...old,
+              absolute: {
+                ...old.absolute,
+                'live price': String(q.currentPrice),
+                'day change': isZero ? old.absolute['day change'] : `${q.dayChange > 0 ? '+' : ''}${q.dayChange} (${q.dayChangePerc?.toFixed(2)}%)`
+              }
+            };
+          });
+        }
+      });
+      trace.push(`[${(performance.now() - tCache2).toFixed(1)}ms] Individual stockData cache updates completed`);
+      trace.push(`[${(performance.now() - tStart).toFixed(1)}ms] Total frontend handleSyncMarket execution time`);
+      
+      fetch('http://localhost:8000/api/admin/log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: trace.join('\n') })
+      }).catch(e => console.error("Log failed", e));
+      
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const hasSynced = React.useRef(false);
+  React.useEffect(() => {
+    if (activeTickerItems.length > 0 && !hasSynced.current) {
+      hasSynced.current = true;
+      handleSyncMarket();
+    }
+  }, [activeTickerItems]);
 
   return (
     <div className="min-h-full bg-canvas flex flex-col overflow-y-auto">
@@ -874,6 +1023,13 @@ export const LandingPage = () => {
           <Link to="/pairs" className="text-sm font-bold text-text-secondary hover:text-white transition-colors">Pair Trading</Link>
           <Link to="/watchlists" className="text-sm font-bold text-text-secondary hover:text-white transition-colors">Watchlists</Link>
           <Link to="/portfolio" className="text-sm font-bold text-text-secondary hover:text-white transition-colors">Portfolio Analyzer</Link>
+          <button 
+            onClick={handleSyncMarket} 
+            disabled={isSyncing} 
+            className="flex items-center gap-1.5 px-3 py-1.5 ml-2 bg-surface-hover hover:bg-border border border-border rounded-lg text-xs font-bold text-text-primary transition-all disabled:opacity-50"
+          >
+            <RefreshCw size={14} className={isSyncing ? "animate-spin" : ""} /> Sync Market
+          </button>
         </div>
       </div>
 
@@ -967,7 +1123,7 @@ export const LandingPage = () => {
           {/* Row 2: Secondary Indicators */}
           {coreAssets.map((asset: any) => (
             <Link key={asset.slug} to={`/terminal/${asset.slug}`} className="col-span-12 md:col-span-4 min-w-0 min-h-0 block cursor-pointer transition-transform hover:-translate-y-1">
-              <IndexMarketCard stock={asset} isActive={false} />
+              <IndexMarketCard stock={asset} isActive={false} stockData={batchStockData?.[asset.slug]} isLoading={isBatchLoading} />
             </Link>
           ))}
 
@@ -980,7 +1136,7 @@ export const LandingPage = () => {
               <div className="col-span-12 min-w-0 min-h-0">
                 <div className="flex gap-5 overflow-x-auto pb-6 pt-2 px-2 -mx-2 hide-scrollbar">
                   {sectorAssets.map((asset: any) => (
-                    <MiniSectorCard key={asset.slug} stock={asset} />
+                    <MiniSectorCard key={asset.slug} stock={asset} stockData={batchStockData?.[asset.slug]} isLoading={isBatchLoading} />
                   ))}
                 </div>
               </div>

@@ -54,13 +54,34 @@ const GaugeCard = ({ title, value, status, icon: Icon, description, tooltipText 
   );
 };
 
+import { Skeleton } from '../components/Skeleton';
+
 export const MarketOverview = () => {
   const { data: macro, isLoading, error } = useQuery({
     queryKey: ['macro'],
     queryFn: fetchMacroData,
   });
 
-  if (isLoading) return <div className="p-8 animate-pulse"><div className="h-48 bg-surface rounded-lg mb-6"></div><div className="h-96 bg-surface rounded-lg"></div></div>;
+  if (isLoading) {
+    return (
+      <div className="p-8 max-w-[1600px] mx-auto flex flex-col flex-1 gap-6 w-full">
+        <div>
+          <Skeleton className="h-10 w-64 mb-2" />
+          <Skeleton className="h-4 w-96" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-40 w-full" />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-[500px]">
+          <Skeleton className="h-96 w-full" />
+          <Skeleton className="h-96 w-full" />
+          <Skeleton className="col-span-1 lg:col-span-2 h-96 w-full" />
+        </div>
+      </div>
+    );
+  }
   if (error || !macro) return <div className="p-8 text-beta">Error loading macro data.</div>;
 
   const { regime, sectors, absorption } = macro;

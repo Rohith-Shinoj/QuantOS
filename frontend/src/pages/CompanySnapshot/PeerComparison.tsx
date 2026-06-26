@@ -5,6 +5,8 @@ import { Link } from 'react-router-dom';
 import { InfoTooltip } from '../../components/InfoTooltip';
 import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
+import { Skeleton } from '../../components/Skeleton';
+
 export const PeerComparison = ({ data: currentStockData, isPanel = false }: { data: any, isPanel?: boolean }) => {
   const { data: allStocks, isLoading } = useQuery({
     queryKey: ['allStocks'],
@@ -12,7 +14,26 @@ export const PeerComparison = ({ data: currentStockData, isPanel = false }: { da
   });
 
   if (isLoading) {
-    return <div className="p-8 animate-pulse text-text-secondary">Loading peer data...</div>;
+    return (
+      <div className={`bg-surface rounded-lg border border-border overflow-hidden flex flex-col ${isPanel ? 'h-full' : 'p-6 gap-4'}`}>
+        {!isPanel && (
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <Skeleton className="h-6 w-48 mb-2" />
+              <Skeleton className="h-4 w-64" />
+            </div>
+          </div>
+        )}
+        <div className="h-[250px] w-full p-2 mb-4">
+          <Skeleton className="w-full h-full" />
+        </div>
+        <div className="flex flex-col gap-2">
+          {[...Array(5)].map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   const currentIndustry = currentStockData?.relative?.meta_features?.industry_name || 'Unknown';

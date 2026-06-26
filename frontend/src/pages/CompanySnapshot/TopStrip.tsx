@@ -1,6 +1,8 @@
-import React from 'react';
-import { ShieldCheck, ShieldAlert, AlertTriangle, TrendingUp, TrendingDown, Printer } from 'lucide-react';
+import React, { useState } from 'react';
+import { ShieldCheck, ShieldAlert, AlertTriangle, TrendingUp, Printer, RefreshCw } from 'lucide-react';
 import { StockLogo } from '../../components/StockLogo';
+import { fetchLiveQuote } from '../../api';
+import type { LiveQuote } from '../../api';
 
 export const TopStrip = ({ data }: { data: any }) => {
   const abs = data.absolute || {};
@@ -12,6 +14,34 @@ export const TopStrip = ({ data }: { data: any }) => {
   const qesFlag = rel.qes_forensic_red_flag === 1;
   const targetLabels = rel.target_labels || {};
   const forward1y = targetLabels.forward_1y_25pct;
+
+  const [liveData, setLiveData] = useState<LiveQuote | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<string>("As of 9:00 AM");
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      const quote = await fetchLiveQuote(data.slug);
+      setLiveData(quote);
+      
+      const now = new Date();
+      setLastUpdated(`As of ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
+    } catch (e) {
+      console.error("Failed to fetch live quote");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  React.useEffect(() => {
+    handleRefresh();
+  }, [data.slug]);
+
+  const isZero = liveData && liveData.dayChange === 0 && liveData.dayChangePerc === 0;
+  const currentPrice = liveData ? liveData.currentPrice : abs['live price'];
+  const dayChange = (liveData && !isZero) ? `${liveData.dayChange > 0 ? '+' : ''}${liveData.dayChange} (${liveData.dayChangePerc?.toFixed(2)}%)` : abs['day change'];
+  const isPositive = dayChange?.toString().includes('+') || (!dayChange?.toString().includes('-') && parseFloat(dayChange) > 0);
 
   return (
     <div className="bg-surface p-6 rounded-lg border border-border flex justify-between items-center print-header">
@@ -32,12 +62,29 @@ export const TopStrip = ({ data }: { data: any }) => {
         <p className="text-text-secondary mt-1 text-sm font-medium">
           {abs.displayName || 'Unknown Company'} • {meta.industry_name || 'Industry'} • {abs.cappedType || meta.cap_type || 'Cap Size'}
         </p>
-        {(abs['live price'] || abs['day change']) && (
-          <div className="flex items-center gap-3 mt-2">
-            <span className="text-2xl font-bold text-text-primary">{abs['live price']}</span>
-            <span className={`text-sm font-semibold ${abs['day change']?.startsWith('-') ? 'text-beta' : 'text-alpha'}`}>
-              {abs['day change']}
-            </span>
+        
+        {currentPrice && (
+          <div className="flex items-center gap-4 mt-3">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl font-bold text-text-primary">₹{currentPrice}</span>
+              <span className={`text-sm font-semibold ${!isPositive ? 'text-beta' : 'text-alpha'}`}>
+                {dayChange}
+              </span>
+            </div>
+            <div className="h-4 w-px bg-border mx-1"></div>
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-medium text-text-secondary tracking-wide uppercase">
+                {lastUpdated}
+              </span>
+              <button 
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="flex items-center gap-1.5 px-2.5 py-1 bg-surface-hover hover:bg-border border border-border rounded text-xs font-semibold text-text-primary transition-all disabled:opacity-50"
+              >
+                <RefreshCw size={12} className={isRefreshing ? "animate-spin" : ""} />
+                Refresh
+              </button>
+            </div>
           </div>
         )}
       </div>

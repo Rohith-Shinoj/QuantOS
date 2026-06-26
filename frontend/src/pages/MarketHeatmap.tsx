@@ -167,6 +167,8 @@ const CustomizedContent = (props: any) => {
   return null;
 };
 
+import { Skeleton } from '../components/Skeleton';
+
 export const MarketHeatmap = () => {
   const navigate = useNavigate();
   const [sizeBy, setSizeBy] = useState('Market Cap');
@@ -221,7 +223,11 @@ export const MarketHeatmap = () => {
   };
 
   if (isLoading) {
-    return <div className="p-8 text-text-secondary h-full flex items-center justify-center">Loading heatmap data...</div>;
+    return (
+      <div className="flex flex-col h-full bg-[#131722] p-4">
+        <Skeleton className="h-[90%] w-full rounded-xl" />
+      </div>
+    );
   }
 
   return (

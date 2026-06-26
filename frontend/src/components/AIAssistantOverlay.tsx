@@ -8,9 +8,11 @@ interface Props {
   ticker: string | undefined;
   isOpen: boolean;
   onClose: () => void;
+  displayName?: string;
+  internalPrompt?: string;
 }
 
-export const AIAssistantOverlay: React.FC<Props> = ({ ticker, isOpen, onClose }) => {
+export const AIAssistantOverlay: React.FC<Props> = ({ ticker, isOpen, onClose, displayName, internalPrompt }) => {
   const navigate = useNavigate();
   const [inputText, setInputText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -33,13 +35,13 @@ export const AIAssistantOverlay: React.FC<Props> = ({ ticker, isOpen, onClose })
     }
   }, [memoHistory]);
 
-  const triggerAgent = async (targetTicker: string, queryText: string) => {
+  const triggerAgent = async (targetTicker: string, displayPrompt: string, queryText: string) => {
     if (isProcessing) return;
     
-    addMemoHistory({ role: 'user', content: queryText });
+    addMemoHistory({ role: 'user', content: displayPrompt });
     addMemoHistory({ role: 'assistant', content: '' });
     setProcessing(true);
-    addEvent({ type: 'user_query', message: queryText });
+    addEvent({ type: 'user_query', message: displayPrompt });
     
     try {
       const response = await fetch('http://localhost:8000/api/agent/memo', {
@@ -96,7 +98,7 @@ export const AIAssistantOverlay: React.FC<Props> = ({ ticker, isOpen, onClose })
 
   const handleSend = () => {
     if (inputText.trim() && ticker && !isProcessing) {
-      triggerAgent(ticker, inputText);
+      triggerAgent(ticker, inputText, inputText);
       setInputText('');
     }
   };
@@ -109,7 +111,7 @@ export const AIAssistantOverlay: React.FC<Props> = ({ ticker, isOpen, onClose })
         <div className="flex items-center gap-2">
           <BrainCircuit className="text-indigo-400 w-5 h-5" />
           <span className="font-bold text-white tracking-tight text-sm">AI breakdown</span>
-          {ticker && <span className="text-xs px-2 py-0.5 bg-indigo-500/20 text-indigo-300 rounded border border-indigo-500/30">{ticker}</span>}
+          {(displayName || ticker) && <span className="text-xs px-2 py-0.5 bg-indigo-500/20 text-indigo-300 rounded border border-indigo-500/30 truncate max-w-[200px]">{displayName || ticker}</span>}
         </div>
         <div className="flex items-center gap-3">
           <button onClick={() => navigate('/ai-research')} className="text-gray-400 hover:text-white transition-colors" title="Open Full Dashboard">
@@ -180,9 +182,15 @@ export const AIAssistantOverlay: React.FC<Props> = ({ ticker, isOpen, onClose })
         ) : (
           <div className="h-full flex flex-col items-center justify-center text-gray-500">
             <BrainCircuit className="w-12 h-12 text-indigo-500/30 mb-4" />
-            <p className="mb-6">Ready to analyze {ticker}.</p>
+            <p className="mb-6 text-center px-4">Ready to analyze {displayName || ticker}.</p>
             <button
-              onClick={() => ticker && triggerAgent(ticker, `Provide a verified expert investment breakdown for ${ticker} including Executive Analysis, Catalyst Path, Risk Asymmetry, and Execution Roadmap.`)}
+              onClick={() => {
+                if (!ticker) return;
+                const dName = displayName || ticker;
+                const iPrompt = internalPrompt || `Provide a verified expert investment breakdown for ${dName} including Executive Analysis, Catalyst Path, Risk Asymmetry, and Execution Roadmap.`;
+                const dPrompt = `Conduct an expert analysis of ${dName}.`;
+                triggerAgent(ticker, dPrompt, iPrompt);
+              }}
               className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white font-semibold rounded-md transition-colors shadow-lg shadow-indigo-500/20"
             >
               Give me a detailed breakdown

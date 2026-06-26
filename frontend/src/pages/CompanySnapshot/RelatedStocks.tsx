@@ -4,6 +4,8 @@ import { fetchRelatedStocks } from '../../api';
 import { Link } from 'react-router-dom';
 import { Link2 } from 'lucide-react';
 
+import { Skeleton } from '../../components/Skeleton';
+
 export const RelatedStocks = ({ slug }: { slug: string }) => {
   const { data: related, isLoading } = useQuery({
     queryKey: ['related', slug],
@@ -20,8 +22,8 @@ export const RelatedStocks = ({ slug }: { slug: string }) => {
       <p className="text-sm text-text-secondary mb-6">Top 5 correlated peers in the same industry (52W)</p>
 
       {isLoading ? (
-        <div className="space-y-4 animate-pulse">
-           {[1,2,3,4,5].map(i => <div key={i} className="h-10 bg-canvas rounded"></div>)}
+        <div className="space-y-4 flex-1">
+           {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-[50px] w-full" />)}
         </div>
       ) : (
         <div className="space-y-2 flex-1">

@@ -28,7 +28,7 @@ python3 scripts/generate_datasets.py --target "datasets/$INACTIVE_BUFFER" --work
 echo "Stock data generation complete."
 
 echo "Step 3.5: Running data generation for mutual funds..."
-python3 scripts/generate_mf_datasets.py --target "datasets/$INACTIVE_BUFFER"
+python3 scripts/generate_mf_datasets.py --target "datasets/$INACTIVE_BUFFER" --full-refresh
 echo "Mutual fund data generation complete."
 
 # Step 4: Shadow Ingestion

@@ -15,6 +15,7 @@ import { DeepFinancials } from './DeepFinancials';
 import { ValuationGauges } from './ValuationGauges';
 import { AdvancedCharting } from './AdvancedCharting';
 import { useAppStore } from '../../store';
+import { Skeleton } from '../../components/Skeleton';
 
 import { MultidimensionalChart } from './MultidimensionalChart';
 
@@ -37,13 +38,25 @@ export const CompanySnapshot = () => {
 
   if (isLoading) {
     return (
-      <div className="p-8 animate-pulse flex flex-col gap-6">
-        <div className="h-24 bg-surface rounded-lg"></div>
-        <div className="h-96 bg-surface rounded-lg"></div>
+      <div className="p-6 flex flex-col gap-6 w-full h-full pb-24 flex-1">
+        <Skeleton className="h-24 w-full" />
+        
+        <div className="flex border-b border-border/50 mb-2 gap-4 pb-2">
+          <Skeleton className="h-8 w-32" />
+          <Skeleton className="h-8 w-32" />
+          <Skeleton className="h-8 w-32" />
+          <Skeleton className="h-8 w-32" />
+        </div>
+
+        <Skeleton className="h-[500px] w-full" />
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="h-72 bg-surface rounded-lg"></div>
-          <div className="h-72 bg-surface rounded-lg"></div>
-          <div className="h-72 bg-surface rounded-lg"></div>
+          <Skeleton className="h-72 w-full" />
+          <Skeleton className="h-72 w-full" />
+          <Skeleton className="h-72 w-full" />
+          <Skeleton className="h-72 w-full" />
+          <Skeleton className="h-72 w-full" />
+          <Skeleton className="h-72 w-full" />
         </div>
       </div>
     );
