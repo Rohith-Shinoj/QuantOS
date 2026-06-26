@@ -128,40 +128,51 @@ async def stream_agent_events(ticker: str, query: str, history: list = None):
             if len(output) > MAX_LLM_ROWS:
                 prompt += f"\nNote: DB returned {len(output)} total rows. Showing top {MAX_LLM_ROWS} by market cap."
                 
-            prompt += """
+            from agent_engine.registry import COMPONENT_REGISTRY
             
-            You are a senior equity research analyst validating a stock screener's output.
+            registry_str = ""
+            for key, val in COMPONENT_REGISTRY.items():
+                if key != "narrative_insight":
+                    registry_str += f"- {key}: {val['description']}\n  Expected Schema: {val['schema']}\n\n"
 
-            ## YOUR TASK
-            The user asked a screening question. Our local database engine parsed it and returned results.
-            Your job is to:
-            1. VALIDATE: Check if each stock truly satisfies the user's intent (not just the SQL — the INTENT)
-            2. REMOVE: Delete any stock that doesn't genuinely belong (e.g., loss-making company in a "value" screen)
-            3. ADD: If you know of NSE/BSE-listed Indian stocks that clearly fit the criteria but are missing, suggest their ticker symbols
-            4. ANALYZE: Write a detailed expert analysis of the validated results
-
-            ## RESPONSE FORMAT (strict JSON)
-            {
-            "validated_stocks": [
-                {"ticker": "BEL", "verdict": "KEEP", "reason": "..."},
-                {"ticker": "WALCHANNAG", "verdict": "REMOVE", "reason": "Negative PE indicates loss-making..."},
-                {"ticker": "NEWSTOCK", "verdict": "ADD", "reason": "Fits all criteria but missed by DB filter"}
-            ],
-            "analysis": "Multi-paragraph markdown analysis covering sector trends, risks, why these stocks fit...",
-            "corrections_summary": "Removed 2 stocks (loss-making), added 1 stock (missed by DB filter)"
-            }
-
-            ## RULES
-            - verdict must be exactly "KEEP", "REMOVE", or "ADD"
-            - For ADD stocks, only suggest tickers listed on NSE/BSE that you are confident exist
-            - The analysis should be 2-4 paragraphs
-            - Do NOT hallucinate fundamental data — just explain your reasoning qualitatively
-            - Do NOT wrap in markdown code fences — output raw JSON only
+            prompt = f"""
+            You are a Quantitative Validation Engine and Expert Institutional Portfolio Manager.
+            A user asked this screening query: "{query}"
+            The database was queried and returned these stocks (pre-filtered): 
+            {json.dumps(output)}
+            
+            Your tasks:
+            1. VALIDATION: Decide which stocks to KEEP or REMOVE based strictly on the query context. You can ADD highly relevant NSE/BSE stocks if they were missed by the basic database filter.
+            2. ANALYSIS & DASHBOARD GENERATION: Generate a 'narrative_insight' summary providing a massive, deep CIO macro view of the results. 
+               Additionally, choose 3 to 5 visual components from the Component Registry below that best explain the macro sector risks, alpha drivers, or thematic trends for this specific screen.
+            
+            COMPONENT REGISTRY:
+            {registry_str}
+            - narrative_insight: A comprehensive multi-paragraph CIO analysis of the sector and stocks.
+              Expected Schema: {{"narrative_insight": {{"text": "STR"}}}}
+            
+            OUTPUT FORMAT:
+            You must output a SINGLE raw JSON object containing exactly:
+            - "validated_stocks": [ {{"ticker": "TCS", "verdict": "KEEP|REMOVE|ADD", "reason": "..."}} ]
+            - "narrative_insight": {{ ... }}
+            - And the 3 to 5 component keys you selected, matching their exact Expected Schemas.
+            
+            Do NOT hallucinate fundamental data. If data is missing for a schema, synthesize qualitative insights.
+            Do NOT wrap your response in markdown code fences (```json). Output ONLY the raw JSON string starting with {{.
             """
             
             try:
-                llm_response = await validation_model.ainvoke([HumanMessage(content=prompt)])
-                raw_text = llm_response.content
+                raw_text = ""
+                async for chunk in validation_model.astream([HumanMessage(content=prompt)]):
+                    content = chunk.content
+                    if isinstance(content, list):
+                        text_chunk = "".join(block.get("text", "") for block in content if isinstance(block, dict))
+                    else:
+                        text_chunk = str(content)
+                        
+                    if text_chunk:
+                        raw_text += text_chunk
+                        yield f"data: {json.dumps({'type': 'token', 'content': text_chunk})}\n\n"
                 
                 try:
                     import re
@@ -217,7 +228,7 @@ async def stream_agent_events(ticker: str, query: str, history: list = None):
                     # Sort final output by market cap desc
                     final_output.sort(key=lambda x: x.get('market_cap', 0) or 0, reverse=True)
                     
-                    yield f"data: {json.dumps({'type': 'token', 'content': parsed_llm.get('analysis', '')})}\n\n"
+                    yield f"data: {json.dumps({'type': 'hybrid_data', 'data': final_output, 'logs': parsed.get('parsed_logs', []), 'unverified': False, 'parse_failed': False})}\n\n"
                 except (json.JSONDecodeError, KeyError, TypeError) as parse_err:
                     yield f"data: {json.dumps({'type': 'debug_log', 'log': f'[LLM] Response received but JSON malformed: {str(parse_err)}'})}\n\n"
                     analysis_text = raw_text if len(raw_text) > 50 else ""

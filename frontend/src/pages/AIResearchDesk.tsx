@@ -163,169 +163,111 @@ const AssistantMessage = ({ payload }: { payload: ChatMessage }) => {
     );
   }
 
-  // Phase 2: Hybrid DB-First Rendering
-  if (hybridData) {
-    return (
-      <div className="w-full flex flex-col space-y-6">
-        <NativeDataGrid data={hybridData} logs={hybridLogs || []} isStreaming={isStreaming} unverified={payload.unverified} parseFailed={payload.parseFailed} />
-        
-        {/* If there's an LLM narrative, render it below the grid in a CIO card */}
-        {rawString.length > 0 && (
-          <div className="bg-[#111] border border-gray-800 rounded-xl overflow-hidden shadow-2xl transition-all duration-500">
-            <div className="bg-blue-900/10 border-b border-blue-900/30 p-4">
-              <h3 className="text-sm font-semibold text-blue-400 uppercase tracking-widest">CIO Opinion</h3>
-            </div>
-            <div className="p-6 prose prose-invert prose-sm max-w-none [&>p]:mb-2 last:[&>p]:mb-0">
-              <ReactMarkdown>{rawString}</ReactMarkdown>
-            </div>
-          </div>
-        )}
-
-        {/* VERBOSE DEBUG TRACE TERMINAL FOR HYBRID PATH */}
-        {AI_Analysis_debug && debugLogs && debugLogs.length > 0 && (
-          <div className="bg-black border border-red-900/50 p-4 rounded-xl font-mono text-[10px] text-gray-500 overflow-y-auto max-h-96 w-full mt-4">
-            <h4 className="text-red-500 uppercase font-bold mb-2 tracking-widest flex items-center">
-              <AlertTriangle className="w-4 h-4 mr-2" />
-              AI Analysis Debug Trace
-            </h4>
-            {debugLogs.map((log, i) => (
-              <div key={i} className="mb-1 hover:text-gray-300 transition-colors">
-                {log}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // Fallback for raw text if JSON parser fully fails and it's not empty
-  if (!parsedData && !isStreaming && rawString.length > 0) {
-    return (
-      <div className="w-full flex flex-col space-y-4">
-        <div className="bg-[#151515] border border-gray-800 text-gray-300 px-6 py-4 rounded-2xl rounded-tl-sm max-w-3xl overflow-x-auto prose prose-invert prose-sm [&>p]:mb-2 last:[&>p]:mb-0 [&>ul]:list-disc [&>ul]:ml-4 [&>ol]:list-decimal [&>ol]:ml-4 [&>li]:mb-1">
-          <ReactMarkdown>{rawString}</ReactMarkdown>
-        </div>
-        
-        {/* VERBOSE DEBUG TRACE TERMINAL FOR RAW TEXT / FALLBACK */}
-        {AI_Analysis_debug && debugLogs && debugLogs.length > 0 && (
-          <div className="bg-black border border-red-900/50 p-4 rounded-xl font-mono text-[10px] text-gray-500 overflow-y-auto max-h-96 w-full">
-            <h4 className="text-red-500 uppercase font-bold mb-2 tracking-widest flex items-center">
-              <AlertTriangle className="w-4 h-4 mr-2" />
-              AI Analysis Debug Trace (Fallback Executed)
-            </h4>
-            {debugLogs.map((log, i) => (
-              <div key={i} className="mb-1 hover:text-gray-300 transition-colors">
-                {log}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // If the stream finished, but we still have absolutely no text and no JSON, show an error instead of a blank void
-  if (!parsedData && !isStreaming && rawString.length === 0) {
-    return (
-      <div className="w-full flex flex-col space-y-4">
-        <div className="bg-red-900/20 border-l-4 border-red-500 p-4 rounded text-red-400 max-w-3xl">
-          <AlertTriangle className="inline w-5 h-5 mr-2" /> 
-          Connection lost or no data returned from the server. Please try again.
-        </div>
-        
-        {/* VERBOSE DEBUG TRACE TERMINAL FOR FAILED REQUESTS */}
-        {AI_Analysis_debug && debugLogs && debugLogs.length > 0 && (
-          <div className="bg-black border border-red-900/50 p-4 rounded-xl font-mono text-[10px] text-gray-500 overflow-y-auto max-h-96 w-full">
-            <h4 className="text-red-500 uppercase font-bold mb-2 tracking-widest flex items-center">
-              <AlertTriangle className="w-4 h-4 mr-2" />
-              AI Analysis Debug Trace (Failed Request)
-            </h4>
-            {debugLogs.map((log, i) => (
-              <div key={i} className="mb-1 hover:text-gray-300 transition-colors">
-                {log}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  if (!parsedData) return null;
-
-  // Graceful Degradation: Filter out metadata and any keys that the LLM returned as null, undefined, or empty structures
-  const keys = Object.keys(parsedData).filter(k => {
-    if (k === 'metadata') return false;
-    const val = (parsedData as any)[k];
-    if (val === null || val === undefined) return false;
-    if (Array.isArray(val) && val.length === 0) return false;
-    if (typeof val === 'object' && Object.keys(val).length === 0) return false;
-    return true;
-  });
-  
-  if (keys.length === 0) {
+  // Connection lost check
+  if (!parsedData && !isStreaming && rawString.length === 0 && !hybridData) {
      return (
-        <div className="flex items-center text-xs font-mono text-gray-400 bg-gray-900 border border-gray-800 px-4 py-2 rounded-full w-max animate-pulse">
-          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-          [ STATUS: GENERATING ARTIFACTS ]
+        <div className="w-full flex flex-col space-y-4">
+           <div className="bg-red-900/20 border-l-4 border-red-500 p-4 rounded text-red-400 max-w-3xl">
+             <AlertTriangle className="inline w-5 h-5 mr-2" /> 
+             Connection lost or no data returned from the server. Please try again.
+           </div>
+           
+           {AI_Analysis_debug && debugLogs && debugLogs.length > 0 && (
+             <div className="bg-black border border-red-900/50 p-4 rounded-xl font-mono text-[10px] text-gray-500 overflow-y-auto max-h-96 w-full mt-4">
+               <h4 className="text-red-500 uppercase font-bold mb-2 tracking-widest flex items-center">
+                 <AlertTriangle className="w-4 h-4 mr-2" />
+                 AI Analysis Debug Trace
+               </h4>
+               {debugLogs.map((log, i) => (
+                 <div key={i} className="mb-1 hover:text-gray-300 transition-colors">
+                   {log}
+                 </div>
+               ))}
+             </div>
+           )}
         </div>
-     )
+     );
   }
 
-  const isDense = keys.length >= 3;
+  // Fallback for raw text if JSON parser fully fails
+  if (!parsedData && !isStreaming && rawString.length > 0 && !hybridData) {
+    return (
+       <div className="w-full flex flex-col space-y-4">
+          <div className="bg-[#151515] border border-gray-800 text-gray-300 px-6 py-4 rounded-2xl max-w-3xl overflow-x-auto prose prose-invert prose-sm">
+             <ReactMarkdown>{rawString}</ReactMarkdown>
+          </div>
+       </div>
+    );
+  }
+
+  let validKeys: string[] = [];
+  if (parsedData) {
+    validKeys = Object.keys(parsedData).filter(k => {
+      if (k === 'metadata' || k === 'validated_stocks') return false;
+      const val = (parsedData as any)[k];
+      if (val === null || val === undefined) return false;
+      if (Array.isArray(val) && val.length === 0) return false;
+      if (typeof val === 'object' && Object.keys(val).length === 0) return false;
+      return true;
+    });
+  }
+
+  const isDense = validKeys.length >= 3;
 
   return (
-    <div className={`w-full bg-[#111] border border-gray-800 rounded-xl overflow-hidden shadow-2xl transition-all duration-500 ${isStreaming ? 'shadow-blue-900/10' : ''}`}>
-      {/* If Qualitative Fallback Logs exist */}
-      {!hybridData && hybridLogs && hybridLogs.length > 0 && (
-         <div className="bg-indigo-900/20 border-b border-indigo-900/30 p-3 font-mono text-xs text-indigo-400">
-            {hybridLogs.map((l, i) => <div key={i}>{'>'} {l}</div>)}
-         </div>
+    <div className="w-full flex flex-col space-y-6">
+      {/* 1. Quantitative Grid (if present) */}
+      {hybridData && (
+        <NativeDataGrid data={hybridData as any[]} logs={hybridLogs || []} isStreaming={isStreaming} unverified={payload.unverified} parseFailed={payload.parseFailed} rawString={rawString} />
       )}
 
-      {/* Header Strip if metadata is present */}
-      {parsedData.metadata && (
-        <div className="bg-[#151515] border-b border-gray-800 p-4 flex justify-between items-center">
-          <div className="flex items-center space-x-3">
-            <span className="font-bold text-white text-lg tracking-widest">{parsedData.metadata.ticker || '---'}</span>
-            <span className="text-xs bg-gray-800 px-2 py-0.5 rounded text-gray-400 uppercase">{parsedData.metadata.industry || '---'}</span>
-          </div>
-          <div className="flex space-x-6">
-            <div className="text-right">
-              <span className="text-[10px] text-gray-500 uppercase tracking-widest block">Stance</span>
-              <span className="text-sm font-bold text-gray-300">{parsedData.metadata.recommendation || '---'}</span>
-            </div>
-            {parsedData.metadata.current_price && (
-              <div className="text-right">
-                <span className="text-[10px] text-gray-500 uppercase tracking-widest block">Price</span>
-                <span className="text-sm font-mono text-white">{parsedData.metadata.current_price}</span>
-              </div>
-            )}
-          </div>
+      {/* 2. Qualitative Dashboard Widgets */}
+      {parsedData && validKeys.length > 0 && (
+        <div className={`w-full bg-[#111] border border-gray-800 rounded-xl overflow-hidden shadow-2xl transition-all duration-500 ${isStreaming ? 'shadow-blue-900/10' : ''}`}>
+           {/* Header Strip if metadata is present */}
+           {parsedData.metadata && (
+             <div className="bg-[#151515] border-b border-gray-800 p-4 flex justify-between items-center">
+                <div className="flex items-center space-x-3">
+                  <span className="font-bold text-white text-lg tracking-widest">{parsedData.metadata.ticker || '---'}</span>
+                  <span className="text-xs bg-gray-800 px-2 py-0.5 rounded text-gray-400 uppercase">{parsedData.metadata.industry || '---'}</span>
+                </div>
+                <div className="flex space-x-6">
+                  <div className="text-right">
+                    <span className="text-[10px] text-gray-500 uppercase tracking-widest block">Stance</span>
+                    <span className="text-sm font-bold text-gray-300">{parsedData.metadata.recommendation || '---'}</span>
+                  </div>
+                  {parsedData.metadata.current_price && (
+                    <div className="text-right">
+                      <span className="text-[10px] text-gray-500 uppercase tracking-widest block">Price</span>
+                      <span className="text-sm font-mono text-white">{parsedData.metadata.current_price}</span>
+                    </div>
+                  )}
+                </div>
+             </div>
+           )}
+
+           <div className={`p-6 ${isDense ? 'flex flex-col' : 'flex flex-col space-y-6'}`}>
+             {isDense ? (
+               <TabbedLayout data={parsedData} keys={validKeys} isStreaming={isStreaming} />
+             ) : (
+               <StackedLayout data={parsedData} keys={validKeys} isStreaming={isStreaming} />
+             )}
+           </div>
         </div>
       )}
-
-      <div className={`p-6 ${isDense ? 'flex flex-col' : 'flex flex-col space-y-6'}`}>
-        {isDense ? (
-          <TabbedLayout data={parsedData} keys={keys} isStreaming={isStreaming} />
-        ) : (
-          <StackedLayout data={parsedData} keys={keys} isStreaming={isStreaming} />
-        )}
-      </div>
 
       {/* VERBOSE DEBUG TRACE TERMINAL */}
       {AI_Analysis_debug && debugLogs && debugLogs.length > 0 && (
-        <div className="bg-black border-t border-red-900/50 p-4 mt-6 font-mono text-[10px] text-gray-500 overflow-y-auto max-h-96">
-          <h4 className="text-red-500 uppercase font-bold mb-2 tracking-widest flex items-center">
-            <AlertTriangle className="w-4 h-4 mr-2" />
-            AI Analysis Debug Trace
-          </h4>
-          {debugLogs.map((log, i) => (
-            <div key={i} className="mb-1 hover:text-gray-300 transition-colors">
-              {log}
-            </div>
-          ))}
+        <div className="bg-black border border-red-900/50 p-4 rounded-xl font-mono text-[10px] text-gray-500 overflow-y-auto max-h-96 w-full">
+           <h4 className="text-red-500 uppercase font-bold mb-2 tracking-widest flex items-center">
+             <AlertTriangle className="w-4 h-4 mr-2" />
+             AI Analysis Debug Trace
+           </h4>
+           {debugLogs.map((log, i) => (
+             <div key={i} className="mb-1 hover:text-gray-300 transition-colors">
+               {log}
+             </div>
+           ))}
         </div>
       )}
     </div>
@@ -334,7 +276,7 @@ const AssistantMessage = ({ payload }: { payload: ChatMessage }) => {
 
 // ---------------- Layouts ---------------- //
 
-const NativeDataGrid = ({ data, logs, isStreaming, unverified, parseFailed }: { data: any[], logs: string[], isStreaming: boolean, unverified?: boolean, parseFailed?: boolean }) => {
+const NativeDataGrid = ({ data, logs, isStreaming, unverified, parseFailed, rawString }: { data: any[], logs: string[], isStreaming: boolean, unverified?: boolean, parseFailed?: boolean, rawString?: string }) => {
   const cols = data.length > 0 ? Object.keys(data[0]) : [];
   
   return (
@@ -366,16 +308,22 @@ const NativeDataGrid = ({ data, logs, isStreaming, unverified, parseFailed }: { 
       {parseFailed && !unverified && (
         <div className="bg-orange-900/20 border-l-4 border-orange-500 p-4 rounded text-orange-400 max-w-3xl mb-4">
           <AlertTriangle className="inline w-5 h-5 mr-2" /> ⚠️ AI responded but output was malformed. Showing raw database results.
+          {AI_Analysis_debug && rawString && rawString.length > 0 && (
+            <div className="mt-4 p-4 bg-black/60 border border-orange-900/50 rounded-lg font-mono text-xs whitespace-pre-wrap overflow-x-auto text-orange-200/80">
+              <div className="text-orange-500 font-bold mb-2 uppercase tracking-widest text-[10px]">[DEBUG] Raw LLM Output:</div>
+              {rawString}
+            </div>
+          )}
         </div>
       )}
 
       {/* Native Data Grid */}
-      <div className="bg-[#151515] border border-gray-800 rounded-xl overflow-x-auto shadow-2xl">
+      <div className="bg-black/40 backdrop-blur-md border border-gray-800/50 rounded-xl overflow-x-auto shadow-2xl">
         {data.length === 0 ? (
           <div className="p-8 text-center text-gray-500">No stocks matched your criteria.</div>
         ) : (
           <table className="w-full text-sm text-left relative">
-            <thead className="text-xs text-gray-500 uppercase bg-black/40 border-b border-gray-800">
+            <thead className="text-xs text-gray-400 uppercase bg-black/60 border-b border-gray-800/50">
               {!unverified && !parseFailed && !isStreaming && (
                 <tr>
                   <th colSpan={cols.length} className="px-6 py-2 bg-[#1A1A1A]/50 text-right">
@@ -386,14 +334,22 @@ const NativeDataGrid = ({ data, logs, isStreaming, unverified, parseFailed }: { 
                 </tr>
               )}
               <tr>
-                {cols.map(c => <th key={c} className="px-6 py-4 font-medium">{c}</th>)}
+                {cols.map(c => <th key={c} className="px-6 py-4 font-medium tracking-wide">{c}</th>)}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800/50">
               {data.map((row, i) => (
                 <tr key={i} className="hover:bg-white/5 transition-colors">
                   {cols.map(c => (
-                    <td key={c} className="px-6 py-3 text-gray-300">{row[c]}</td>
+                    <td key={c} className="px-6 py-3 text-gray-300">
+                      {c.toLowerCase() === 'ticker' || c.toLowerCase() === 'slug' ? (
+                        <a href={`/terminal/${row[c]}`} className="text-blue-400 hover:text-blue-300 hover:underline font-medium">
+                          {row[c]}
+                        </a>
+                      ) : (
+                        row[c]
+                      )}
+                    </td>
                   ))}
                 </tr>
               ))}
@@ -793,15 +749,19 @@ const CrossSectionalPeerMultiplesTable = ({ data }: { data: any }) => {
           <tr>
             <th className="px-6 py-3">Ticker</th>
             <th className="px-6 py-3">P/E Ratio</th>
-            <th className="px-6 py-3">Alpha Score (if any)</th>
+            <th className="px-6 py-3">Alpha Score (1Y Fwd)</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-800/50">
           {peers.map((peer, i) => (
             <tr key={i} className="hover:bg-white/5 transition-colors">
-              <td className="px-6 py-4 font-medium text-blue-400">{peer.ticker}</td>
-              <td className="px-6 py-4 text-gray-300">{peer.pe_ratio || peer.pb_ratio || 'N/A'}</td>
-              <td className="px-6 py-4 text-gray-300">{peer.alpha_score !== undefined ? peer.alpha_score : 'N/A'}</td>
+              <td className="px-6 py-4 font-medium">
+                <a href={`/terminal/${peer.ticker}`} className="text-blue-400 hover:text-blue-300 hover:underline">
+                  {peer.ticker}
+                </a>
+              </td>
+              <td className="px-6 py-4 text-gray-300 font-mono">{peer.pe_ratio || peer.pb_ratio || 'N/A'}</td>
+              <td className="px-6 py-4 text-gray-300 font-mono">{peer.alpha_score != null ? (typeof peer.alpha_score === 'number' ? peer.alpha_score.toFixed(4) : peer.alpha_score) : 'N/A'}</td>
             </tr>
           ))}
         </tbody>

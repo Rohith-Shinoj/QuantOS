@@ -20,6 +20,7 @@ export const useAgentStream = () => {
       parsedData: null,
       hybridData: null,
       hybridLogs: [],
+      debugLogs: [],
       isStreaming: false
     });
 
