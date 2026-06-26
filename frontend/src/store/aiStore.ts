@@ -15,8 +15,13 @@ export type ChatMessage = {
   role: 'user' | 'assistant';
   rawString: string;
   parsedData: DashboardData | null;
+  hybridData: any[] | null;
+  hybridLogs: string[];
+  debugLogs: string[];
   isStreaming: boolean;
   error?: string | null;
+  unverified?: boolean;
+  parseFailed?: boolean;
 };
 
 interface AIState {
@@ -30,6 +35,8 @@ interface AIState {
   addMessage: (message: ChatMessage) => void;
   updateLastMessageString: (chunk: string) => void;
   updateLastMessageData: (data: DashboardData) => void;
+  updateLastMessageHybridData: (data: any[] | null, logs: string[], unverified?: boolean, parseFailed?: boolean) => void;
+  appendDebugLog: (log: string) => void;
   completeLastMessage: () => void;
   failLastMessage: (error: string) => void;
   clearWorkspace: () => void;
@@ -78,6 +85,26 @@ export const useAIStore = create<AIState>((set) => ({
     const msgs = [...state.messages];
     if (msgs.length > 0 && msgs[msgs.length - 1].role === 'assistant') {
       msgs[msgs.length - 1].parsedData = data;
+    }
+    return { messages: msgs };
+  }),
+  
+  updateLastMessageHybridData: (data, logs, unverified, parseFailed) => set((state) => {
+    const msgs = [...state.messages];
+    if (msgs.length > 0 && msgs[msgs.length - 1].role === 'assistant') {
+      msgs[msgs.length - 1].hybridData = data;
+      msgs[msgs.length - 1].hybridLogs = logs;
+      msgs[msgs.length - 1].unverified = unverified;
+      msgs[msgs.length - 1].parseFailed = parseFailed;
+    }
+    return { messages: msgs };
+  }),
+  
+  appendDebugLog: (log) => set((state) => {
+    const msgs = [...state.messages];
+    if (msgs.length > 0 && msgs[msgs.length - 1].role === 'assistant') {
+      const timestamp = new Date().toISOString().split('T')[1].slice(0, -1);
+      msgs[msgs.length - 1].debugLogs = [...(msgs[msgs.length - 1].debugLogs || []), `[${timestamp}] ${log}`];
     }
     return { messages: msgs };
   }),

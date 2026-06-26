@@ -55,6 +55,7 @@ export const MultidimensionalChart = ({ data }: { data: any }) => {
   const [showNifty, setShowNifty] = useState(false);
   const [showBands, setShowBands] = useState(false);
   const [timeframe, setTimeframe] = useState('ALL');
+  const [periodStats, setPeriodStats] = useState({ change: 0, percentChange: 0, cagr: 0 });
 
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRefs = useRef<any>({});
@@ -468,6 +469,11 @@ export const MultidimensionalChart = ({ data }: { data: any }) => {
     
     if (timeframe === 'ALL') {
       chartRef.current.timeScale().fitContent();
+      const startPrice = parsedData[0].close;
+      const endPrice = parsedData[parsedData.length - 1].close;
+      const years = (new Date(parsedData[parsedData.length - 1].time).getTime() - new Date(parsedData[0].time).getTime()) / (365 * 24 * 60 * 60 * 1000);
+      const cagr = years > 0 ? (Math.pow(endPrice / startPrice, 1 / years) - 1) * 100 : 0;
+      setPeriodStats({ change: endPrice - startPrice, percentChange: ((endPrice - startPrice) / startPrice) * 100, cagr });
       return;
     }
 
@@ -503,16 +509,21 @@ export const MultidimensionalChart = ({ data }: { data: any }) => {
     if (seriesRefs.current.lowerBand) seriesRefs.current.lowerBand.applyOptions({ baseValue: baseValueConfig });
     if (seriesRefs.current.sma) seriesRefs.current.sma.applyOptions({ baseValue: baseValueConfig });
 
+    const startPrice = parsedData[startIndex].close;
+    const endPrice = parsedData[parsedData.length - 1].close;
+    const years = (new Date(endRange).getTime() - new Date(startRange).getTime()) / (365 * 24 * 60 * 60 * 1000);
+    const cagr = years > 0 ? (Math.pow(endPrice / startPrice, 1 / years) - 1) * 100 : 0;
+    setPeriodStats({ change: endPrice - startPrice, percentChange: ((endPrice - startPrice) / startPrice) * 100, cagr });
+
     chartRef.current.timeScale().setVisibleRange({ from: startRange, to: endRange });
 
   }, [timeframe, parsedData]);
 
-  // Top header metrics
+  // Top header metrics strictly 1D
   let pctChange = 0;
   let priceDiff = 0;
   let rawLivePrice = data?.absolute?.absolute_data?.["live price"];
   let currentPrice = 0;
-  let startPrice = parsedData.length > 0 ? parsedData[0].close : 0;
   
   if (parsedData.length > 0) {
     const lastClose = parsedData[parsedData.length - 1].close;
@@ -524,8 +535,9 @@ export const MultidimensionalChart = ({ data }: { data: any }) => {
     } else {
       currentPrice = lastClose;
     }
-    priceDiff = currentPrice - startPrice;
-    pctChange = (priceDiff / startPrice) * 100;
+    const prevClose = parsedData.length > 1 ? parsedData[parsedData.length - 2].close : currentPrice;
+    priceDiff = currentPrice - prevClose;
+    pctChange = prevClose !== 0 ? (priceDiff / prevClose) * 100 : 0;
   }
   const isPositive = priceDiff >= 0;
 
@@ -543,7 +555,7 @@ export const MultidimensionalChart = ({ data }: { data: any }) => {
             <div className="flex items-center gap-2 mt-1">
               <span className="text-lg font-bold text-white leading-none">₹{currentPrice.toFixed(2)}</span>
               <span className={`text-sm font-semibold leading-none ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
-                {isPositive ? '+' : ''}{priceDiff.toFixed(2)} ({isPositive ? '+' : ''}{pctChange.toFixed(2)}%)
+                {isPositive ? '+' : ''}{priceDiff.toFixed(2)} ({isPositive ? '+' : ''}{pctChange.toFixed(2)}%) <span className="text-[10px] font-bold text-text-secondary ml-0.5">1D</span>
               </span>
             </div>
           </div>
@@ -607,17 +619,29 @@ export const MultidimensionalChart = ({ data }: { data: any }) => {
             </button>
           </div>
 
-          {/* Timeframes */}
-          <div className="flex bg-surface-hover p-1 rounded-md border border-border gap-1">
-            {TIMEFRAMES.map(t => (
-              <button 
-                key={t}
-                onClick={() => setTimeframe(t)}
-                className={`px-3 py-1 rounded text-xs font-bold transition-all ${timeframe === t ? 'bg-alpha text-canvas shadow-sm' : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'}`}
-              >
-                {t}
-              </button>
-            ))}
+          {/* Timeframes & Stats */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className={`text-sm font-bold ${periodStats.change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                {periodStats.change >= 0 ? '+' : ''}{periodStats.change.toFixed(2)} ({periodStats.change >= 0 ? '+' : ''}{periodStats.percentChange.toFixed(2)}%)
+              </span>
+              {(timeframe === '1Y' || timeframe === '5Y' || timeframe === 'ALL') && (
+                <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">
+                  {periodStats.cagr.toFixed(2)}% CAGR
+                </span>
+              )}
+            </div>
+            <div className="flex bg-surface-hover p-1 rounded-md border border-border gap-1">
+              {TIMEFRAMES.map(t => (
+                <button 
+                  key={t}
+                  onClick={() => setTimeframe(t)}
+                  className={`px-3 py-1 rounded text-xs font-bold transition-all ${timeframe === t ? 'bg-alpha text-canvas shadow-sm' : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'}`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>

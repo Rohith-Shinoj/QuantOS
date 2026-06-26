@@ -8,7 +8,7 @@ from langchain_core.runnables import RunnableConfig
 import os
 import json
 
-from agent_engine.tools import query_quant_database, fetch_macro_context
+from agent_engine.tools import query_quant_database, fetch_macro_context, execute_duckdb_query
 from agent_engine.registry import COMPONENT_REGISTRY
 class InvestmentState(TypedDict):
     messages: Annotated[Sequence[BaseMessage], operator.add]
@@ -33,7 +33,7 @@ async def architect_node(state: InvestmentState, config: RunnableConfig):
         f"{registry_str}"
     ))
     
-    model = ChatGoogleGenerativeAI(model="gemini-2.5-flash-lite", temperature=0)
+    model = ChatGoogleGenerativeAI(model="gemini-3.1-flash-lite", temperature=0)
     messages = [sys_msg] + list(state["messages"])
     
     response = await model.ainvoke(messages, config)
@@ -65,7 +65,7 @@ async def architect_node(state: InvestmentState, config: RunnableConfig):
     return {"selected_schemas": selected_keys}
 
 async def execution_node(state: InvestmentState, config: RunnableConfig):
-    model = ChatGoogleGenerativeAI(model="gemini-2.5-flash-lite", temperature=0)
+    model = ChatGoogleGenerativeAI(model="gemini-3.1-flash-lite", temperature=0)
     
     selected = state.get("selected_schemas", [])
     if "narrative_insight" not in selected:
@@ -89,6 +89,8 @@ async def execution_node(state: InvestmentState, config: RunnableConfig):
         tools.append(query_quant_database)
     if "fetch_macro_context" in required_tools_set:
         tools.append(fetch_macro_context)
+    # Give the agent execution capability unconditionally for deep complex queries
+    tools.append(execute_duckdb_query)
         
     model_with_tools = model.bind_tools(tools) if tools else model
     
@@ -106,7 +108,7 @@ async def execution_node(state: InvestmentState, config: RunnableConfig):
     
     return {"messages": [response]}
 
-tool_node = ToolNode([query_quant_database, fetch_macro_context])
+tool_node = ToolNode([query_quant_database, fetch_macro_context, execute_duckdb_query])
 
 def execution_router(state: InvestmentState) -> str:
     last_message = state["messages"][-1]

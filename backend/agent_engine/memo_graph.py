@@ -1,10 +1,10 @@
 from langgraph.prebuilt import create_react_agent
 from langchain_google_genai import ChatGoogleGenerativeAI
-from agent_engine.tools import query_quant_database, fetch_macro_context
+from agent_engine.tools import query_quant_database, fetch_macro_context, execute_duckdb_query
 import os
 
-llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.2)
-tools = [query_quant_database, fetch_macro_context]
+llm = ChatGoogleGenerativeAI(model="gemini-3.1-flash-lite", temperature=0.2)
+tools = [query_quant_database, fetch_macro_context, execute_duckdb_query]
 
 system_prompt = """You are the Lead Portfolio Manager for an institutional hedge fund.
 You must write a comprehensive, qualitative investment thesis (memo) for the requested stock.

@@ -126,3 +126,86 @@ def fetch_macro_context(ticker: str) -> str:
         
     except Exception as e:
         return f"Web Search Error: {str(e)}"
+
+@tool
+def execute_duckdb_query(query: str) -> str:
+    """
+    Executes an arbitrary SQL SELECT query against the DuckDB market_data database.
+    Use this tool when you need to answer complex, multi-asset questions or cross-reference performance over time (e.g., "Which stocks grew more than 10% during a NIFTY crash?").
+    
+    IMPORTANT RULES:
+    1. The query MUST be a SELECT statement. No INSERT/UPDATE/DELETE.
+    2. A LIMIT 100 will be automatically applied if you don't provide a smaller limit.
+    3. Use the following schema to construct your queries:
+    
+    SCHEMA DDL:
+    -- Core Stock Fundamentals
+    CREATE TABLE stocks (
+        slug VARCHAR, ticker VARCHAR, name VARCHAR, market_cap_type VARCHAR, market_cap DOUBLE, pe_ratio DOUBLE,
+        day_change VARCHAR, industry VARCHAR, inst_accum DOUBLE, volatility_squeeze DOUBLE, qes_flag INTEGER,
+        tax_divergence DOUBLE, pledge_delta DOUBLE, absolute_data JSON, relative_data JSON, rs_rating DOUBLE, alpha_score DOUBLE
+    );
+    
+    -- Daily Equities Timeseries (OLAP)
+    CREATE TABLE daily_prices (
+        ticker VARCHAR, date DATE, close DOUBLE, adj_close DOUBLE, volume DOUBLE
+    );
+    
+    -- Daily Index Timeseries (OLAP)
+    CREATE TABLE daily_index_prices (
+        index_name VARCHAR, date DATE, close DOUBLE
+    );
+    
+    -- Quarterly Fundamentals Timeseries (OLAP)
+    CREATE TABLE quarterly_fundamentals (
+        ticker VARCHAR, quarter_end_date DATE, revenue DOUBLE, net_profit DOUBLE, eps DOUBLE, roe DOUBLE, debt_to_equity DOUBLE, pe_ratio DOUBLE
+    );
+    
+    -- Pre-calculated Advanced Ratios & CAGRs
+    CREATE TABLE stock_metrics (
+        ticker VARCHAR, roe DOUBLE, roic DOUBLE, debt_to_equity DOUBLE, dividend_yield DOUBLE, eps_ttm DOUBLE, pb_ratio DOUBLE, price_to_sales DOUBLE, peg_ratio DOUBLE, return_on_assets DOUBLE, ev_to_ebitda DOUBLE, revenue_3yr_cagr DOUBLE, revenue_5yr_cagr DOUBLE, profit_3yr_cagr DOUBLE, profit_5yr_cagr DOUBLE, net_worth_3yr_cagr DOUBLE
+    );
+
+    GOLDEN QUERY EXAMPLES:
+    -- Example 1: Finding stocks that dropped during a specific date window
+    SELECT ticker, MIN(adj_close) as min_p, MAX(adj_close) as max_p FROM daily_prices WHERE date >= '2020-02-01' AND date <= '2020-11-01' GROUP BY ticker HAVING (max_p - min_p) / max_p < -0.2;
+    
+    -- Example 2: Checking ROE from snapshot json data
+    SELECT ticker, CAST(absolute_data->>'$.roe' AS DOUBLE) as roe FROM stocks WHERE CAST(absolute_data->>'$.roe' AS DOUBLE) > 15;
+    
+    -- Example 3: Cross-asset ASOF join to compare stock vs Nifty on a specific date
+    SELECT s.ticker, s.date, s.close as stock_price, i.close as nifty_price
+    FROM daily_prices s
+    ASOF JOIN daily_index_prices i ON s.date >= i.date AND i.index_name = 'NIFTY50'
+    WHERE s.date = '2023-01-05' AND s.ticker = 'HDFC';
+    """
+    try:
+        if not query.strip().upper().startswith("SELECT") and not query.strip().upper().startswith("WITH"):
+            return "Error: Only SELECT queries are permitted for safety reasons."
+            
+        # Ensure LIMIT 100 if no explicit limit exists
+        if "LIMIT" not in query.upper():
+            query = f"{query}\nLIMIT 100"
+            
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        db_path = os.path.join(project_root, "datasets", "A", "market_data.duckdb")
+        con = duckdb.connect(db_path, read_only=True)
+        
+        # Execute query
+        results = con.execute(query).fetchall()
+        columns = [desc[0] for desc in con.description]
+        con.close()
+        
+        if not results:
+            return "Query executed successfully but returned 0 rows."
+            
+        # Format as string
+        formatted = " | ".join(columns) + "\n" + "-" * 50 + "\n"
+        for row in results:
+            formatted += " | ".join([str(val) for val in row]) + "\n"
+            
+        return formatted
+        
+    except Exception as e:
+        return f"SQL Execution Error: {str(e)}"
+

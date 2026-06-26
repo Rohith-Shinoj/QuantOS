@@ -5,7 +5,7 @@ import { parse } from 'partial-json';
 export const useAgentStream = () => {
   const { 
     setProcessing, addMessage, updateLastMessageString, 
-    updateLastMessageData, completeLastMessage, failLastMessage 
+    updateLastMessageData, updateLastMessageHybridData, appendDebugLog, completeLastMessage, failLastMessage 
   } = useAIStore();
 
   const streamQuery = async (ticker: string, query: string) => {
@@ -18,6 +18,8 @@ export const useAgentStream = () => {
       role: 'user',
       rawString: query,
       parsedData: null,
+      hybridData: null,
+      hybridLogs: [],
       isStreaming: false
     });
 
@@ -28,6 +30,9 @@ export const useAgentStream = () => {
       role: 'assistant',
       rawString: '',
       parsedData: null,
+      hybridData: null,
+      hybridLogs: [],
+      debugLogs: [],
       isStreaming: true
     });
 
@@ -40,23 +45,41 @@ export const useAgentStream = () => {
         content: m.rawString
       })).slice(-10); // Keep last 10 messages for context
 
+      appendDebugLog(`[HTTP] Sending POST to /api/agent/research for ticker: ${ticker || 'GLOBAL'}`);
       const response = await fetch('http://localhost:8000/api/agent/research', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ticker, query, history })
       });
 
+      appendDebugLog(`[HTTP] Status: ${response.status} ${response.statusText}`);
+
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
 
-      if (!reader) throw new Error("No response body");
+      if (!reader) {
+        appendDebugLog("[HTTP] Error: No response body returned.");
+        throw new Error("No response body");
+      }
+
+      appendDebugLog("[STREAM] Connection established. Waiting for chunks...");
+      let sseBuffer = "";
+      let chunkCount = 0;
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+          appendDebugLog("[STREAM] Reader returned done=true. Stream closed.");
+          break;
+        }
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n\n');
+        chunkCount++;
+        const decoded = decoder.decode(value, { stream: true });
+        appendDebugLog(`[STREAM] Received chunk #${chunkCount} (${decoded.length} bytes)`);
+        
+        sseBuffer += decoded;
+        const lines = sseBuffer.split('\n\n');
+        sseBuffer = lines.pop() || "";
 
         for (const line of lines) {
           if (line.startsWith('data: ')) {
@@ -65,7 +88,12 @@ export const useAgentStream = () => {
 
             try {
               const data = JSON.parse(dataStr);
-              if (data.type === 'token') {
+              if (data.type === 'hybrid_data') {
+                appendDebugLog(`[EVENT] Parsed hybrid_data: Found ${data.data?.length || 0} rows. Unverified: ${data.unverified}, ParseFailed: ${data.parse_failed}`);
+                updateLastMessageHybridData(data.data, data.logs, data.unverified, data.parse_failed);
+              } else if (data.type === 'debug_log') {
+                appendDebugLog(data.log);
+              } else if (data.type === 'token') {
                 accumulator += data.content;
                 updateLastMessageString(data.content);
                 
@@ -77,23 +105,34 @@ export const useAgentStream = () => {
                 } catch (parseErr) {
                   // Silent fail for incomplete JSON chunks
                 }
+              } else if (data.type === 'tool_start') {
+                appendDebugLog(`[EVENT] Tool started: ${data.tool}`);
+              } else if (data.type === 'tool_end') {
+                appendDebugLog(`[EVENT] Tool ended: ${data.tool}`);
               } else if (data.type === 'done') {
+                appendDebugLog(`[EVENT] Done event received.`);
                 completeLastMessage();
                 setProcessing(false);
               } else if (data.type === 'error') {
+                appendDebugLog(`[EVENT] Server Error: ${data.message}`);
                 failLastMessage(data.message);
                 setProcessing(false);
+              } else {
+                appendDebugLog(`[EVENT] Unknown type: ${data.type}`);
               }
             } catch (err) {
+              appendDebugLog(`[PARSE ERROR] Failed to parse SSE JSON. Raw: ${dataStr}`);
               console.error("Failed to parse SSE JSON", err, dataStr);
             }
           }
         }
       }
     } catch (error) {
+      appendDebugLog(`[FATAL ERROR] ${String(error)}`);
       failLastMessage(String(error));
       setProcessing(false);
     } finally {
+      appendDebugLog(`[STREAM] Execution finalized.`);
       completeLastMessage();
       setProcessing(false);
     }

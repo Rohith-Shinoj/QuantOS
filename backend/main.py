@@ -14,6 +14,7 @@ env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
 load_dotenv(dotenv_path=env_path, override=True)
 
 from agent_api import router as agent_router
+from screener_api import router as screener_router
 
 app = FastAPI(title="Quant Dashboard API")
 
@@ -25,7 +26,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 app.include_router(agent_router)
+app.include_router(screener_router)
 
 # Use absolute path to resolve the symlink relative to this file
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -671,7 +674,7 @@ async def ai_analyze_portfolio(req: PortfolioAIRequest):
                 })
 
         # Call Gemini
-        llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.1)
+        llm = ChatGoogleGenerativeAI(model="gemini-3.1-flash-lite", temperature=0.1)
         
         system_prompt = """You are a Chief Investment Officer. Analyze the provided dual portfolio data (Stocks & Mutual Funds).
 You MUST output strictly in JSON format matching this schema exactly, with NO markdown wrappers:
@@ -786,7 +789,7 @@ async def portfolio_chat(req: PortfolioAIRequest):
                         "weight_pct": round(weight, 2)
                     })
 
-        llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.3)
+        llm = ChatGoogleGenerativeAI(model="gemini-3.1-flash-lite", temperature=0.3)
         
         system_prompt = f"""You are a Chief Investment Officer providing advice to a client.
 Their Stock risk tolerance is: {req.stockRisk}.

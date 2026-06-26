@@ -10,6 +10,8 @@ import {
 } from 'recharts';
 import ReactMarkdown from 'react-markdown';
 
+const AI_Analysis_debug = true;
+
 export const AIResearchDesk: React.FC = () => {
   const { isProcessing, messages, activeTicker, setActiveTicker, clearWorkspace } = useAIStore();
   const { streamQuery } = useAgentStream();
@@ -28,13 +30,14 @@ export const AIResearchDesk: React.FC = () => {
     if (!query.trim() || isProcessing) return;
     
     // Smart Ticker Extraction
-    // Look for explicitly typed tickers (all caps, 3-10 chars)
-    const words = query.split(' ');
-    const foundTicker = words.find(w => /^[A-Z]{3,10}$/.test(w));
+    // Look for explicitly typed tickers (all caps, 3-10 chars), but ignore common acronyms
+    const ignoreList = ['CAGR', 'ROE', 'ROCE', 'PEG', 'EBITDA', 'YOY', 'QOQ', 'EPS', 'PAT', 'P/E', 'P/B'];
+    const words = query.split(/[\s,]+/);
+    const foundTicker = words.find(w => /^[A-Z]{3,10}$/.test(w) && !ignoreList.includes(w));
     
     // If we didn't find an explicit ticker, maintain the existing activeTicker
-    // If there is no activeTicker yet, default to a fallback or let backend handle it
-    const newTicker = foundTicker || activeTicker || "UNKNOWN";
+    // If there is no activeTicker yet, default to "SCREEN" to represent a global database screen
+    const newTicker = foundTicker || activeTicker || "SCREEN";
     
     if (newTicker !== activeTicker) {
       setActiveTicker(newTicker);
@@ -131,7 +134,7 @@ export const AIResearchDesk: React.FC = () => {
 
 // Component Router
 const AssistantMessage = ({ payload }: { payload: ChatMessage }) => {
-  const { parsedData, isStreaming, error, rawString } = payload;
+  const { parsedData, isStreaming, error, rawString, hybridData, hybridLogs, debugLogs } = payload;
 
   if (error) {
     return (
@@ -151,7 +154,7 @@ const AssistantMessage = ({ payload }: { payload: ChatMessage }) => {
   }, [isStreaming, rawString]);
 
   // Phase 1: Intent Routing (Empty String)
-  if (isStreaming && !rawString) {
+  if (isStreaming && !rawString && !hybridData && (!hybridLogs || hybridLogs.length === 0)) {
     return (
       <div className="flex items-center text-xs font-mono text-blue-400 bg-blue-900/10 border border-blue-900/30 px-4 py-2 rounded-full w-max animate-pulse transition-all duration-300">
         <Cpu className="w-4 h-4 mr-2" />
@@ -160,11 +163,91 @@ const AssistantMessage = ({ payload }: { payload: ChatMessage }) => {
     );
   }
 
+  // Phase 2: Hybrid DB-First Rendering
+  if (hybridData) {
+    return (
+      <div className="w-full flex flex-col space-y-6">
+        <NativeDataGrid data={hybridData} logs={hybridLogs || []} isStreaming={isStreaming} unverified={payload.unverified} parseFailed={payload.parseFailed} />
+        
+        {/* If there's an LLM narrative, render it below the grid in a CIO card */}
+        {rawString.length > 0 && (
+          <div className="bg-[#111] border border-gray-800 rounded-xl overflow-hidden shadow-2xl transition-all duration-500">
+            <div className="bg-blue-900/10 border-b border-blue-900/30 p-4">
+              <h3 className="text-sm font-semibold text-blue-400 uppercase tracking-widest">CIO Opinion</h3>
+            </div>
+            <div className="p-6 prose prose-invert prose-sm max-w-none [&>p]:mb-2 last:[&>p]:mb-0">
+              <ReactMarkdown>{rawString}</ReactMarkdown>
+            </div>
+          </div>
+        )}
+
+        {/* VERBOSE DEBUG TRACE TERMINAL FOR HYBRID PATH */}
+        {AI_Analysis_debug && debugLogs && debugLogs.length > 0 && (
+          <div className="bg-black border border-red-900/50 p-4 rounded-xl font-mono text-[10px] text-gray-500 overflow-y-auto max-h-96 w-full mt-4">
+            <h4 className="text-red-500 uppercase font-bold mb-2 tracking-widest flex items-center">
+              <AlertTriangle className="w-4 h-4 mr-2" />
+              AI Analysis Debug Trace
+            </h4>
+            {debugLogs.map((log, i) => (
+              <div key={i} className="mb-1 hover:text-gray-300 transition-colors">
+                {log}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   // Fallback for raw text if JSON parser fully fails and it's not empty
   if (!parsedData && !isStreaming && rawString.length > 0) {
     return (
-      <div className="bg-[#151515] border border-gray-800 text-gray-300 px-6 py-4 rounded-2xl rounded-tl-sm max-w-3xl overflow-x-auto prose prose-invert prose-sm [&>p]:mb-2 last:[&>p]:mb-0 [&>ul]:list-disc [&>ul]:ml-4 [&>ol]:list-decimal [&>ol]:ml-4 [&>li]:mb-1">
-        <ReactMarkdown>{rawString}</ReactMarkdown>
+      <div className="w-full flex flex-col space-y-4">
+        <div className="bg-[#151515] border border-gray-800 text-gray-300 px-6 py-4 rounded-2xl rounded-tl-sm max-w-3xl overflow-x-auto prose prose-invert prose-sm [&>p]:mb-2 last:[&>p]:mb-0 [&>ul]:list-disc [&>ul]:ml-4 [&>ol]:list-decimal [&>ol]:ml-4 [&>li]:mb-1">
+          <ReactMarkdown>{rawString}</ReactMarkdown>
+        </div>
+        
+        {/* VERBOSE DEBUG TRACE TERMINAL FOR RAW TEXT / FALLBACK */}
+        {AI_Analysis_debug && debugLogs && debugLogs.length > 0 && (
+          <div className="bg-black border border-red-900/50 p-4 rounded-xl font-mono text-[10px] text-gray-500 overflow-y-auto max-h-96 w-full">
+            <h4 className="text-red-500 uppercase font-bold mb-2 tracking-widest flex items-center">
+              <AlertTriangle className="w-4 h-4 mr-2" />
+              AI Analysis Debug Trace (Fallback Executed)
+            </h4>
+            {debugLogs.map((log, i) => (
+              <div key={i} className="mb-1 hover:text-gray-300 transition-colors">
+                {log}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // If the stream finished, but we still have absolutely no text and no JSON, show an error instead of a blank void
+  if (!parsedData && !isStreaming && rawString.length === 0) {
+    return (
+      <div className="w-full flex flex-col space-y-4">
+        <div className="bg-red-900/20 border-l-4 border-red-500 p-4 rounded text-red-400 max-w-3xl">
+          <AlertTriangle className="inline w-5 h-5 mr-2" /> 
+          Connection lost or no data returned from the server. Please try again.
+        </div>
+        
+        {/* VERBOSE DEBUG TRACE TERMINAL FOR FAILED REQUESTS */}
+        {AI_Analysis_debug && debugLogs && debugLogs.length > 0 && (
+          <div className="bg-black border border-red-900/50 p-4 rounded-xl font-mono text-[10px] text-gray-500 overflow-y-auto max-h-96 w-full">
+            <h4 className="text-red-500 uppercase font-bold mb-2 tracking-widest flex items-center">
+              <AlertTriangle className="w-4 h-4 mr-2" />
+              AI Analysis Debug Trace (Failed Request)
+            </h4>
+            {debugLogs.map((log, i) => (
+              <div key={i} className="mb-1 hover:text-gray-300 transition-colors">
+                {log}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
@@ -194,6 +277,13 @@ const AssistantMessage = ({ payload }: { payload: ChatMessage }) => {
 
   return (
     <div className={`w-full bg-[#111] border border-gray-800 rounded-xl overflow-hidden shadow-2xl transition-all duration-500 ${isStreaming ? 'shadow-blue-900/10' : ''}`}>
+      {/* If Qualitative Fallback Logs exist */}
+      {!hybridData && hybridLogs && hybridLogs.length > 0 && (
+         <div className="bg-indigo-900/20 border-b border-indigo-900/30 p-3 font-mono text-xs text-indigo-400">
+            {hybridLogs.map((l, i) => <div key={i}>{'>'} {l}</div>)}
+         </div>
+      )}
+
       {/* Header Strip if metadata is present */}
       {parsedData.metadata && (
         <div className="bg-[#151515] border-b border-gray-800 p-4 flex justify-between items-center">
@@ -223,11 +313,97 @@ const AssistantMessage = ({ payload }: { payload: ChatMessage }) => {
           <StackedLayout data={parsedData} keys={keys} isStreaming={isStreaming} />
         )}
       </div>
+
+      {/* VERBOSE DEBUG TRACE TERMINAL */}
+      {AI_Analysis_debug && debugLogs && debugLogs.length > 0 && (
+        <div className="bg-black border-t border-red-900/50 p-4 mt-6 font-mono text-[10px] text-gray-500 overflow-y-auto max-h-96">
+          <h4 className="text-red-500 uppercase font-bold mb-2 tracking-widest flex items-center">
+            <AlertTriangle className="w-4 h-4 mr-2" />
+            AI Analysis Debug Trace
+          </h4>
+          {debugLogs.map((log, i) => (
+            <div key={i} className="mb-1 hover:text-gray-300 transition-colors">
+              {log}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
 
 // ---------------- Layouts ---------------- //
+
+const NativeDataGrid = ({ data, logs, isStreaming, unverified, parseFailed }: { data: any[], logs: string[], isStreaming: boolean, unverified?: boolean, parseFailed?: boolean }) => {
+  const cols = data.length > 0 ? Object.keys(data[0]) : [];
+  
+  return (
+    <div className="w-full space-y-4">
+      {/* Intelligent Loading Log */}
+      {logs.length > 0 && (
+        <div className="bg-black/60 border border-gray-800 rounded-lg p-4 font-mono text-xs text-emerald-500/80">
+          <div className="flex items-center mb-2">
+            {isStreaming ? <Loader2 className="w-4 h-4 mr-2 animate-spin text-emerald-500" /> : <ShieldCheck className="w-4 h-4 mr-2 text-emerald-500" />}
+            <span className="text-gray-300 font-semibold tracking-wider">
+              {isStreaming ? "GENERATING ANALYSIS..." : "ANALYSIS COMPLETE"}
+            </span>
+          </div>
+          <div className="space-y-1 ml-6 text-gray-500">
+            <div><span className="text-emerald-700">{'>'}</span> Parsed Intention: <span className="text-gray-400">Quantitative Filter</span></div>
+            {logs.map((l, i) => (
+              <div key={i}><span className="text-emerald-700">{'>'}</span> Extraction: <span className="text-emerald-400">{l}</span></div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {unverified && (
+        <div className="bg-yellow-900/20 border-l-4 border-yellow-500 p-4 rounded text-yellow-400 max-w-3xl mb-4">
+          <AlertTriangle className="inline w-5 h-5 mr-2" /> ⚠️ UNVERIFIED — AI validation unavailable. Showing raw database results.
+        </div>
+      )}
+      
+      {parseFailed && !unverified && (
+        <div className="bg-orange-900/20 border-l-4 border-orange-500 p-4 rounded text-orange-400 max-w-3xl mb-4">
+          <AlertTriangle className="inline w-5 h-5 mr-2" /> ⚠️ AI responded but output was malformed. Showing raw database results.
+        </div>
+      )}
+
+      {/* Native Data Grid */}
+      <div className="bg-[#151515] border border-gray-800 rounded-xl overflow-x-auto shadow-2xl">
+        {data.length === 0 ? (
+          <div className="p-8 text-center text-gray-500">No stocks matched your criteria.</div>
+        ) : (
+          <table className="w-full text-sm text-left relative">
+            <thead className="text-xs text-gray-500 uppercase bg-black/40 border-b border-gray-800">
+              {!unverified && !parseFailed && !isStreaming && (
+                <tr>
+                  <th colSpan={cols.length} className="px-6 py-2 bg-[#1A1A1A]/50 text-right">
+                    <span className="inline-flex items-center text-[10px] font-bold text-emerald-400 bg-emerald-900/20 border border-emerald-900/50 px-2 py-1 rounded">
+                      <ShieldCheck className="w-3 h-3 mr-1" /> AI-VALIDATED
+                    </span>
+                  </th>
+                </tr>
+              )}
+              <tr>
+                {cols.map(c => <th key={c} className="px-6 py-4 font-medium">{c}</th>)}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-800/50">
+              {data.map((row, i) => (
+                <tr key={i} className="hover:bg-white/5 transition-colors">
+                  {cols.map(c => (
+                    <td key={c} className="px-6 py-3 text-gray-300">{row[c]}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const StackedLayout = ({ data, keys, isStreaming }: { data: any, keys: string[], isStreaming: boolean }) => (
   <div className="flex flex-col space-y-6">

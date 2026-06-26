@@ -1,8 +1,14 @@
 import os
 import json
+import calendar
 import duckdb
 import argparse
 from pathlib import Path
+import random
+import datetime
+from tqdm import tqdm
+import pandas as pd
+import numpy as np
 
 def init_db(target_dir):
     parquet_path = os.path.join(target_dir, "market_data.parquet")
@@ -145,6 +151,122 @@ def init_db(target_dir):
         print(f"Exporting Mutual Funds to {mf_parquet_path}...")
         con.execute(f"COPY mutual_funds TO '{mf_parquet_path}' (FORMAT PARQUET)")
         
+    print("Extracting real seed data for OLAP Timeseries tables (daily_prices, daily_index_prices)...")
+    
+    # 1. Extract NIFTY daily index prices for the last 5 years
+    con.execute("""
+        CREATE TABLE daily_index_prices AS
+        SELECT 
+            'NIFTY50' as index_name,
+            strptime(json_extract_string(candle, '$.Date'), '%d-%m-%Y')::DATE as date,
+            json_extract_string(candle, '$.Close')::DOUBLE as close
+        FROM (
+            SELECT UNNEST(from_json(absolute_data->>'$.OHLCV', '["JSON"]')) as candle
+            FROM stocks 
+            WHERE ticker = 'NIFTY'
+        )
+        WHERE candle IS NOT NULL
+    """)
+    print("Extracted real NIFTY daily index prices.")
+    
+    # 2. Extract daily_prices for stocks
+    con.execute("""
+        CREATE TABLE daily_prices AS
+        SELECT 
+            ticker,
+            strptime(json_extract_string(candle, '$.Date'), '%d-%m-%Y')::DATE as date,
+            json_extract_string(candle, '$.Close')::DOUBLE as close,
+            json_extract_string(candle, '$.Close')::DOUBLE as adj_close,
+            json_extract_string(candle, '$.Volume')::DOUBLE as volume
+        FROM (
+            SELECT ticker, UNNEST(from_json(absolute_data->>'$.OHLCV', '["JSON"]')) as candle
+            FROM stocks 
+            WHERE ticker IS NOT NULL AND ticker != 'N/A' AND ticker != 'NIFTY'
+        )
+        WHERE candle IS NOT NULL
+    """)
+    print("Extracted real daily prices for all stocks.")
+
+    # 3. Create quarterly_fundamentals
+    con.execute("""
+        CREATE TABLE quarterly_fundamentals (
+            ticker VARCHAR,
+            quarter_end_date DATE,
+            revenue DOUBLE,
+            net_profit DOUBLE,
+            eps DOUBLE,
+            roe DOUBLE,
+            debt_to_equity DOUBLE,
+            pe_ratio DOUBLE
+        )
+    """)
+    
+    print("Extracting real quarterly fundamentals...")
+    def parse_quarter_date(q_str):
+        try:
+            m, y = q_str.split(" '")
+            months = {"Jan":1, "Feb":2, "Mar":3, "Apr":4, "May":5, "Jun":6, 
+                      "Jul":7, "Aug":8, "Sep":9, "Oct":10, "Nov":11, "Dec":12}
+            year = 2000 + int(y)
+            month = months[m]
+            last_day = calendar.monthrange(year, month)[1]
+            return f"{year}-{month:02d}-{last_day:02d}"
+        except: return None
+
+    fs_res = con.execute("SELECT ticker, absolute_data->>'$.financialStatement' FROM stocks WHERE ticker IS NOT NULL AND ticker != 'N/A'").fetchall()
+    
+    q_funds = []
+    from tqdm import tqdm
+    for row in tqdm(fs_res, desc="Extracting Quarterly Fundamentals"):
+        ticker = row[0]
+        fs_json_str = row[1]
+        if not fs_json_str or fs_json_str == 'null': continue
+        try:
+            fs_data = json.loads(fs_json_str)
+            if not isinstance(fs_data, list): continue
+            
+            quarters_map = {}
+            for item in fs_data:
+                title = item.get("title", "").lower()
+                q_data = item.get("quarterly", {})
+                if not isinstance(q_data, dict): continue
+                
+                for q_str, val in q_data.items():
+                    q_date = parse_quarter_date(q_str)
+                    if not q_date: continue
+                    if q_date not in quarters_map:
+                        quarters_map[q_date] = {"revenue": None, "net_profit": None, "eps": None}
+                    
+                    if "revenue" in title: quarters_map[q_date]["revenue"] = val
+                    elif "profit" in title: quarters_map[q_date]["net_profit"] = val
+                    elif "eps" in title or "earning" in title: quarters_map[q_date]["eps"] = val
+            
+            for q_date, metrics in quarters_map.items():
+                q_funds.append((
+                    ticker,
+                    q_date,
+                    metrics["revenue"],
+                    metrics["net_profit"],
+                    metrics["eps"],
+                    None,
+                    None,
+                    None
+                ))
+        except:
+            continue
+            
+    con.executemany("INSERT INTO quarterly_fundamentals VALUES (?, ?, ?, ?, ?, ?, ?, ?)", q_funds)
+    print("Extracted real quarterly fundamentals.")
+
+    
+    # Attach to the main DB and copy the tables over
+    duckdb_path = os.path.join(target_dir, "market_data.duckdb")
+    con.execute(f"ATTACH '{duckdb_path}' AS db")
+    con.execute("CREATE TABLE IF NOT EXISTS db.daily_index_prices AS SELECT * FROM daily_index_prices")
+    con.execute("CREATE TABLE IF NOT EXISTS db.daily_prices AS SELECT * FROM daily_prices")
+    con.execute("CREATE TABLE IF NOT EXISTS db.quarterly_fundamentals AS SELECT * FROM quarterly_fundamentals")
+    con.execute("DETACH db")
+
     print(f"Parquet and DuckDB generation complete.")
     con.close()
 
