@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchAllStocks, fetchMutualFunds, fetchPortfolioAIAnalysis, sendPortfolioChat } from '../api';
-import { Search, X, PieChart as PieChartIcon, BrainCircuit, AlertTriangle, Send, Loader2, Globe, Zap, List, Activity, Maximize2, Minimize2, TrendingUp, TrendingDown } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
+import { fetchAllStocks, fetchMutualFunds, fetchPortfolioAIAnalysis, sendPortfolioChat, fetchBatchStockData, fetchMutualFundByCode, fetchCaptureRatios } from '../api';
+import { Search, X, PieChart as PieChartIcon, BrainCircuit, AlertTriangle, Send, Loader2, Globe, Zap, List, Activity, Maximize2, Minimize2, TrendingUp, TrendingDown, Shield, Eye, Wallet, Crosshair, Waves, BarChart3 } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, BarChart, Bar, AreaChart, Area, ReferenceLine } from 'recharts';
 import ReactMarkdown from 'react-markdown';
 import { StockLogo } from '../components/StockLogo';
 
@@ -64,6 +64,39 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
   const { data: allStocks } = useQuery({ queryKey: ['allStocks'], queryFn: fetchAllStocks });
   const { data: mfData } = useQuery({ queryKey: ['allMFs'], queryFn: () => fetchMutualFunds({ limit: 500 }) });
   const allMFs = mfData?.data || [];
+
+  // Chart mode toggle
+  const [chartMode, setChartMode] = useState<'alpha' | 'stress' | 'shap' | 'drawdown'>('alpha');
+
+  // Fetch detailed batch stock data (OHLCV, relative_data) for portfolio holdings
+  const stockSlugs = useMemo(() => stockHoldings.map(h => h.slug), [stockHoldings]);
+  const { data: batchStockData } = useQuery({
+    queryKey: ['batchStocks', stockSlugs],
+    queryFn: () => fetchBatchStockData(stockSlugs),
+    enabled: stockSlugs.length > 0,
+  });
+
+  // Fetch detailed MF data for each holding (for detailed_holdings, advanced_stats)
+  const mfSlugs = useMemo(() => mfHoldings.map(h => h.slug), [mfHoldings]);
+  const mfSlugsKey = mfSlugs.join(',');
+  const { data: mfDetailsRaw } = useQuery({
+    queryKey: ['mfDetails', mfSlugsKey],
+    queryFn: async () => {
+      const results = await Promise.all(mfSlugs.map(slug => fetchMutualFundByCode(slug)));
+      const map: Record<string, any> = {};
+      results.forEach((r, i) => { if (r) map[mfSlugs[i]] = r; });
+      return map;
+    },
+    enabled: mfSlugs.length > 0,
+  });
+  const mfDetails: Record<string, any> = mfDetailsRaw || {};
+
+  // Fetch capture ratios
+  const { data: captureRatiosData } = useQuery({
+    queryKey: ['captureRatios'],
+    queryFn: fetchCaptureRatios,
+    enabled: mfHoldings.length > 0,
+  });
 
   const getLivePrice = (slug: string, tab: 'STOCKS' | 'MUTUAL_FUNDS'): number => {
     if (tab === 'STOCKS') {
@@ -197,6 +230,361 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
   ];
 
   const COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#06b6d4', '#64748b'];
+
+  // ═══════════════════════════════════════════════════════════════════
+  // ANALYTICS ENGINE: All computed data for charts and cards
+  // ═══════════════════════════════════════════════════════════════════
+
+  // CHART 1: Alpha-Risk Scatter Plot Data
+  const scatterData = useMemo(() => {
+    const points: any[] = [];
+    stockHoldings.forEach(h => {
+      const stock = allStocks?.find((s: any) => s.slug === h.slug);
+      if (!stock) return;
+      const val = h.units * getLivePrice(h.slug, 'STOCKS');
+      const risk = stock.v_squeeze != null ? Math.abs(stock.v_squeeze) * 100 : 50;
+      const alpha = stock.alpha_score != null ? stock.alpha_score * 100 : 50;
+      points.push({
+        name: stock.ticker || h.slug,
+        risk: parseFloat(risk.toFixed(1)),
+        alpha: parseFloat(alpha.toFixed(1)),
+        value: val,
+        type: 'stock',
+        industry: stock.industry || 'Unknown'
+      });
+    });
+    // For MFs, use advanced_stats if available
+    mfHoldings.forEach(h => {
+      const mf = allMFs?.find((m: any) => (m.scheme_code || m.direct_search_id) === h.slug);
+      if (!mf) return;
+      const val = h.units * getLivePrice(h.slug, 'MUTUAL_FUNDS');
+      const detail = mfDetails[h.slug];
+      let beta = 1.0;
+      let alpha = 50;
+      if (detail?.advanced_stats) {
+        const stats = typeof detail.advanced_stats === 'string' ? JSON.parse(detail.advanced_stats) : detail.advanced_stats;
+        const betaStat = stats?.find?.((s: any) => s.type?.toLowerCase()?.includes('beta'));
+        const alphaStat = stats?.find?.((s: any) => s.type?.toLowerCase()?.includes('alpha'));
+        if (betaStat?.stat_1y) beta = parseFloat(betaStat.stat_1y);
+        if (alphaStat?.stat_1y) alpha = parseFloat(alphaStat.stat_1y);
+      }
+      points.push({
+        name: (mf.fund_name || h.slug).substring(0, 20),
+        risk: parseFloat((beta * 50).toFixed(1)),
+        alpha: parseFloat(alpha.toFixed(1)),
+        value: val,
+        type: 'fund',
+        industry: mf.category || 'Mutual Fund'
+      });
+    });
+    return points;
+  }, [stockHoldings, mfHoldings, allStocks, allMFs, mfDetails]);
+
+  // CHART 2: Macro Stress-Test Data
+  const stressTestData = useMemo(() => {
+    const scenarios = [
+      { event: 'Nifty -10%', marketDrop: -10 },
+      { event: 'Nifty -20%', marketDrop: -20 },
+      { event: 'Rate Hike +50bps', marketDrop: -5 },
+      { event: 'Crude $100', marketDrop: -8 },
+      { event: 'FII Exodus', marketDrop: -15 },
+    ];
+    return scenarios.map(s => {
+      let stockDrawdown = 0;
+      let mfDrawdown = 0;
+      // Weighted stock drawdown based on beta proxy (v_squeeze / rs_rating)
+      stockHoldings.forEach(h => {
+        const stock = allStocks?.find((st: any) => st.slug === h.slug);
+        if (!stock) return;
+        const val = h.units * getLivePrice(h.slug, 'STOCKS');
+        const weight = totalValue > 0 ? val / totalValue : 0;
+        // Use rs_rating as a beta proxy: high RS = high beta
+        const betaProxy = stock.rs_rating != null ? Math.max(0.5, stock.rs_rating / 50) : 1.0;
+        stockDrawdown += s.marketDrop * betaProxy * weight * 100;
+      });
+      // MF drawdown from advanced_stats beta or risk category
+      mfHoldings.forEach(h => {
+        const mf = allMFs?.find((m: any) => (m.scheme_code || m.direct_search_id) === h.slug);
+        if (!mf) return;
+        const val = h.units * getLivePrice(h.slug, 'MUTUAL_FUNDS');
+        const weight = totalValue > 0 ? val / totalValue : 0;
+        let beta = 1.0;
+        const detail = mfDetails[h.slug];
+        if (detail?.advanced_stats) {
+          const stats = typeof detail.advanced_stats === 'string' ? JSON.parse(detail.advanced_stats) : detail.advanced_stats;
+          const betaStat = stats?.find?.((s: any) => s.type?.toLowerCase()?.includes('beta'));
+          if (betaStat?.stat_1y) beta = parseFloat(betaStat.stat_1y);
+        }
+        // Debt/balanced funds have lower beta
+        if (mf.category?.toLowerCase()?.includes('debt') || mf.category?.toLowerCase()?.includes('liquid')) beta = 0.2;
+        mfDrawdown += s.marketDrop * beta * weight * 100;
+      });
+      return {
+        event: s.event,
+        stocks: parseFloat(stockDrawdown.toFixed(1)),
+        funds: parseFloat(mfDrawdown.toFixed(1)),
+        combined: parseFloat((stockDrawdown + mfDrawdown).toFixed(1)),
+        benchmark: s.marketDrop,
+      };
+    });
+  }, [stockHoldings, mfHoldings, allStocks, allMFs, totalValue, mfDetails]);
+
+  // CHART 3: SHAP Waterfall Data (aggregate top factor reasons)
+  const shapWaterfallData = useMemo(() => {
+    const reasonCounts: Record<string, { count: number, weightedAlpha: number }> = {};
+    stockHoldings.forEach(h => {
+      const stock = allStocks?.find((s: any) => s.slug === h.slug);
+      if (!stock) return;
+      const val = h.units * getLivePrice(h.slug, 'STOCKS');
+      const weight = totalValue > 0 ? val / totalValue : 0;
+      const alpha = stock.alpha_score || 0;
+      [stock.shap_reason_1, stock.shap_reason_2, stock.shap_reason_3].forEach((reason: string) => {
+        if (!reason) return;
+        // Clean the reason string (e.g., "pe_ratio: +0.12" → "pe_ratio")
+        const cleanReason = reason.split(':')[0].trim().replace(/_/g, ' ');
+        if (!reasonCounts[cleanReason]) reasonCounts[cleanReason] = { count: 0, weightedAlpha: 0 };
+        reasonCounts[cleanReason].count += 1;
+        reasonCounts[cleanReason].weightedAlpha += alpha * weight;
+      });
+    });
+    return Object.entries(reasonCounts)
+      .map(([name, { count, weightedAlpha }]) => ({
+        name: name.length > 18 ? name.substring(0, 18) + '…' : name,
+        impact: parseFloat((weightedAlpha * 100).toFixed(2)),
+        count,
+      }))
+      .sort((a, b) => Math.abs(b.impact) - Math.abs(a.impact))
+      .slice(0, 8);
+  }, [stockHoldings, allStocks, totalValue]);
+
+  // CHART 4: Drawdown Data (from OHLCV for stocks, historical_navs for MFs)
+  const drawdownData = useMemo(() => {
+    // Compute portfolio-level drawdown from stock OHLCV data
+    if (!batchStockData && mfHoldings.length === 0) return [];
+
+    // Collect all available time series and compute weighted returns
+    const dateReturns: Record<string, number> = {};
+    const benchmarkReturns: Record<string, number> = {};
+    let benchmarkOhlcv: any[] = [];
+
+    // Process stocks
+    stockHoldings.forEach(h => {
+      const detail = batchStockData?.[h.slug];
+      if (!detail?.absolute?.OHLCV) return;
+      const ohlcv = detail.absolute.OHLCV;
+      if (!benchmarkOhlcv.length && detail.benchmark_ohlcv) benchmarkOhlcv = detail.benchmark_ohlcv;
+      const val = h.units * getLivePrice(h.slug, 'STOCKS');
+      const weight = totalValue > 0 ? val / totalValue : 0;
+      for (let i = 1; i < ohlcv.length; i++) {
+        const date = ohlcv[i][0];
+        const ret = (ohlcv[i][4] - ohlcv[i - 1][4]) / ohlcv[i - 1][4];
+        dateReturns[date] = (dateReturns[date] || 0) + ret * weight;
+      }
+    });
+
+    // Process MF NAVs
+    mfHoldings.forEach(h => {
+      const mf = allMFs?.find((m: any) => (m.scheme_code || m.direct_search_id) === h.slug);
+      if (!mf?.historical_navs?.length) return;
+      const navs = mf.historical_navs;
+      const val = h.units * getLivePrice(h.slug, 'MUTUAL_FUNDS');
+      const weight = totalValue > 0 ? val / totalValue : 0;
+      for (let i = 1; i < navs.length; i++) {
+        const date = navs[i][0];
+        const ret = (navs[i][1] - navs[i - 1][1]) / navs[i - 1][1];
+        dateReturns[date] = (dateReturns[date] || 0) + ret * weight;
+      }
+    });
+
+    // Benchmark returns
+    for (let i = 1; i < benchmarkOhlcv.length; i++) {
+      const date = benchmarkOhlcv[i][0];
+      const ret = (benchmarkOhlcv[i][4] - benchmarkOhlcv[i - 1][4]) / benchmarkOhlcv[i - 1][4];
+      benchmarkReturns[date] = ret;
+    }
+
+    // Convert to sorted drawdown series
+    const dates = Object.keys(dateReturns).sort();
+    let portfolioPeak = 100;
+    let portfolioCumValue = 100;
+    let benchmarkPeak = 100;
+    let benchmarkCumValue = 100;
+
+    return dates.slice(-252).map(d => { // Last ~1 year
+      portfolioCumValue *= (1 + (dateReturns[d] || 0));
+      portfolioPeak = Math.max(portfolioPeak, portfolioCumValue);
+      const portfolioDD = ((portfolioCumValue - portfolioPeak) / portfolioPeak) * 100;
+
+      benchmarkCumValue *= (1 + (benchmarkReturns[d] || 0));
+      benchmarkPeak = Math.max(benchmarkPeak, benchmarkCumValue);
+      const benchmarkDD = ((benchmarkCumValue - benchmarkPeak) / benchmarkPeak) * 100;
+
+      return {
+        date: d,
+        portfolio: parseFloat(portfolioDD.toFixed(2)),
+        benchmark: parseFloat(benchmarkDD.toFixed(2)),
+      };
+    });
+  }, [batchStockData, stockHoldings, mfHoldings, allMFs, totalValue]);
+
+  // ═══ CARD 1: True Concentration X-Ray ═══
+  const concentrationData = useMemo(() => {
+    // Map: stock_name → { directPct, mfPct, totalPct }
+    const exposureMap: Record<string, { directPct: number, mfPct: number, directTicker: string }> = {};
+
+    // Direct stock holdings
+    stockHoldings.forEach(h => {
+      const stock = allStocks?.find((s: any) => s.slug === h.slug);
+      if (!stock) return;
+      const val = h.units * getLivePrice(h.slug, 'STOCKS');
+      const pct = totalValue > 0 ? (val / totalValue) * 100 : 0;
+      const key = stock.name || stock.ticker || h.slug;
+      if (!exposureMap[key]) exposureMap[key] = { directPct: 0, mfPct: 0, directTicker: stock.ticker || '' };
+      exposureMap[key].directPct += pct;
+    });
+
+    // MF look-through holdings
+    mfHoldings.forEach(h => {
+      const detail = mfDetails[h.slug];
+      if (!detail?.detailed_holdings) return;
+      const holdings = typeof detail.detailed_holdings === 'string' ? JSON.parse(detail.detailed_holdings) : detail.detailed_holdings;
+      if (!Array.isArray(holdings)) return;
+      const mfVal = h.units * getLivePrice(h.slug, 'MUTUAL_FUNDS');
+      const mfWeight = totalValue > 0 ? mfVal / totalValue : 0;
+      holdings.forEach((holding: any) => {
+        if (!holding.company_name || holding.nature_name === 'CASH') return;
+        const key = holding.company_name;
+        const corpusPct = parseFloat(holding.corpus_per) || 0;
+        if (!exposureMap[key]) exposureMap[key] = { directPct: 0, mfPct: 0, directTicker: '' };
+        exposureMap[key].mfPct += corpusPct * mfWeight;
+      });
+    });
+
+    return Object.entries(exposureMap)
+      .map(([name, { directPct, mfPct, directTicker }]) => ({
+        name: name.length > 25 ? name.substring(0, 25) + '…' : name,
+        ticker: directTicker,
+        directPct: parseFloat(directPct.toFixed(2)),
+        mfPct: parseFloat(mfPct.toFixed(2)),
+        totalPct: parseFloat((directPct + mfPct).toFixed(2)),
+        hasOverlap: directPct > 0 && mfPct > 0,
+      }))
+      .sort((a, b) => b.totalPct - a.totalPct)
+      .slice(0, 5);
+  }, [stockHoldings, mfHoldings, allStocks, mfDetails, totalValue]);
+
+  // ═══ CARD 2: Defense Engine (VaR, Beta, Up/Down Capture) ═══
+  const defenseMetrics = useMemo(() => {
+    // Weighted portfolio beta
+    let weightedBeta = 0;
+    let coveredWeight = 0;
+
+    stockHoldings.forEach(h => {
+      const stock = allStocks?.find((s: any) => s.slug === h.slug);
+      if (!stock) return;
+      const val = h.units * getLivePrice(h.slug, 'STOCKS');
+      const weight = totalValue > 0 ? val / totalValue : 0;
+      // Use rs_rating as beta proxy (higher RS = higher beta)
+      const betaProxy = stock.rs_rating != null ? Math.max(0.6, stock.rs_rating / 50) : 1.0;
+      weightedBeta += betaProxy * weight;
+      coveredWeight += weight;
+    });
+
+    // MF beta from advanced_stats
+    let upCapture = 0, downCapture = 0, captureCnt = 0;
+    mfHoldings.forEach(h => {
+      const mf = allMFs?.find((m: any) => (m.scheme_code || m.direct_search_id) === h.slug);
+      if (!mf) return;
+      const val = h.units * getLivePrice(h.slug, 'MUTUAL_FUNDS');
+      const weight = totalValue > 0 ? val / totalValue : 0;
+      let beta = 1.0;
+      const detail = mfDetails[h.slug];
+      if (detail?.advanced_stats) {
+        const stats = typeof detail.advanced_stats === 'string' ? JSON.parse(detail.advanced_stats) : detail.advanced_stats;
+        const betaStat = stats?.find?.((s: any) => s.type?.toLowerCase()?.includes('beta'));
+        if (betaStat?.stat_1y) beta = parseFloat(betaStat.stat_1y);
+      }
+      if (mf.category?.toLowerCase()?.includes('debt') || mf.category?.toLowerCase()?.includes('liquid')) beta = 0.2;
+      weightedBeta += beta * weight;
+      coveredWeight += weight;
+
+      // Capture ratios from capture_ratios.parquet
+      const cr = captureRatiosData?.find?.((c: any) => c.search_id === (mf.search_id || mf.scheme_code || mf.direct_search_id));
+      if (cr) {
+        upCapture += (cr.up_1Y || 100) * weight;
+        downCapture += (cr.down_1Y || 100) * weight;
+        captureCnt++;
+      }
+    });
+
+    const portfolioBeta = coveredWeight > 0 ? weightedBeta / coveredWeight : 1.0;
+
+    // 95% Weekly VaR (parametric) = Portfolio Value × Beta × Weekly Market Sigma × Z(95%)
+    // Using Nifty historical weekly sigma ≈ 2.5%, Z(95%) = 1.645
+    const weeklyVaR = totalValue * portfolioBeta * 0.025 * 1.645;
+
+    return {
+      beta: parseFloat(portfolioBeta.toFixed(2)),
+      var95: Math.round(weeklyVaR),
+      upCapture: captureCnt > 0 ? parseFloat((upCapture / (captureCnt > 0 ? coveredWeight : 1)).toFixed(0)) : null,
+      downCapture: captureCnt > 0 ? parseFloat((downCapture / (captureCnt > 0 ? coveredWeight : 1)).toFixed(0)) : null,
+      defensiveRating: portfolioBeta < 0.8 ? 'Strong' : portfolioBeta < 1.1 ? 'Moderate' : 'Weak',
+    };
+  }, [stockHoldings, mfHoldings, allStocks, allMFs, mfDetails, captureRatiosData, totalValue]);
+
+  // ═══ CARD 3: Yield & Valuation Profiler ═══
+  const yieldValuation = useMemo(() => {
+    let weightedPE = 0;
+    let weightedDivYield = 0;
+    let peCoveredWeight = 0;
+    let yieldCoveredWeight = 0;
+    let sectorPeSum = 0;
+    let sectorPeCount = 0;
+
+    stockHoldings.forEach(h => {
+      const stock = allStocks?.find((s: any) => s.slug === h.slug);
+      if (!stock) return;
+      const val = h.units * getLivePrice(h.slug, 'STOCKS');
+      const weight = totalValue > 0 ? val / totalValue : 0;
+
+      if (stock.peRatio && stock.peRatio > 0) {
+        weightedPE += stock.peRatio * weight;
+        peCoveredWeight += weight;
+      }
+
+      // Get divYield from batch detailed data if available
+      const detail = batchStockData?.[h.slug];
+      const divYield = detail?.absolute?.dividendYieldInPercent || detail?.absolute?.divYield;
+      if (divYield && parseFloat(divYield) > 0) {
+        weightedDivYield += parseFloat(divYield) * weight;
+        yieldCoveredWeight += weight;
+      }
+    });
+
+    // Use Nifty P/E as benchmark (from any stock's sector data)
+    stockHoldings.forEach(h => {
+      const detail = batchStockData?.[h.slug];
+      const sectorPe = detail?.absolute?.sectorPe || detail?.absolute?.industryPe;
+      if (sectorPe && parseFloat(sectorPe) > 0) {
+        sectorPeSum += parseFloat(sectorPe);
+        sectorPeCount++;
+      }
+    });
+
+    const aggPE = peCoveredWeight > 0 ? weightedPE / peCoveredWeight : 0;
+    const benchmarkPE = sectorPeCount > 0 ? sectorPeSum / sectorPeCount : 22.5; // Nifty long-term avg
+    const pePremium = benchmarkPE > 0 ? ((aggPE - benchmarkPE) / benchmarkPE) * 100 : 0;
+    const aggYield = yieldCoveredWeight > 0 ? weightedDivYield / yieldCoveredWeight : 0;
+    const projectedAnnualYield = totalValue * (aggYield / 100);
+
+    return {
+      aggPE: parseFloat(aggPE.toFixed(1)),
+      benchmarkPE: parseFloat(benchmarkPE.toFixed(1)),
+      pePremium: parseFloat(pePremium.toFixed(1)),
+      aggYield: parseFloat(aggYield.toFixed(2)),
+      projectedYield: Math.round(projectedAnnualYield),
+    };
+  }, [stockHoldings, allStocks, batchStockData, totalValue]);
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -573,24 +961,273 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
           )}
         </div>
 
-        {/* Right: Rest of UI (2/3rds width) */}
-        <div className={`lg:col-span-2 bg-surface rounded-lg border border-border flex flex-col p-6 gap-6 min-h-0 relative`}>
-           {/* Chart Area */}
-           <div className="flex-1 border border-dashed border-border/50 rounded-lg bg-surface-hover/10 flex items-center justify-center text-text-secondary font-bold tracking-widest text-xs uppercase relative overflow-hidden group">
-             <div className="absolute inset-0 bg-gradient-to-t from-canvas to-transparent opacity-20 pointer-events-none"></div>
-             Chart Placeholder
+        {/* Right: Analytics Panel (2/3rds width) */}
+        <div className={`lg:col-span-2 bg-surface rounded-lg border border-border flex flex-col p-4 gap-4 min-h-0 relative`}>
+           {/* Multi-Mode Chart Container */}
+           <div className="flex-1 flex flex-col min-h-0 bg-canvas rounded-lg border border-border overflow-hidden">
+             {/* Chart Mode Toggles */}
+             <div className="flex items-center justify-between p-3 border-b border-border shrink-0">
+               <span className="text-[10px] text-text-secondary font-bold uppercase tracking-widest flex items-center gap-1.5">
+                 {chartMode === 'alpha' && <><Crosshair size={12} className="text-indigo-400" /> Alpha-Risk X-Ray</>}
+                 {chartMode === 'stress' && <><Waves size={12} className="text-amber-400" /> Macro Stress Test</>}
+                 {chartMode === 'shap' && <><BarChart3 size={12} className="text-emerald-400" /> Factor Attribution</>}
+                 {chartMode === 'drawdown' && <><TrendingDown size={12} className="text-red-400" /> Drawdown Profile</>}
+               </span>
+               <div className="flex bg-surface rounded-md p-0.5 border border-border gap-0.5">
+                 {[
+                   { key: 'alpha' as const, label: 'X-Ray', color: 'indigo' },
+                   { key: 'stress' as const, label: 'Stress', color: 'amber' },
+                   { key: 'shap' as const, label: 'SHAP', color: 'emerald' },
+                   { key: 'drawdown' as const, label: 'Drawdown', color: 'red' },
+                 ].map(m => (
+                   <button
+                     key={m.key}
+                     onClick={() => setChartMode(m.key)}
+                     className={`px-2.5 py-1 text-[10px] font-bold rounded transition-all ${
+                       chartMode === m.key
+                         ? `bg-${m.color}-500/20 text-${m.color}-400 border border-${m.color}-500/30`
+                         : 'text-text-secondary hover:text-text-primary border border-transparent'
+                     }`}
+                   >
+                     {m.label}
+                   </button>
+                 ))}
+               </div>
+             </div>
+
+             {/* Chart Content */}
+             <div className="flex-1 p-3 min-h-0">
+               {totalAssets === 0 ? (
+                 <div className="h-full flex flex-col items-center justify-center text-text-secondary/50">
+                   <Crosshair size={48} className="mb-3 opacity-20" />
+                   <p className="text-xs">Add holdings to visualize analytics</p>
+                 </div>
+               ) : chartMode === 'alpha' ? (
+                 /* Alpha-Risk Scatter Plot */
+                 <ResponsiveContainer width="100%" height="100%">
+                   <ScatterChart margin={{ top: 10, right: 20, bottom: 20, left: 10 }}>
+                     <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                     <XAxis type="number" dataKey="risk" name="Risk" stroke="#64748b" tick={{ fontSize: 10 }} label={{ value: 'Risk (Volatility)', position: 'bottom', offset: 5, style: { fontSize: 10, fill: '#64748b' } }} />
+                     <YAxis type="number" dataKey="alpha" name="Alpha" stroke="#64748b" tick={{ fontSize: 10 }} label={{ value: 'Alpha Score', angle: -90, position: 'insideLeft', style: { fontSize: 10, fill: '#64748b' } }} />
+                     <ZAxis type="number" dataKey="value" range={[40, 400]} />
+                     <RechartsTooltip
+                       content={({ active, payload }: any) => {
+                         if (!active || !payload?.length) return null;
+                         const d = payload[0].payload;
+                         return (
+                           <div className="bg-[#1e222d] border border-[#2a2e39] p-2.5 rounded-lg text-xs">
+                             <div className="font-bold text-white mb-1">{d.name}</div>
+                             <div className="text-text-secondary">{d.industry}</div>
+                             <div className="mt-1.5 flex flex-col gap-0.5">
+                               <span>Risk: <b className="text-white">{d.risk}</b></span>
+                               <span>Alpha: <b className={d.alpha >= 50 ? 'text-alpha' : 'text-beta'}>{d.alpha}</b></span>
+                               <span>Value: <b className="text-white">₹{d.value.toLocaleString(undefined, {maximumFractionDigits: 0})}</b></span>
+                             </div>
+                           </div>
+                         );
+                       }}
+                     />
+                     <Scatter data={scatterData.filter(d => d.type === 'stock')} fill="#8b5cf6" fillOpacity={0.7} name="Stocks" />
+                     <Scatter data={scatterData.filter(d => d.type === 'fund')} fill="#06b6d4" fillOpacity={0.7} name="Funds" />
+                     {/* Quadrant reference lines */}
+                     <ReferenceLine y={50} stroke="#64748b" strokeDasharray="5 5" strokeOpacity={0.3} />
+                     <ReferenceLine x={50} stroke="#64748b" strokeDasharray="5 5" strokeOpacity={0.3} />
+                   </ScatterChart>
+                 </ResponsiveContainer>
+               ) : chartMode === 'stress' ? (
+                 /* Macro Stress-Test */
+                 <ResponsiveContainer width="100%" height="100%">
+                   <BarChart data={stressTestData} margin={{ top: 10, right: 20, bottom: 20, left: 10 }} layout="vertical">
+                     <CartesianGrid strokeDasharray="3 3" stroke="#27272a" horizontal={false} />
+                     <XAxis type="number" stroke="#64748b" tick={{ fontSize: 10 }} label={{ value: 'Projected Impact (%)', position: 'bottom', offset: 5, style: { fontSize: 10, fill: '#64748b' } }} />
+                     <YAxis type="category" dataKey="event" stroke="#64748b" tick={{ fontSize: 10 }} width={90} />
+                     <RechartsTooltip
+                       contentStyle={{ backgroundColor: '#1e222d', borderColor: '#2a2e39', fontSize: 11 }}
+                       formatter={(val: any, name: any) => [`${val}%`, name === 'stocks' ? 'Stocks Impact' : name === 'funds' ? 'Funds Buffer' : 'Benchmark']}
+                     />
+                     <Bar dataKey="stocks" fill="#ef4444" fillOpacity={0.8} name="Stocks" radius={[0, 4, 4, 0]} />
+                     <Bar dataKey="funds" fill="#06b6d4" fillOpacity={0.8} name="Funds" radius={[0, 4, 4, 0]} />
+                     <Bar dataKey="benchmark" fill="#64748b" fillOpacity={0.4} name="Benchmark" radius={[0, 4, 4, 0]} />
+                   </BarChart>
+                 </ResponsiveContainer>
+               ) : chartMode === 'shap' ? (
+                 /* SHAP Factor Waterfall */
+                 shapWaterfallData.length > 0 ? (
+                   <ResponsiveContainer width="100%" height="100%">
+                     <BarChart data={shapWaterfallData} margin={{ top: 10, right: 20, bottom: 20, left: 10 }} layout="vertical">
+                       <CartesianGrid strokeDasharray="3 3" stroke="#27272a" horizontal={false} />
+                       <XAxis type="number" stroke="#64748b" tick={{ fontSize: 10 }} label={{ value: 'Weighted Alpha Impact', position: 'bottom', offset: 5, style: { fontSize: 10, fill: '#64748b' } }} />
+                       <YAxis type="category" dataKey="name" stroke="#64748b" tick={{ fontSize: 9 }} width={100} />
+                       <RechartsTooltip
+                         contentStyle={{ backgroundColor: '#1e222d', borderColor: '#2a2e39', fontSize: 11 }}
+                         formatter={(val: any, _name: any, entry: any) => [`Impact: ${val}`, `Appears in ${entry.payload.count} holdings`]}
+                       />
+                       <Bar dataKey="impact" radius={[0, 4, 4, 0]}>
+                         {shapWaterfallData.map((entry, i) => (
+                           <Cell key={i} fill={entry.impact >= 0 ? '#10b981' : '#ef4444'} fillOpacity={0.8} />
+                         ))}
+                       </Bar>
+                       <ReferenceLine x={0} stroke="#64748b" strokeOpacity={0.5} />
+                     </BarChart>
+                   </ResponsiveContainer>
+                 ) : (
+                   <div className="h-full flex flex-col items-center justify-center text-text-secondary/50">
+                     <BarChart3 size={48} className="mb-3 opacity-20" />
+                     <p className="text-xs">Add stock holdings to see SHAP factor attribution</p>
+                   </div>
+                 )
+               ) : (
+                 /* Drawdown Profile */
+                 drawdownData.length > 0 ? (
+                   <ResponsiveContainer width="100%" height="100%">
+                     <AreaChart data={drawdownData} margin={{ top: 10, right: 20, bottom: 20, left: 10 }}>
+                       <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                       <XAxis dataKey="date" stroke="#64748b" tick={{ fontSize: 9 }} tickFormatter={(d: string) => { const parts = d.split('-'); return parts.length >= 2 ? `${parts[1]}/${parts[0]?.slice(2)}` : d; }} />
+                       <YAxis stroke="#64748b" tick={{ fontSize: 10 }} domain={['auto', 0]} label={{ value: 'Drawdown %', angle: -90, position: 'insideLeft', style: { fontSize: 10, fill: '#64748b' } }} />
+                       <RechartsTooltip
+                         contentStyle={{ backgroundColor: '#1e222d', borderColor: '#2a2e39', fontSize: 11 }}
+                         formatter={(val: any, name: any) => [`${val}%`, name === 'portfolio' ? 'Portfolio' : 'Nifty 50']}
+                       />
+                       <ReferenceLine y={0} stroke="#64748b" strokeOpacity={0.3} />
+                       <Area type="monotone" dataKey="portfolio" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.15} strokeWidth={2} name="portfolio" />
+                       <Area type="monotone" dataKey="benchmark" stroke="#64748b" fill="#64748b" fillOpacity={0.05} strokeWidth={1} strokeDasharray="4 4" name="benchmark" />
+                     </AreaChart>
+                   </ResponsiveContainer>
+                 ) : (
+                   <div className="h-full flex flex-col items-center justify-center text-text-secondary/50">
+                     <TrendingDown size={48} className="mb-3 opacity-20" />
+                     <p className="text-xs">Drawdown data requires OHLCV history (loading…)</p>
+                   </div>
+                 )
+               )}
+             </div>
            </div>
            
-           {/* Cards Area */}
-           <div className="h-[200px] lg:h-1/3 flex gap-4">
-             <div className="flex-1 border border-dashed border-border/50 rounded-lg bg-surface-hover/10 flex items-center justify-center text-text-secondary font-bold tracking-widest text-[10px] uppercase">
-               Card Placeholder 1
+           {/* 3 Action Cards */}
+           <div className="h-[220px] lg:h-[240px] flex gap-3 shrink-0">
+             {/* CARD 1: Concentration X-Ray */}
+             <div className="flex-1 bg-canvas rounded-lg border border-border p-3 flex flex-col overflow-hidden">
+               <div className="flex items-center gap-1.5 mb-2 shrink-0">
+                 <Eye size={12} className="text-amber-400" />
+                 <span className="text-[10px] font-bold text-text-secondary uppercase tracking-widest">True Concentration</span>
+               </div>
+               {concentrationData.length === 0 ? (
+                 <div className="flex-1 flex items-center justify-center text-text-secondary/50 text-[10px]">Add holdings to analyze</div>
+               ) : (
+                 <div className="flex-1 flex flex-col gap-1.5 overflow-y-auto hide-scrollbar">
+                   {concentrationData.map((item, i) => (
+                     <div key={i} className={`flex flex-col gap-0.5 p-1.5 rounded ${item.hasOverlap ? 'bg-amber-500/5 border border-amber-500/20' : 'bg-surface/50'}`}>
+                       <div className="flex justify-between items-center">
+                         <span className="text-[10px] font-bold text-text-primary truncate pr-2">{item.ticker || item.name}</span>
+                         <span className={`text-[10px] font-bold font-mono ${item.hasOverlap ? 'text-amber-400' : 'text-text-primary'}`}>{item.totalPct}%</span>
+                       </div>
+                       <div className="flex gap-2">
+                         {item.directPct > 0 && <span className="text-[8px] text-[#8b5cf6]">Direct: {item.directPct}%</span>}
+                         {item.mfPct > 0 && <span className="text-[8px] text-[#06b6d4]">via Funds: {item.mfPct}%</span>}
+                       </div>
+                       {item.hasOverlap && (
+                         <span className="text-[8px] text-amber-400/80 flex items-center gap-0.5"><AlertTriangle size={8} /> Overlap detected</span>
+                       )}
+                       {/* Progress bar */}
+                       <div className="h-0.5 w-full bg-border/50 rounded-full overflow-hidden mt-0.5">
+                         <div className="h-full rounded-full flex">
+                           <div className="bg-[#8b5cf6]" style={{ width: `${Math.min(item.directPct * 3, 100)}%` }}></div>
+                           <div className="bg-[#06b6d4]" style={{ width: `${Math.min(item.mfPct * 3, 100)}%` }}></div>
+                         </div>
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+               )}
              </div>
-             <div className="flex-1 border border-dashed border-border/50 rounded-lg bg-surface-hover/10 flex items-center justify-center text-text-secondary font-bold tracking-widest text-[10px] uppercase">
-               Card Placeholder 2
+
+             {/* CARD 2: Defense Engine */}
+             <div className="flex-1 bg-canvas rounded-lg border border-border p-3 flex flex-col overflow-hidden">
+               <div className="flex items-center gap-1.5 mb-2 shrink-0">
+                 <Shield size={12} className="text-blue-400" />
+                 <span className="text-[10px] font-bold text-text-secondary uppercase tracking-widest">Defense Engine</span>
+               </div>
+               {totalAssets === 0 ? (
+                 <div className="flex-1 flex items-center justify-center text-text-secondary/50 text-[10px]">Add holdings to analyze</div>
+               ) : (
+                 <div className="flex-1 flex flex-col gap-2">
+                   {/* VaR */}
+                   <div className="p-2 bg-surface/50 rounded border border-border">
+                     <span className="text-[8px] text-text-secondary uppercase font-bold tracking-wider block mb-0.5">95% Weekly VaR</span>
+                     <span className="text-lg font-bold font-mono text-beta">₹{defenseMetrics.var95.toLocaleString()}</span>
+                     <span className="text-[8px] text-text-secondary block mt-0.5">Max expected weekly loss (95% confidence)</span>
+                   </div>
+                   {/* Beta */}
+                   <div className="flex gap-2">
+                     <div className="flex-1 p-2 bg-surface/50 rounded border border-border">
+                       <span className="text-[8px] text-text-secondary uppercase font-bold tracking-wider block mb-0.5">Portfolio β</span>
+                       <span className={`text-base font-bold font-mono ${defenseMetrics.beta > 1.1 ? 'text-beta' : defenseMetrics.beta < 0.8 ? 'text-alpha' : 'text-text-primary'}`}>{defenseMetrics.beta}</span>
+                     </div>
+                     <div className="flex-1 p-2 bg-surface/50 rounded border border-border">
+                       <span className="text-[8px] text-text-secondary uppercase font-bold tracking-wider block mb-0.5">Rating</span>
+                       <span className={`text-xs font-bold ${defenseMetrics.defensiveRating === 'Strong' ? 'text-alpha' : defenseMetrics.defensiveRating === 'Moderate' ? 'text-amber-400' : 'text-beta'}`}>
+                         {defenseMetrics.defensiveRating}
+                       </span>
+                     </div>
+                   </div>
+                   {/* Capture Ratios */}
+                   {defenseMetrics.upCapture !== null && (
+                     <div className="flex gap-2">
+                       <div className="flex-1 p-1.5 bg-surface/50 rounded border border-border text-center">
+                         <span className="text-[8px] text-text-secondary uppercase font-bold block">Up Capture</span>
+                         <span className="text-xs font-bold font-mono text-alpha">{defenseMetrics.upCapture}%</span>
+                       </div>
+                       <div className="flex-1 p-1.5 bg-surface/50 rounded border border-border text-center">
+                         <span className="text-[8px] text-text-secondary uppercase font-bold block">Down Capture</span>
+                         <span className="text-xs font-bold font-mono text-beta">{defenseMetrics.downCapture}%</span>
+                       </div>
+                     </div>
+                   )}
+                 </div>
+               )}
              </div>
-             <div className="flex-1 border border-dashed border-border/50 rounded-lg bg-surface-hover/10 flex items-center justify-center text-text-secondary font-bold tracking-widest text-[10px] uppercase">
-               Card Placeholder 3
+
+             {/* CARD 3: Yield & Valuation */}
+             <div className="flex-1 bg-canvas rounded-lg border border-border p-3 flex flex-col overflow-hidden">
+               <div className="flex items-center gap-1.5 mb-2 shrink-0">
+                 <Wallet size={12} className="text-emerald-400" />
+                 <span className="text-[10px] font-bold text-text-secondary uppercase tracking-widest">Yield & Valuation</span>
+               </div>
+               {totalAssets === 0 ? (
+                 <div className="flex-1 flex items-center justify-center text-text-secondary/50 text-[10px]">Add holdings to analyze</div>
+               ) : (
+                 <div className="flex-1 flex flex-col gap-2">
+                   {/* Forward Yield */}
+                   <div className="p-2 bg-surface/50 rounded border border-border">
+                     <span className="text-[8px] text-text-secondary uppercase font-bold tracking-wider block mb-0.5">Forward Dividend Yield</span>
+                     <div className="flex items-baseline gap-2">
+                       <span className="text-lg font-bold font-mono text-alpha">₹{yieldValuation.projectedYield.toLocaleString()}<span className="text-[10px] text-text-secondary">/yr</span></span>
+                       <span className="text-xs font-bold text-text-secondary">({yieldValuation.aggYield}%)</span>
+                     </div>
+                   </div>
+                   {/* P/E */}
+                   <div className="p-2 bg-surface/50 rounded border border-border">
+                     <span className="text-[8px] text-text-secondary uppercase font-bold tracking-wider block mb-0.5">Aggregate P/E</span>
+                     <div className="flex items-baseline gap-2">
+                       <span className="text-base font-bold font-mono text-text-primary">{yieldValuation.aggPE}x</span>
+                       <span className={`text-[10px] font-bold ${yieldValuation.pePremium > 0 ? 'text-amber-400' : 'text-alpha'}`}>
+                         {yieldValuation.pePremium > 0 ? '+' : ''}{yieldValuation.pePremium}% vs Market
+                       </span>
+                     </div>
+                   </div>
+                   {/* Benchmark comparison */}
+                   <div className="flex gap-2">
+                     <div className="flex-1 p-1.5 bg-surface/50 rounded border border-border text-center">
+                       <span className="text-[8px] text-text-secondary uppercase font-bold block">Portfolio P/E</span>
+                       <span className="text-xs font-bold font-mono text-text-primary">{yieldValuation.aggPE}x</span>
+                     </div>
+                     <div className="flex-1 p-1.5 bg-surface/50 rounded border border-border text-center">
+                       <span className="text-[8px] text-text-secondary uppercase font-bold block">Sector Avg P/E</span>
+                       <span className="text-xs font-bold font-mono text-text-secondary">{yieldValuation.benchmarkPE}x</span>
+                     </div>
+                   </div>
+                 </div>
+               )}
              </div>
            </div>
         </div>

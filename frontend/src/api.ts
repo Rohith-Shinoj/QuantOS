@@ -104,3 +104,8 @@ export const fetchBatchLiveQuotes = async (slugs: string[]): Promise<Record<stri
   const res = await axios.post(`${API_BASE_URL}/quotes/refresh-batch`, { slugs });
   return res.data;
 };
+
+export const fetchCaptureRatios = async () => {
+  const res = await axios.get(`${API_BASE_URL}/funds/capture-ratios`);
+  return res.data;
+};
