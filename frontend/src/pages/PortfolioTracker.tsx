@@ -1,39 +1,53 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchAllStocks, fetchMutualFunds, fetchPortfolioAIAnalysis, sendPortfolioChat, fetchBatchStockData, fetchMutualFundByCode, fetchCaptureRatios } from '../api';
-import { Search, X, PieChart as PieChartIcon, BrainCircuit, AlertTriangle, Send, Loader2, Globe, Zap, List, Activity, Maximize2, Minimize2, TrendingUp, TrendingDown, Shield, Eye, Wallet, Crosshair, Waves, BarChart3 } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, BarChart, Bar, AreaChart, Area, ReferenceLine } from 'recharts';
+import { fetchAllStocks, fetchMutualFunds, fetchPortfolioAIAnalysis, sendPortfolioChat, fetchBatchStockData, fetchMutualFundByCode, fetchCaptureRatios, fetchPortfolio, savePortfolio } from '../api';
+import { Search, X, PieChart as PieChartIcon, BrainCircuit, AlertTriangle, Send, Loader2, Globe, Zap, List, Activity, Maximize2, Minimize2, TrendingUp, TrendingDown, Shield, Eye, Wallet, Crosshair, Waves, BarChart3, Info } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, BarChart, Bar, AreaChart, Area, ReferenceLine, LineChart, Line } from 'recharts';
 import ReactMarkdown from 'react-markdown';
 import { StockLogo } from '../components/StockLogo';
+import { GlobalSearch } from '../components/GlobalSearch';
+import { useSearch } from '../hooks/useSearch';
+import type { SearchResult } from '../hooks/useSearch';
 
 interface LocalHolding {
   slug: string;
+  type: string;
   units: number;
+  invested_amount: number;
 }
 
 export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => {
   const [activeTab, setActiveTab] = useState<'STOCKS' | 'MUTUAL_FUNDS'>('STOCKS');
   
-  const [stockHoldings, setStockHoldings] = useState<LocalHolding[]>(() => {
-    const saved = localStorage.getItem('portfolio_stock_holdings');
-    try {
-      const parsed = saved ? JSON.parse(saved) : [];
-      if (parsed.length > 0 && parsed[0].amount !== undefined && parsed[0].units === undefined) return [];
-      return parsed;
-    } catch { return []; }
-  });
-  const [mfHoldings, setMfHoldings] = useState<LocalHolding[]>(() => {
-    const saved = localStorage.getItem('portfolio_mf_holdings');
-    try {
-      const parsed = saved ? JSON.parse(saved) : [];
-      if (parsed.length > 0 && parsed[0].amount !== undefined && parsed[0].units === undefined) return [];
-      return parsed;
-    } catch { return []; }
-  });
-  
+  const [stockHoldings, setStockHoldings] = useState<LocalHolding[]>([]);
+  const [mfHoldings, setMfHoldings] = useState<LocalHolding[]>([]);
+  const [portfolioHistory, setPortfolioHistory] = useState<any[]>([]);
+  const [isPortfolioLoaded, setIsPortfolioLoaded] = useState(false);
+
+  useEffect(() => {
+    fetchPortfolio().then(data => {
+      if (data && data.holdings) {
+        setStockHoldings(data.holdings.filter((h: any) => h.type === 'STOCKS'));
+        setMfHoldings(data.holdings.filter((h: any) => h.type === 'MUTUAL_FUNDS'));
+      }
+      if (data && data.history) {
+        setPortfolioHistory(data.history);
+      }
+      setIsPortfolioLoaded(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (isPortfolioLoaded) {
+      savePortfolio({ holdings: [...stockHoldings, ...mfHoldings] });
+    }
+  }, [stockHoldings, mfHoldings, isPortfolioLoaded]);
+
   const [query, setQuery] = useState('');
+  const [selectedAsset, setSelectedAsset] = useState<SearchResult | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [unitsInput, setUnitsInput] = useState<string>('');
+  const [investedInput, setInvestedInput] = useState<string>('');
   
   const [stockRiskTolerance, setStockRiskTolerance] = useState<string>(() => localStorage.getItem('portfolio_stock_risk') || 'Moderate');
   const [mfRiskTolerance, setMfRiskTolerance] = useState<string>(() => localStorage.getItem('portfolio_mf_risk') || 'Moderate');
@@ -54,8 +68,6 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
   const [isChatting, setIsChatting] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { localStorage.setItem('portfolio_stock_holdings', JSON.stringify(stockHoldings)); }, [stockHoldings]);
-  useEffect(() => { localStorage.setItem('portfolio_mf_holdings', JSON.stringify(mfHoldings)); }, [mfHoldings]);
   useEffect(() => { localStorage.setItem('portfolio_stock_risk', stockRiskTolerance); }, [stockRiskTolerance]);
   useEffect(() => { localStorage.setItem('portfolio_mf_risk', mfRiskTolerance); }, [mfRiskTolerance]);
   useEffect(() => { localStorage.setItem('portfolio_holding_period', holdingPeriod); }, [holdingPeriod]);
@@ -66,7 +78,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
   const allMFs = mfData?.data || [];
 
   // Chart mode toggle
-  const [chartMode, setChartMode] = useState<'alpha' | 'stress' | 'shap' | 'drawdown'>('alpha');
+  const [chartMode, setChartMode] = useState<'growth' | 'allocation' | 'stress' | 'performance' | 'drawdown'>('growth');
 
   // Fetch detailed batch stock data (OHLCV, relative_data) for portfolio holdings
   const stockSlugs = useMemo(() => stockHoldings.map(h => h.slug), [stockHoldings]);
@@ -138,39 +150,74 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
 
   const filtered = useMemo(() => {
     if (query.length === 0) return [];
+    const q = query.toLowerCase();
+
     if (activeTab === 'STOCKS') {
-      return allStocks 
-        ? allStocks.filter((s: any) => 
-            !stockHoldings.find(h => h.slug === s.slug) && 
-            ((s.ticker && s.ticker.toLowerCase().includes(query.toLowerCase())) || 
-             (s.name && s.name.toLowerCase().includes(query.toLowerCase())))
-          ).slice(0, 8)
-        : [];
+      if (!allStocks) return [];
+      
+      const results = allStocks
+        .filter((s: any) => !stockHoldings.find(h => h.slug === s.slug))
+        .map((s: any) => {
+          let score = 0;
+          const ticker = s.ticker ? s.ticker.toLowerCase() : '';
+          const name = s.name ? s.name.toLowerCase() : '';
+          
+          if (ticker === q) score = 100;
+          else if (name === q) score = 90;
+          else if (ticker.startsWith(q)) score = 80;
+          else if (name.startsWith(q)) score = 70;
+          else if (ticker.includes(q)) score = 60;
+          else if (name.includes(q)) score = 50;
+          
+          return { item: s, score };
+        })
+        .filter((res: any) => res.score > 0)
+        .sort((a: any, b: any) => b.score - a.score);
+        
+      return results.slice(0, 50).map((res: any) => res.item);
     } else {
-      return allMFs
-        ? allMFs.filter((m: any) => 
-            !mfHoldings.find(h => h.slug === (m.scheme_code || m.direct_search_id)) && 
-            ((m.scheme_name && m.scheme_name.toLowerCase().includes(query.toLowerCase())) || 
-             (m.fund_name && m.fund_name.toLowerCase().includes(query.toLowerCase())))
-          ).slice(0, 8)
-        : [];
+      if (!allMFs) return [];
+      
+      const results = allMFs
+        .filter((m: any) => !mfHoldings.find(h => h.slug === (m.scheme_code || m.direct_search_id)))
+        .map((m: any) => {
+          let score = 0;
+          const sname = m.scheme_name ? m.scheme_name.toLowerCase() : '';
+          const fname = m.fund_name ? m.fund_name.toLowerCase() : '';
+          
+          if (sname === q || fname === q) score = 100;
+          else if (sname.startsWith(q) || fname.startsWith(q)) score = 80;
+          else if (sname.includes(q) || fname.includes(q)) score = 60;
+          
+          return { item: m, score };
+        })
+        .filter((res: any) => res.score > 0)
+        .sort((a: any, b: any) => b.score - a.score);
+        
+      return results.slice(0, 50).map((res: any) => res.item);
     }
   }, [query, activeTab, allStocks, allMFs, stockHoldings, mfHoldings]);
 
-  const addAsset = (slug: string) => {
-    const unts = parseFloat(unitsInput);
-    if (!unts || isNaN(unts) || unts <= 0) return;
+  const addAsset = (slug: string, type: 'STOCKS' | 'MUTUAL_FUNDS') => {
+    const holdVal = parseFloat(unitsInput);
+    const inv = parseFloat(investedInput);
+    if (!holdVal || isNaN(holdVal) || holdVal <= 0) return;
+    if (!inv || isNaN(inv) || inv <= 0) return;
     
-    if (activeTab === 'STOCKS') {
-      setStockHoldings([...stockHoldings, { slug, units: unts }]);
+    if (type === 'STOCKS') {
+      const price = getLivePrice(slug, 'STOCKS');
+      const units = price > 0 ? holdVal / price : 0;
+      setStockHoldings([...stockHoldings, { slug, type: 'STOCKS', units, invested_amount: inv }]);
     } else {
       const price = getLivePrice(slug, 'MUTUAL_FUNDS');
-      const units = price > 0 ? unts / price : 0;
-      setMfHoldings([...mfHoldings, { slug, units }]);
+      const units = price > 0 ? holdVal / price : 0;
+      setMfHoldings([...mfHoldings, { slug, type: 'MUTUAL_FUNDS', units, invested_amount: inv }]);
     }
     
     setQuery('');
+    setSelectedAsset(null);
     setUnitsInput('');
+    setInvestedInput('');
     setIsOpen(false);
   };
 
@@ -182,32 +229,29 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
     }
   };
 
-  let totalStockPnL = 0;
-  let totalMfPnL = 0;
-
   const stockTotalValue = stockHoldings.reduce((sum, h) => {
-    const val = h.units * getLivePrice(h.slug, 'STOCKS');
-    const stock = allStocks?.find((s: any) => s.slug === h.slug);
-    const change = extractStockDayChange(stock?.day_change || "");
-    totalStockPnL += h.units * change.amount;
-    return sum + val;
+    return sum + (h.units * getLivePrice(h.slug, 'STOCKS'));
   }, 0);
 
   const mfTotalValue = mfHoldings.reduce((sum, h) => {
-    const val = h.units * getLivePrice(h.slug, 'MUTUAL_FUNDS');
-    const change = getMfDayChange(h.slug);
-    totalMfPnL += h.units * change.amount;
-    return sum + val;
+    return sum + (h.units * getLivePrice(h.slug, 'MUTUAL_FUNDS'));
   }, 0);
 
   const totalValue = stockTotalValue + mfTotalValue;
   const totalAssets = stockHoldings.length + mfHoldings.length;
 
-  const totalPnL = totalStockPnL + totalMfPnL;
-  const totalPnLPct = (totalValue - totalPnL) > 0 ? (totalPnL / (totalValue - totalPnL)) * 100 : 0;
+  const totalInvested = stockHoldings.reduce((sum, h) => sum + (h.invested_amount || 0), 0) + mfHoldings.reduce((sum, h) => sum + (h.invested_amount || 0), 0);
+  const totalPnL = totalValue - totalInvested;
+  const totalPnLPct = totalInvested > 0 ? (totalPnL / totalInvested) * 100 : 0;
 
-  const stockPnLPct = (stockTotalValue - totalStockPnL) > 0 ? (totalStockPnL / (stockTotalValue - totalStockPnL)) * 100 : 0;
-  const mfPnLPct = (mfTotalValue - totalMfPnL) > 0 ? (totalMfPnL / (mfTotalValue - totalMfPnL)) * 100 : 0;
+  // We can keep the stock and MF separate PnLs based on invested_amount as well
+  const stockInvested = stockHoldings.reduce((sum, h) => sum + (h.invested_amount || 0), 0);
+  const totalStockPnL = stockTotalValue - stockInvested;
+  const stockPnLPct = stockInvested > 0 ? (totalStockPnL / stockInvested) * 100 : 0;
+
+  const mfInvested = mfHoldings.reduce((sum, h) => sum + (h.invested_amount || 0), 0);
+  const totalMfPnL = mfTotalValue - mfInvested;
+  const mfPnLPct = mfInvested > 0 ? (totalMfPnL / mfInvested) * 100 : 0;
 
   const stocksPie = useMemo(() => {
     return stockHoldings.map(h => {
@@ -228,134 +272,323 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
     { name: 'Stocks', value: stockTotalValue, slug: 'stocks' },
     { name: 'Mutual Funds', value: mfTotalValue, slug: 'mfs' }
   ];
-
   const COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#06b6d4', '#64748b'];
 
   // ═══════════════════════════════════════════════════════════════════
   // ANALYTICS ENGINE: All computed data for charts and cards
   // ═══════════════════════════════════════════════════════════════════
 
-  // CHART 1: Alpha-Risk Scatter Plot Data
-  const scatterData = useMemo(() => {
-    const points: any[] = [];
+  // CHART 1: Asset Allocation Data
+  const allocationData = useMemo(() => {
+    const sectors: Record<string, { value: number, assets: any[] }> = {};
+    const marketCaps: Record<string, { value: number, assets: any[] }> = {};
+    const assetTypes = { 'Direct Equity': 0, 'Mutual Funds': 0 };
+
     stockHoldings.forEach(h => {
-      const stock = allStocks?.find((s: any) => s.slug === h.slug);
-      if (!stock) return;
+      const stock = allStocks?.find((st: any) => st.slug === h.slug);
       const val = h.units * getLivePrice(h.slug, 'STOCKS');
-      const risk = stock.v_squeeze != null ? Math.abs(stock.v_squeeze) * 100 : 50;
-      const alpha = stock.alpha_score != null ? stock.alpha_score * 100 : 50;
-      points.push({
-        name: stock.ticker || h.slug,
-        risk: parseFloat(risk.toFixed(1)),
-        alpha: parseFloat(alpha.toFixed(1)),
-        value: val,
-        type: 'stock',
-        industry: stock.industry || 'Unknown'
-      });
+      const name = (stock?.name || h.slug).substring(0, 20);
+      
+      const sector = stock?.industry || 'Unknown';
+      if (!sectors[sector]) sectors[sector] = { value: 0, assets: [] };
+      sectors[sector].value += val;
+      sectors[sector].assets.push({ name, val });
+      
+      const mc = stock?.marketCapType || 'Unknown';
+      if (!marketCaps[mc]) marketCaps[mc] = { value: 0, assets: [] };
+      marketCaps[mc].value += val;
+      marketCaps[mc].assets.push({ name, val });
+      
+      assetTypes['Direct Equity'] += val;
     });
-    // For MFs, use advanced_stats if available
+
     mfHoldings.forEach(h => {
       const mf = allMFs?.find((m: any) => (m.scheme_code || m.direct_search_id) === h.slug);
-      if (!mf) return;
       const val = h.units * getLivePrice(h.slug, 'MUTUAL_FUNDS');
-      const detail = mfDetails[h.slug];
-      let beta = 1.0;
-      let alpha = 50;
-      if (detail?.advanced_stats) {
-        const stats = typeof detail.advanced_stats === 'string' ? JSON.parse(detail.advanced_stats) : detail.advanced_stats;
-        const betaStat = stats?.find?.((s: any) => s.type?.toLowerCase()?.includes('beta'));
-        const alphaStat = stats?.find?.((s: any) => s.type?.toLowerCase()?.includes('alpha'));
-        if (betaStat?.stat_1y) beta = parseFloat(betaStat.stat_1y);
-        if (alphaStat?.stat_1y) alpha = parseFloat(alphaStat.stat_1y);
-      }
-      points.push({
-        name: (mf.fund_name || h.slug).substring(0, 20),
-        risk: parseFloat((beta * 50).toFixed(1)),
-        alpha: parseFloat(alpha.toFixed(1)),
-        value: val,
-        type: 'fund',
-        industry: mf.category || 'Mutual Fund'
-      });
+      const name = (mf?.fund_name || h.slug).substring(0, 20);
+      
+      const cat = mf?.category || 'Fund';
+      if (!sectors[cat]) sectors[cat] = { value: 0, assets: [] };
+      sectors[cat].value += val;
+      sectors[cat].assets.push({ name, val });
+      
+      const mc = 'Diversified (MF)';
+      if (!marketCaps[mc]) marketCaps[mc] = { value: 0, assets: [] };
+      marketCaps[mc].value += val;
+      marketCaps[mc].assets.push({ name, val });
+      
+      assetTypes['Mutual Funds'] += val;
     });
-    return points;
-  }, [stockHoldings, mfHoldings, allStocks, allMFs, mfDetails]);
 
-  // CHART 2: Macro Stress-Test Data
-  const stressTestData = useMemo(() => {
-    const scenarios = [
-      { event: 'Nifty -10%', marketDrop: -10 },
-      { event: 'Nifty -20%', marketDrop: -20 },
-      { event: 'Rate Hike +50bps', marketDrop: -5 },
-      { event: 'Crude $100', marketDrop: -8 },
-      { event: 'FII Exodus', marketDrop: -15 },
-    ];
-    return scenarios.map(s => {
-      let stockDrawdown = 0;
-      let mfDrawdown = 0;
-      // Weighted stock drawdown based on beta proxy (v_squeeze / rs_rating)
-      stockHoldings.forEach(h => {
-        const stock = allStocks?.find((st: any) => st.slug === h.slug);
-        if (!stock) return;
-        const val = h.units * getLivePrice(h.slug, 'STOCKS');
-        const weight = totalValue > 0 ? val / totalValue : 0;
-        // Use rs_rating as a beta proxy: high RS = high beta
-        const betaProxy = stock.rs_rating != null ? Math.max(0.5, stock.rs_rating / 50) : 1.0;
-        stockDrawdown += s.marketDrop * betaProxy * weight * 100;
-      });
-      // MF drawdown from advanced_stats beta or risk category
-      mfHoldings.forEach(h => {
-        const mf = allMFs?.find((m: any) => (m.scheme_code || m.direct_search_id) === h.slug);
-        if (!mf) return;
-        const val = h.units * getLivePrice(h.slug, 'MUTUAL_FUNDS');
-        const weight = totalValue > 0 ? val / totalValue : 0;
-        let beta = 1.0;
-        const detail = mfDetails[h.slug];
-        if (detail?.advanced_stats) {
-          const stats = typeof detail.advanced_stats === 'string' ? JSON.parse(detail.advanced_stats) : detail.advanced_stats;
-          const betaStat = stats?.find?.((s: any) => s.type?.toLowerCase()?.includes('beta'));
-          if (betaStat?.stat_1y) beta = parseFloat(betaStat.stat_1y);
+    return { sectors, marketCaps, assetTypes };
+  }, [stockHoldings, mfHoldings, allStocks, allMFs]);
+
+  const ProgressBar = ({ label, value, max, color }: any) => {
+    const perc = ((value / Math.max(max, 1)) * 100).toFixed(1);
+    return (
+      <div className="mb-4">
+        <div className="flex justify-between text-sm mb-1.5">
+          <span className="text-text-primary/90">{label}</span>
+          <span className="text-text-secondary font-mono">{perc}%</span>
+        </div>
+        <div className="h-2 w-full bg-surface-hover rounded-full overflow-hidden">
+          <div 
+            className={`h-full ${color} rounded-full transition-all duration-1000`}
+            style={{ width: `${perc}%` }}
+          />
+        </div>
+      </div>
+    );
+  };
+
+  // Helper to find closest date in OHLCV/NAV array
+  const getReturnForPeriod = (dataArray: any[], startDate: string, endDate: string) => {
+    if (!dataArray || dataArray.length === 0) return null;
+    
+    const startTs = new Date(startDate).getTime();
+    const endTs = new Date(endDate).getTime();
+
+    // Standardize data to { ts, price }
+    const standardized = dataArray.map((d: any) => {
+      let ts = 0;
+      let price = 0;
+      
+      if (Array.isArray(d)) {
+        if (d.length >= 2) {
+          const dateVal = d[0];
+          if (typeof dateVal === 'string') {
+            if (dateVal.includes('-')) {
+              const parts = dateVal.split('-');
+              if (parts[0].length === 4) ts = new Date(dateVal).getTime();
+              else ts = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).getTime();
+            } else {
+              ts = new Date(dateVal).getTime();
+            }
+          } else if (typeof dateVal === 'number') {
+            ts = dateVal;
+          }
+          price = d.length > 2 ? d[4] : parseFloat(d[1]);
         }
-        // Debt/balanced funds have lower beta
-        if (mf.category?.toLowerCase()?.includes('debt') || mf.category?.toLowerCase()?.includes('liquid')) beta = 0.2;
-        mfDrawdown += s.marketDrop * beta * weight * 100;
+      } else if (typeof d === 'object') {
+        const dateStr = d.Date || d.date || String(d.time || '');
+        if (dateStr && dateStr.includes('-')) {
+          const parts = dateStr.split('-');
+          if (parts[0].length === 4) ts = new Date(dateStr).getTime();
+          else ts = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).getTime();
+        } else if (d.time) {
+           ts = new Date(d.time).getTime(); // fallback for timestamp
+        }
+        price = d.Close ?? d.close ?? d.nav ?? d.NAV ?? 0;
+      }
+      return { ts, price };
+    }).filter((d: any) => !isNaN(d.ts) && d.price > 0).sort((a: any, b: any) => a.ts - b.ts);
+
+    if (standardized.length === 0) return null;
+    
+    let startPrice = null;
+    let actualStartTs = 0;
+    for (let i = 0; i < standardized.length; i++) {
+      if (standardized[i].ts >= startTs) {
+        startPrice = standardized[i].price;
+        actualStartTs = standardized[i].ts;
+        break;
+      }
+    }
+    
+    let endPrice = null;
+    let actualEndTs = 0;
+    for (let i = standardized.length - 1; i >= 0; i--) {
+      if (standardized[i].ts <= endTs) {
+        endPrice = standardized[i].price;
+        actualEndTs = standardized[i].ts;
+        break;
+      }
+    }
+    
+    if (startPrice === null || endPrice === null || actualStartTs >= actualEndTs) return null;
+    
+    return (endPrice - startPrice) / startPrice;
+  };
+
+  // CHART 2: Macro Stress-Test Data (Empirical Historical Backtest)
+  const stressTestData = useMemo(() => {
+    if (!batchStockData && mfHoldings.length === 0) return [];
+
+    const scenarios = [
+      { 
+        id: 'crude_spike', 
+        event: 'Brent Crude Spike ($70 → $100)', 
+        periods: [
+          { start: '2021-12-01', end: '2022-02-28' }
+        ]
+      },
+      { 
+        id: 'crude_collapse', 
+        event: 'Brent Crude Collapse ($100 → $70)', 
+        periods: [
+          { start: '2022-10-31', end: '2023-03-31' }
+        ]
+      },
+      { 
+        id: 'nifty_down', 
+        event: 'Nifty -10% Correction', 
+        periods: [
+          { start: '2024-09-27', end: '2024-11-14' },
+          { start: '2026-02-20', end: '2026-03-13' }
+        ]
+      },
+      { 
+        id: 'nifty_up', 
+        event: 'Nifty +10% Rally', 
+        periods: [
+          { start: '2024-06-21', end: '2024-09-27' },
+          { start: '2025-02-28', end: '2025-05-02' }
+        ]
+      }
+    ];
+
+    let niftyOhlcv: any[] = [];
+    niftyOhlcv = (Object.values(batchStockData || {}) as any[]).find((d: any) => d.absolute?.benchmark_key === 'NIFTY')?.benchmark_ohlcv;
+    if (!niftyOhlcv?.length) {
+       niftyOhlcv = (Object.values(batchStockData || {}) as any[]).find((d: any) => d.benchmark_ohlcv)?.benchmark_ohlcv || [];
+    }
+
+    return scenarios.map(s => {
+      let totalPortfolioReturn = 0;
+      let totalBenchmarkReturn = 0;
+      let validPeriodsCount = 0;
+      
+      // Store average empirical return for each asset across all valid periods for this scenario
+      const assetAverages: Record<string, { returnSum: number, validCount: number, name: string, type: string, currentWeight: number }> = {};
+
+      s.periods.forEach(period => {
+        let periodPortfolioReturn = 0;
+        let periodCoveredWeight = 0;
+        
+        // Calculate Stock Returns for this period
+        stockHoldings.forEach(h => {
+          const stock = allStocks?.find((st: any) => st.slug === h.slug);
+          const detail = batchStockData?.[h.slug];
+          if (!stock || !detail?.absolute?.OHLCV) return;
+          
+          const val = h.units * getLivePrice(h.slug, 'STOCKS');
+          const weight = totalValue > 0 ? val / totalValue : 0;
+          
+          const empiricalReturn = getReturnForPeriod(detail.absolute.OHLCV, period.start, period.end);
+          if (empiricalReturn !== null) {
+            periodPortfolioReturn += empiricalReturn * weight;
+            periodCoveredWeight += weight;
+            
+            const key = stock.slug;
+            if (!assetAverages[key]) assetAverages[key] = { returnSum: 0, validCount: 0, name: stock.name || stock.ticker, type: 'stock', currentWeight: weight };
+            assetAverages[key].returnSum += empiricalReturn;
+            assetAverages[key].validCount += 1;
+          }
+        });
+
+        // Calculate MF Returns for this period
+        mfHoldings.forEach(h => {
+          const mf = allMFs?.find((m: any) => (m.scheme_code || m.direct_search_id) === h.slug);
+          if (!mf?.historical_navs?.length) return;
+          
+          const val = h.units * getLivePrice(h.slug, 'MUTUAL_FUNDS');
+          const weight = totalValue > 0 ? val / totalValue : 0;
+          
+          const empiricalReturn = getReturnForPeriod(mf.historical_navs, period.start, period.end);
+          if (empiricalReturn !== null) {
+            periodPortfolioReturn += empiricalReturn * weight;
+            periodCoveredWeight += weight;
+            
+            const key = mf.scheme_code || mf.direct_search_id;
+            if (!assetAverages[key]) assetAverages[key] = { returnSum: 0, validCount: 0, name: (mf.fund_name || mf.slug).substring(0,20), type: 'fund', currentWeight: weight };
+            assetAverages[key].returnSum += empiricalReturn;
+            assetAverages[key].validCount += 1;
+          }
+        });
+
+        // If we found data for at least part of the portfolio, calculate normalized return
+        if (periodCoveredWeight > 0) {
+           const normalizedPeriodReturn = periodPortfolioReturn / periodCoveredWeight;
+           totalPortfolioReturn += normalizedPeriodReturn;
+           
+           // Calculate benchmark return for this period
+           const bmarkReturn = getReturnForPeriod(niftyOhlcv, period.start, period.end);
+           if (bmarkReturn !== null) totalBenchmarkReturn += bmarkReturn;
+           
+           validPeriodsCount++;
+        }
       });
+
+      const avgScenarioReturn = validPeriodsCount > 0 ? (totalPortfolioReturn / validPeriodsCount) * 100 : 0;
+      const avgBenchmarkReturn = validPeriodsCount > 0 ? (totalBenchmarkReturn / validPeriodsCount) * 100 : 0;
+
+      // Compile top contributing assets (positive or negative) based on their average empirical return
+      const breakdowns = Object.values(assetAverages)
+        .filter(a => a.validCount > 0)
+        .map(a => ({
+           name: a.name,
+           type: a.type,
+           impact: ((a.returnSum / a.validCount) * 100).toFixed(2),
+           mathStr: `Historical Return: ${((a.returnSum / a.validCount) * 100).toFixed(2)}% | Portfolio Weight: ${(a.currentWeight * 100).toFixed(1)}%`
+        }))
+        .sort((a, b) => Math.abs(parseFloat(b.impact)) - Math.abs(parseFloat(a.impact)))
+        .slice(0, 5);
+
       return {
         event: s.event,
-        stocks: parseFloat(stockDrawdown.toFixed(1)),
-        funds: parseFloat(mfDrawdown.toFixed(1)),
-        combined: parseFloat((stockDrawdown + mfDrawdown).toFixed(1)),
-        benchmark: s.marketDrop,
+        combined: parseFloat(avgScenarioReturn.toFixed(1)),
+        benchmark: parseFloat(avgBenchmarkReturn.toFixed(1)),
+        breakdowns: breakdowns
       };
     });
-  }, [stockHoldings, mfHoldings, allStocks, allMFs, totalValue, mfDetails]);
+  }, [stockHoldings, mfHoldings, allStocks, allMFs, totalValue, batchStockData]);
 
-  // CHART 3: SHAP Waterfall Data (aggregate top factor reasons)
-  const shapWaterfallData = useMemo(() => {
-    const reasonCounts: Record<string, { count: number, weightedAlpha: number }> = {};
+  // CHART 3: Historical Performance Matrix
+  const performanceData = useMemo(() => {
+    const today = new Date();
+    const formatDate = (d: Date) => d.toISOString().split('T')[0];
+    
+    const oneMonthAgo = new Date(today); oneMonthAgo.setMonth(today.getMonth() - 1);
+    const sixMonthsAgo = new Date(today); sixMonthsAgo.setMonth(today.getMonth() - 6);
+    const oneYearAgo = new Date(today); oneYearAgo.setFullYear(today.getFullYear() - 1);
+    const todayStr = formatDate(today);
+    
+    const data: any[] = [];
+    
     stockHoldings.forEach(h => {
-      const stock = allStocks?.find((s: any) => s.slug === h.slug);
-      if (!stock) return;
-      const val = h.units * getLivePrice(h.slug, 'STOCKS');
-      const weight = totalValue > 0 ? val / totalValue : 0;
-      const alpha = stock.alpha_score || 0;
-      [stock.shap_reason_1, stock.shap_reason_2, stock.shap_reason_3].forEach((reason: string) => {
-        if (!reason) return;
-        // Clean the reason string (e.g., "pe_ratio: +0.12" → "pe_ratio")
-        const cleanReason = reason.split(':')[0].trim().replace(/_/g, ' ');
-        if (!reasonCounts[cleanReason]) reasonCounts[cleanReason] = { count: 0, weightedAlpha: 0 };
-        reasonCounts[cleanReason].count += 1;
-        reasonCounts[cleanReason].weightedAlpha += alpha * weight;
-      });
+      const stock = allStocks?.find((st: any) => st.slug === h.slug);
+      const detail = batchStockData?.[h.slug];
+      const ohlcv = detail?.absolute?.OHLCV;
+      
+      if (stock && ohlcv) {
+        data.push({
+          name: stock.ticker || h.slug,
+          type: 'stock',
+          value: h.units * getLivePrice(h.slug, 'STOCKS'),
+          ret1m: getReturnForPeriod(ohlcv, formatDate(oneMonthAgo), todayStr),
+          ret6m: getReturnForPeriod(ohlcv, formatDate(sixMonthsAgo), todayStr),
+          ret1y: getReturnForPeriod(ohlcv, formatDate(oneYearAgo), todayStr),
+        });
+      }
     });
-    return Object.entries(reasonCounts)
-      .map(([name, { count, weightedAlpha }]) => ({
-        name: name.length > 18 ? name.substring(0, 18) + '…' : name,
-        impact: parseFloat((weightedAlpha * 100).toFixed(2)),
-        count,
-      }))
-      .sort((a, b) => Math.abs(b.impact) - Math.abs(a.impact))
-      .slice(0, 8);
-  }, [stockHoldings, allStocks, totalValue]);
+
+    mfHoldings.forEach(h => {
+      const mf = allMFs?.find((m: any) => (m.scheme_code || m.direct_search_id) === h.slug);
+      const detail = mfDetails[h.slug];
+      if (mf && detail?.historical_navs) {
+        data.push({
+          name: (mf.fund_name || h.slug).substring(0, 20),
+          type: 'fund',
+          value: h.units * getLivePrice(h.slug, 'MUTUAL_FUNDS'),
+          ret1m: getReturnForPeriod(detail.historical_navs, formatDate(oneMonthAgo), todayStr),
+          ret6m: getReturnForPeriod(detail.historical_navs, formatDate(sixMonthsAgo), todayStr),
+          ret1y: getReturnForPeriod(detail.historical_navs, formatDate(oneYearAgo), todayStr),
+        });
+      }
+    });
+    
+    return data.sort((a, b) => b.value - a.value);
+  }, [stockHoldings, mfHoldings, allStocks, allMFs, batchStockData]);
 
   // CHART 4: Drawdown Data (from OHLCV for stocks, historical_navs for MFs)
   const drawdownData = useMemo(() => {
@@ -368,6 +601,18 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
     let benchmarkOhlcv: any[] = [];
 
     // Process stocks
+    const parseDateKey = (val: any) => {
+      if (typeof val === 'number' || /^\d+$/.test(String(val))) {
+        const d = new Date(parseInt(val as string));
+        if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+      } else if (typeof val === 'string' && val.includes('-')) {
+        const parts = val.split('-');
+        if (parts[0].length === 2 && parts[2]?.length === 4) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        return val;
+      }
+      return String(val);
+    };
+
     stockHoldings.forEach(h => {
       const detail = batchStockData?.[h.slug];
       if (!detail?.absolute?.OHLCV) return;
@@ -376,35 +621,50 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
       const val = h.units * getLivePrice(h.slug, 'STOCKS');
       const weight = totalValue > 0 ? val / totalValue : 0;
       for (let i = 1; i < ohlcv.length; i++) {
-        const date = ohlcv[i][0];
-        const ret = (ohlcv[i][4] - ohlcv[i - 1][4]) / ohlcv[i - 1][4];
+        const dateRaw = ohlcv[i].Date !== undefined ? ohlcv[i].Date : ohlcv[i][0];
+        const close = ohlcv[i].Close !== undefined ? ohlcv[i].Close : ohlcv[i][4];
+        const prevClose = ohlcv[i - 1].Close !== undefined ? ohlcv[i - 1].Close : ohlcv[i - 1][4];
+        if (close == null || prevClose == null) continue;
+        const date = parseDateKey(dateRaw);
+        const ret = (close - prevClose) / prevClose;
         dateReturns[date] = (dateReturns[date] || 0) + ret * weight;
       }
     });
 
     // Process MF NAVs
     mfHoldings.forEach(h => {
-      const mf = allMFs?.find((m: any) => (m.scheme_code || m.direct_search_id) === h.slug);
-      if (!mf?.historical_navs?.length) return;
-      const navs = mf.historical_navs;
+      const detail = mfDetails[h.slug];
+      if (!detail?.historical_navs?.length) return;
+      const navs = detail.historical_navs;
       const val = h.units * getLivePrice(h.slug, 'MUTUAL_FUNDS');
       const weight = totalValue > 0 ? val / totalValue : 0;
       for (let i = 1; i < navs.length; i++) {
-        const date = navs[i][0];
+        const date = parseDateKey(navs[i][0]);
         const ret = (navs[i][1] - navs[i - 1][1]) / navs[i - 1][1];
         dateReturns[date] = (dateReturns[date] || 0) + ret * weight;
       }
     });
 
+    // Fallback if no stock provided it
+    if (!benchmarkOhlcv.length) {
+      benchmarkOhlcv = (Object.values(batchStockData || {}) as any[]).find((d: any) => d.absolute?.benchmark_key === 'NIFTY')?.benchmark_ohlcv || [];
+      if (!benchmarkOhlcv.length) {
+        benchmarkOhlcv = (Object.values(batchStockData || {}) as any[]).find((d: any) => d.benchmark_ohlcv)?.benchmark_ohlcv || [];
+      }
+    }
+
     // Benchmark returns
     for (let i = 1; i < benchmarkOhlcv.length; i++) {
-      const date = benchmarkOhlcv[i][0];
-      const ret = (benchmarkOhlcv[i][4] - benchmarkOhlcv[i - 1][4]) / benchmarkOhlcv[i - 1][4];
+      const dateRaw = benchmarkOhlcv[i].Date !== undefined ? benchmarkOhlcv[i].Date : benchmarkOhlcv[i][0];
+      const close = benchmarkOhlcv[i].Close !== undefined ? benchmarkOhlcv[i].Close : benchmarkOhlcv[i][4];
+      const prevClose = benchmarkOhlcv[i - 1].Close !== undefined ? benchmarkOhlcv[i - 1].Close : benchmarkOhlcv[i - 1][4];
+      if (close == null || prevClose == null) continue;
+      const date = parseDateKey(dateRaw);
+      const ret = (close - prevClose) / prevClose;
       benchmarkReturns[date] = ret;
     }
 
-    // Convert to sorted drawdown series
-    const dates = Object.keys(dateReturns).sort();
+    const dates = Object.keys(dateReturns).filter(d => d !== 'undefined' && d !== 'NaN' && d !== 'null').sort();
     let portfolioPeak = 100;
     let portfolioCumValue = 100;
     let benchmarkPeak = 100;
@@ -427,50 +687,172 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
     });
   }, [batchStockData, stockHoldings, mfHoldings, allMFs, totalValue]);
 
+  // ═══ CHART: Foundational Growth ═══
+  const growthData = useMemo(() => {
+    let benchmarkOhlcv: any[] = [];
+    if (!benchmarkOhlcv.length) {
+      benchmarkOhlcv = (Object.values(batchStockData || {}) as any[]).find((d: any) => d.absolute?.benchmark_key === 'NIFTY')?.benchmark_ohlcv || [];
+      if (!benchmarkOhlcv.length) {
+        benchmarkOhlcv = (Object.values(batchStockData || {}) as any[]).find((d: any) => d.benchmark_ohlcv)?.benchmark_ohlcv || [];
+      }
+    }
+
+    const parseDateKey = (val: any) => {
+      if (typeof val === 'number' || /^\d+$/.test(String(val))) {
+        const d = new Date(parseInt(val as string));
+        if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+      } else if (typeof val === 'string' && val.includes('-')) {
+        const parts = val.split('-');
+        if (parts[0].length === 2 && parts[2]?.length === 4) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        return val;
+      }
+      return String(val);
+    };
+
+    const niftyMap: Record<string, number> = {};
+    for (let i = 0; i < benchmarkOhlcv.length; i++) {
+      const dateRaw = benchmarkOhlcv[i].Date !== undefined ? benchmarkOhlcv[i].Date : benchmarkOhlcv[i][0];
+      const close = benchmarkOhlcv[i].Close !== undefined ? benchmarkOhlcv[i].Close : benchmarkOhlcv[i][4];
+      if (close != null) {
+        niftyMap[parseDateKey(dateRaw)] = close;
+      }
+    }
+
+    const data = [];
+    let shadowNiftyUnits = 0;
+    let lastInvested = 0;
+    
+    // Find the earliest valid nifty price for defaults
+    const availableNiftyDates = Object.keys(niftyMap).sort();
+    let lastNiftyPrice = availableNiftyDates.length > 0 ? niftyMap[availableNiftyDates[availableNiftyDates.length - 1]] : 25000;
+
+    for (let i = 0; i < portfolioHistory.length; i++) {
+      const point = portfolioHistory[i];
+      if (i === 0 && availableNiftyDates.length > 0) {
+         // Attempt to find nifty price on or near start date
+         lastNiftyPrice = niftyMap[point.date] || niftyMap[availableNiftyDates.find(d => d >= point.date) || availableNiftyDates[0]] || 25000;
+      }
+      const currentNifty = niftyMap[point.date] || lastNiftyPrice;
+      
+      const cashAdded = point.invested - lastInvested;
+      if (cashAdded !== 0) {
+        shadowNiftyUnits += cashAdded / currentNifty;
+      }
+      
+      data.push({
+        date: point.date,
+        portfolio: parseFloat(point.value.toFixed(2)),
+        invested: parseFloat(point.invested.toFixed(2)),
+        benchmark: parseFloat((shadowNiftyUnits * currentNifty).toFixed(2))
+      });
+      
+      lastInvested = point.invested;
+      lastNiftyPrice = currentNifty;
+    }
+    
+    // LIVE STITCHING
+    const today = new Date().toISOString().split('T')[0];
+    const liveInvested = stockHoldings.reduce((sum, h) => sum + (h.invested_amount || 0), 0) + mfHoldings.reduce((sum, h) => sum + (h.invested_amount || 0), 0);
+    const liveValue = totalValue;
+    
+    if (data.length > 0) {
+      const lastPoint = data[data.length - 1];
+      if (lastPoint.date < today) {
+        const currentNifty = niftyMap[today] || lastNiftyPrice;
+        const cashAdded = liveInvested - lastPoint.invested;
+        let newShadowUnits = shadowNiftyUnits;
+        if (cashAdded !== 0) newShadowUnits += cashAdded / currentNifty;
+        data.push({
+          date: today,
+          portfolio: parseFloat(liveValue.toFixed(2)),
+          invested: parseFloat(liveInvested.toFixed(2)),
+          benchmark: parseFloat((newShadowUnits * currentNifty).toFixed(2))
+        });
+      } else if (lastPoint.date === today) {
+        lastPoint.portfolio = parseFloat(liveValue.toFixed(2));
+        lastPoint.invested = parseFloat(liveInvested.toFixed(2));
+        // We assume cash additions today were already factored into shadowNiftyUnits during the loop if the cron ran today
+        // Actually if the cron ran today, invested is the same, so no change in shadow units.
+        lastPoint.benchmark = parseFloat((shadowNiftyUnits * (niftyMap[today] || lastNiftyPrice)).toFixed(2));
+      }
+    } else if (liveInvested > 0) {
+      const currentNifty = niftyMap[today] || lastNiftyPrice;
+      data.push({
+        date: today,
+        portfolio: parseFloat(liveValue.toFixed(2)),
+        invested: parseFloat(liveInvested.toFixed(2)),
+        benchmark: parseFloat(liveInvested.toFixed(2)) 
+      });
+    }
+
+    return data;
+  }, [portfolioHistory, batchStockData, stockHoldings, mfHoldings, totalValue]);
+
   // ═══ CARD 1: True Concentration X-Ray ═══
   const concentrationData = useMemo(() => {
-    // Map: stock_name → { directPct, mfPct, totalPct }
-    const exposureMap: Record<string, { directPct: number, mfPct: number, directTicker: string }> = {};
+    // Map: slug -> { name, ticker, directPct, mfPct }
+    const exposureMap: Record<string, { name: string, ticker: string, directPct: number, mfPct: number }> = {};
 
-    // Direct stock holdings
+    // 1. Direct stock holdings
     stockHoldings.forEach(h => {
       const stock = allStocks?.find((s: any) => s.slug === h.slug);
       if (!stock) return;
       const val = h.units * getLivePrice(h.slug, 'STOCKS');
       const pct = totalValue > 0 ? (val / totalValue) * 100 : 0;
-      const key = stock.name || stock.ticker || h.slug;
-      if (!exposureMap[key]) exposureMap[key] = { directPct: 0, mfPct: 0, directTicker: stock.ticker || '' };
-      exposureMap[key].directPct += pct;
+      
+      if (!exposureMap[h.slug]) {
+        exposureMap[h.slug] = { name: stock.name, ticker: stock.ticker, directPct: 0, mfPct: 0 };
+      }
+      exposureMap[h.slug].directPct += pct;
     });
 
-    // MF look-through holdings
+    // 2. MF look-through holdings
     mfHoldings.forEach(h => {
       const detail = mfDetails[h.slug];
       if (!detail?.detailed_holdings) return;
-      const holdings = typeof detail.detailed_holdings === 'string' ? JSON.parse(detail.detailed_holdings) : detail.detailed_holdings;
+      
+      const holdings = typeof detail.detailed_holdings === 'string' 
+        ? JSON.parse(detail.detailed_holdings) 
+        : detail.detailed_holdings;
+        
       if (!Array.isArray(holdings)) return;
+      
       const mfVal = h.units * getLivePrice(h.slug, 'MUTUAL_FUNDS');
       const mfWeight = totalValue > 0 ? mfVal / totalValue : 0;
+      
       holdings.forEach((holding: any) => {
         if (!holding.company_name || holding.nature_name === 'CASH') return;
-        const key = holding.company_name;
+        
+        // Use stock_search_id if available, fallback to raw company_name
+        const slug = holding.stock_search_id || holding.company_name;
         const corpusPct = parseFloat(holding.corpus_per) || 0;
-        if (!exposureMap[key]) exposureMap[key] = { directPct: 0, mfPct: 0, directTicker: '' };
-        exposureMap[key].mfPct += corpusPct * mfWeight;
+        
+        if (!exposureMap[slug]) {
+          const stock = allStocks?.find((s: any) => s.slug === slug);
+          exposureMap[slug] = { 
+            name: stock?.name || holding.company_name, 
+            ticker: stock?.ticker || '', 
+            directPct: 0, 
+            mfPct: 0 
+          };
+        }
+        exposureMap[slug].mfPct += corpusPct * mfWeight;
       });
     });
 
     return Object.entries(exposureMap)
-      .map(([name, { directPct, mfPct, directTicker }]) => ({
-        name: name.length > 25 ? name.substring(0, 25) + '…' : name,
-        ticker: directTicker,
-        directPct: parseFloat(directPct.toFixed(2)),
-        mfPct: parseFloat(mfPct.toFixed(2)),
-        totalPct: parseFloat((directPct + mfPct).toFixed(2)),
-        hasOverlap: directPct > 0 && mfPct > 0,
-      }))
-      .sort((a, b) => b.totalPct - a.totalPct)
-      .slice(0, 5);
+      .map(([_, data]) => {
+        const displayName = data.ticker || data.name;
+        return {
+          name: displayName.length > 25 ? displayName.substring(0, 25) + '…' : displayName,
+          ticker: data.ticker,
+          directPct: parseFloat(data.directPct.toFixed(2)),
+          mfPct: parseFloat(data.mfPct.toFixed(2)),
+          totalPct: parseFloat((data.directPct + data.mfPct).toFixed(2)),
+          hasOverlap: data.directPct > 0 && data.mfPct > 0,
+        };
+      })
+      .sort((a, b) => b.totalPct - a.totalPct);
   }, [stockHoldings, mfHoldings, allStocks, mfDetails, totalValue]);
 
   // ═══ CARD 2: Defense Engine (VaR, Beta, Up/Down Capture) ═══
@@ -561,18 +943,23 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
       }
     });
 
-    // Use Nifty P/E as benchmark (from any stock's sector data)
+    // Value-Weighted Sector Avg P/E
+    let weightedSectorPE = 0;
+    let sectorPeCoveredWeight = 0;
     stockHoldings.forEach(h => {
       const detail = batchStockData?.[h.slug];
       const sectorPe = detail?.absolute?.sectorPe || detail?.absolute?.industryPe;
+      const val = h.units * getLivePrice(h.slug, 'STOCKS');
+      const weight = totalValue > 0 ? val / totalValue : 0;
+      
       if (sectorPe && parseFloat(sectorPe) > 0) {
-        sectorPeSum += parseFloat(sectorPe);
-        sectorPeCount++;
+        weightedSectorPE += parseFloat(sectorPe) * weight;
+        sectorPeCoveredWeight += weight;
       }
     });
 
     const aggPE = peCoveredWeight > 0 ? weightedPE / peCoveredWeight : 0;
-    const benchmarkPE = sectorPeCount > 0 ? sectorPeSum / sectorPeCount : 22.5; // Nifty long-term avg
+    const benchmarkPE = sectorPeCoveredWeight > 0 ? weightedSectorPE / sectorPeCoveredWeight : 22.5; // fallback
     const pePremium = benchmarkPE > 0 ? ((aggPE - benchmarkPE) / benchmarkPE) * 100 : 0;
     const aggYield = yieldCoveredWeight > 0 ? weightedDivYield / yieldCoveredWeight : 0;
     const projectedAnnualYield = totalValue * (aggYield / 100);
@@ -582,7 +969,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
       benchmarkPE: parseFloat(benchmarkPE.toFixed(1)),
       pePremium: parseFloat(pePremium.toFixed(1)),
       aggYield: parseFloat(aggYield.toFixed(2)),
-      projectedYield: Math.round(projectedAnnualYield),
+      projectedYield: parseFloat(projectedAnnualYield.toFixed(0)),
     };
   }, [stockHoldings, allStocks, batchStockData, totalValue]);
 
@@ -719,69 +1106,57 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
           <div className="flex flex-col gap-3">
             <div className="relative">
               <label className="block text-[10px] text-text-secondary font-bold uppercase mb-1 tracking-widest">Search</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" size={14} />
-                <input 
-                  type="text"
-                  value={query}
-                  onChange={(e) => { setQuery(e.target.value); setIsOpen(true); }}
-                  onFocus={() => setIsOpen(true)}
-                  onBlur={() => setTimeout(() => setIsOpen(false), 200)}
-                  placeholder={activeTab === 'STOCKS' ? "Ticker..." : "Fund..."}
-                  className="w-full pl-9 pr-3 py-1.5 text-sm bg-canvas border border-border rounded-md text-text-primary focus:outline-none focus:border-alpha"
-                />
-              </div>
-              {isOpen && filtered.length > 0 && (
-                <div className="absolute top-full mt-1 w-full bg-surface border border-border rounded-md shadow-xl overflow-hidden z-50">
-                  {filtered.map((item: any) => {
-                    const slug = activeTab === 'STOCKS' ? item.slug : (item.scheme_code || item.direct_search_id);
-                    const title = activeTab === 'STOCKS' ? item.ticker : (item.fund_name || item.scheme_name);
-                    const subtitle = activeTab === 'STOCKS' ? item.name : item.category;
-                    return (
-                      <div 
-                        key={slug}
-                        className="px-3 py-2 hover:bg-surface-hover cursor-pointer border-b border-border last:border-0"
-                        onMouseDown={() => {
-                          setQuery(title);
-                          setIsOpen(false);
-                        }}
-                      >
-                        <div className="font-bold text-text-primary text-xs">{title}</div>
-                        <div className="text-[10px] text-text-secondary truncate">{subtitle}</div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
+              <GlobalSearch 
+                className="w-full"
+                value={selectedAsset ? selectedAsset.title : query}
+                onChange={(val) => {
+                  if (!val) setSelectedAsset(null);
+                  setQuery(val);
+                }}
+                onSelect={(res) => {
+                  setSelectedAsset(res);
+                  setQuery(res.title);
+                }}
+              />
             </div>
             
             <div className="flex gap-2 items-end">
-              <div className="flex-1">
-                <label className="block text-[10px] text-text-secondary font-bold uppercase mb-1 tracking-widest">{activeTab === 'STOCKS' ? 'UNITS/SHARES' : 'HOLDING VALUE (₹)'}</label>
-                <input 
-                  type="number"
-                  value={unitsInput}
-                  onChange={e => setUnitsInput(e.target.value)}
-                  placeholder={activeTab === 'STOCKS' ? "e.g. 100" : "e.g. 15000"}
-                  className="w-full px-3 py-1.5 text-sm bg-canvas border border-border rounded-md text-text-primary focus:outline-none focus:border-alpha"
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') {
-                      const s = filtered.find((st: any) => {
-                        const title = activeTab === 'STOCKS' ? st.ticker : (st.fund_name || st.scheme_name);
-                        return title === query || st.slug === query || (st.scheme_code || st.direct_search_id) === query;
-                      });
-                      if (s) addAsset(activeTab === 'STOCKS' ? s.slug : (s.scheme_code || s.direct_search_id));
-                    }
-                  }}
-                />
+              <div className="flex-1 flex gap-2">
+                <div className="flex-1">
+                  <label className="block text-[10px] text-text-secondary font-bold uppercase mb-1 tracking-widest">HOLDING VALUE (₹)</label>
+                  <input 
+                    type="number"
+                    value={unitsInput}
+                    onChange={e => setUnitsInput(e.target.value)}
+                    placeholder="e.g. 15000"
+                    className="w-full px-3 py-1.5 text-sm bg-canvas border border-border rounded-md text-text-primary focus:outline-none focus:border-alpha"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-[10px] text-text-secondary font-bold uppercase mb-1 tracking-widest">TOTAL INVESTED (₹)</label>
+                  <input 
+                    type="number"
+                    value={investedInput}
+                    onChange={e => setInvestedInput(e.target.value)}
+                    placeholder="e.g. 14000"
+                    className="w-full px-3 py-1.5 text-sm bg-canvas border border-border rounded-md text-text-primary focus:outline-none focus:border-alpha"
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        if (selectedAsset) {
+                          const type = selectedAsset.type === 'Mutual Fund' ? 'MUTUAL_FUNDS' : 'STOCKS';
+                          addAsset(selectedAsset.slug, type);
+                        }
+                      }
+                    }}
+                  />
+                </div>
               </div>
               <button 
                 onClick={() => {
-                  const s = filtered.find((st: any) => {
-                    const title = activeTab === 'STOCKS' ? st.ticker : (st.fund_name || st.scheme_name);
-                    return title === query || st.slug === query || (st.scheme_code || st.direct_search_id) === query;
-                  });
-                  if (s) addAsset(activeTab === 'STOCKS' ? s.slug : (s.scheme_code || s.direct_search_id));
+                  if (selectedAsset) {
+                    const type = selectedAsset.type === 'Mutual Fund' ? 'MUTUAL_FUNDS' : 'STOCKS';
+                    addAsset(selectedAsset.slug, type);
+                  }
                 }}
                 className="px-4 py-1.5 h-[34px] bg-surface-hover border border-border rounded-md font-bold hover:bg-border transition-colors text-xs"
               >
@@ -872,8 +1247,11 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                     {mfHoldings.length > 0 ? (
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
-                          <Pie data={mfsPie} innerRadius={22} outerRadius={32} paddingAngle={2} dataKey="value" stroke="none">
-                            {mfsPie.map((_e, i) => <Cell key={i} fill={COLORS[(i+2) % COLORS.length]} />)}
+                          <Pie data={mfHoldings.map(h => ({
+                            name: (allMFs?.find((m: any) => (m.scheme_code || m.direct_search_id) === h.slug)?.fund_name || h.slug).substring(0, 15) + '...',
+                            value: h.units * getLivePrice(h.slug, 'MUTUAL_FUNDS')
+                          }))} innerRadius={22} outerRadius={32} paddingAngle={2} dataKey="value" stroke="none">
+                            {mfHoldings.map((_e, i) => <Cell key={i} fill={COLORS[(i+2) % COLORS.length]} />)}
                           </Pie>
                           <RechartsTooltip content={<CustomTooltip />} />
                         </PieChart>
@@ -968,16 +1346,27 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
              {/* Chart Mode Toggles */}
              <div className="flex items-center justify-between p-3 border-b border-border shrink-0">
                <span className="text-[10px] text-text-secondary font-bold uppercase tracking-widest flex items-center gap-1.5">
-                 {chartMode === 'alpha' && <><Crosshair size={12} className="text-indigo-400" /> Alpha-Risk X-Ray</>}
-                 {chartMode === 'stress' && <><Waves size={12} className="text-amber-400" /> Macro Stress Test</>}
-                 {chartMode === 'shap' && <><BarChart3 size={12} className="text-emerald-400" /> Factor Attribution</>}
-                 {chartMode === 'drawdown' && <><TrendingDown size={12} className="text-red-400" /> Drawdown Profile</>}
+                 {chartMode === 'growth' && <><TrendingUp size={12} className="text-purple-400" /> Portfolio Growth</>}
+                 {chartMode === 'allocation' && <><PieChartIcon size={12} className="text-indigo-400" /> Asset Allocation</>}
+                 {chartMode === 'stress' && <><Waves size={12} className="text-amber-400" /> Empirical Backtest</>}
+                 {chartMode === 'performance' && <><List size={12} className="text-emerald-400" /> Performance Matrix</>}
+                 {chartMode === 'drawdown' && (
+                   <div className="flex items-center gap-1 group relative">
+                     <TrendingDown size={12} className="text-red-400" /> 
+                     <span>Drawdown Profile</span>
+                     <Info size={12} className="text-text-secondary opacity-50 cursor-pointer" />
+                     <div className="absolute top-full left-0 mt-2 w-64 p-2 bg-gray-900 border border-gray-700 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                        Assumes your current portfolio weights were held passively (no rebalancing) over the last 252 trading days. The benchmark is strictly normalized against the Nifty 50.
+                     </div>
+                   </div>
+                 )}
                </span>
                <div className="flex bg-surface rounded-md p-0.5 border border-border gap-0.5">
                  {[
-                   { key: 'alpha' as const, label: 'X-Ray', color: 'indigo' },
-                   { key: 'stress' as const, label: 'Stress', color: 'amber' },
-                   { key: 'shap' as const, label: 'SHAP', color: 'emerald' },
+                   { key: 'growth' as const, label: 'Growth', color: 'purple' },
+                   { key: 'allocation' as const, label: 'Allocation', color: 'indigo' },
+                   { key: 'stress' as const, label: 'Backtest', color: 'amber' },
+                   { key: 'performance' as const, label: 'Performance', color: 'emerald' },
                    { key: 'drawdown' as const, label: 'Drawdown', color: 'red' },
                  ].map(m => (
                    <button
@@ -1002,38 +1391,74 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                    <Crosshair size={48} className="mb-3 opacity-20" />
                    <p className="text-xs">Add holdings to visualize analytics</p>
                  </div>
-               ) : chartMode === 'alpha' ? (
-                 /* Alpha-Risk Scatter Plot */
-                 <ResponsiveContainer width="100%" height="100%">
-                   <ScatterChart margin={{ top: 10, right: 20, bottom: 20, left: 10 }}>
-                     <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                     <XAxis type="number" dataKey="risk" name="Risk" stroke="#64748b" tick={{ fontSize: 10 }} label={{ value: 'Risk (Volatility)', position: 'bottom', offset: 5, style: { fontSize: 10, fill: '#64748b' } }} />
-                     <YAxis type="number" dataKey="alpha" name="Alpha" stroke="#64748b" tick={{ fontSize: 10 }} label={{ value: 'Alpha Score', angle: -90, position: 'insideLeft', style: { fontSize: 10, fill: '#64748b' } }} />
-                     <ZAxis type="number" dataKey="value" range={[40, 400]} />
-                     <RechartsTooltip
-                       content={({ active, payload }: any) => {
-                         if (!active || !payload?.length) return null;
-                         const d = payload[0].payload;
-                         return (
-                           <div className="bg-[#1e222d] border border-[#2a2e39] p-2.5 rounded-lg text-xs">
-                             <div className="font-bold text-white mb-1">{d.name}</div>
-                             <div className="text-text-secondary">{d.industry}</div>
-                             <div className="mt-1.5 flex flex-col gap-0.5">
-                               <span>Risk: <b className="text-white">{d.risk}</b></span>
-                               <span>Alpha: <b className={d.alpha >= 50 ? 'text-alpha' : 'text-beta'}>{d.alpha}</b></span>
-                               <span>Value: <b className="text-white">₹{d.value.toLocaleString(undefined, {maximumFractionDigits: 0})}</b></span>
-                             </div>
-                           </div>
-                         );
-                       }}
-                     />
-                     <Scatter data={scatterData.filter(d => d.type === 'stock')} fill="#8b5cf6" fillOpacity={0.7} name="Stocks" />
-                     <Scatter data={scatterData.filter(d => d.type === 'fund')} fill="#06b6d4" fillOpacity={0.7} name="Funds" />
-                     {/* Quadrant reference lines */}
-                     <ReferenceLine y={50} stroke="#64748b" strokeDasharray="5 5" strokeOpacity={0.3} />
-                     <ReferenceLine x={50} stroke="#64748b" strokeDasharray="5 5" strokeOpacity={0.3} />
-                   </ScatterChart>
-                 </ResponsiveContainer>
+               ) : chartMode === 'growth' ? (
+                  /* Portfolio Growth */
+                  growthData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={growthData} margin={{ top: 10, right: 20, bottom: 20, left: 10 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+                        <XAxis dataKey="date" stroke="#64748b" tick={{ fontSize: 9 }} tickFormatter={(d: string) => { const parts = d.split('-'); return parts.length >= 2 ? `${parts[1]}/${parts[0]?.slice(2)}` : d; }} />
+                        <YAxis stroke="#64748b" tick={{ fontSize: 10 }} domain={['auto', 'auto']} tickFormatter={(val: number) => `₹${(val/1000).toFixed(0)}k`} />
+                        <RechartsTooltip
+                          contentStyle={{ backgroundColor: '#1e222d', borderColor: '#2a2e39', fontSize: 11 }}
+                          formatter={(val: any, name: any) => [`₹${Number(val).toLocaleString()}`, String(name).toLowerCase() === 'portfolio' ? 'Portfolio' : String(name).toLowerCase() === 'benchmark' ? 'Nifty 50 Shadow' : 'Total Invested']}
+                        />
+                        <Line type="monotone" dataKey="portfolio" stroke="#a855f7" strokeWidth={2} dot={false} activeDot={{ r: 4 }} name="Portfolio" />
+                        <Line type="monotone" dataKey="benchmark" stroke="#06b6d4" strokeWidth={1} dot={false} opacity={0.6} name="Benchmark" />
+                        <Line type="stepAfter" dataKey="invested" stroke="#64748b" strokeWidth={1} dot={false} opacity={0.5} strokeDasharray="5 5" name="Invested" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full flex flex-col items-center justify-center text-text-secondary/50 text-center px-6">
+                       <TrendingUp size={48} className="mb-3 opacity-20" />
+                       <p className="text-xs">Processing growth data...</p>
+                    </div>
+                  )
+               ) : chartMode === 'allocation' ? (
+                  /* Asset Allocation */
+                  Object.keys(allocationData.sectors).length > 0 ? (
+                    <div className="flex flex-col md:flex-row gap-4 h-full overflow-y-auto px-2">
+                      <div className="flex-1 bg-surface/50 rounded-lg p-4 border border-border">
+                        <h4 className="text-xs font-bold text-text-secondary uppercase mb-4 tracking-wider flex items-center gap-1.5"><PieChartIcon size={12} className="text-indigo-400"/> Sector Weighting</h4>
+                        <div className="space-y-3">
+                          {Object.entries(allocationData.sectors)
+                            .sort((a, b) => b[1].value - a[1].value)
+                            .map(([sector, data], i) => (
+                            <ProgressBar 
+                              key={sector}
+                              label={sector}
+                              value={data.value}
+                              max={totalValue}
+                              assets={data.assets}
+                              color={i === 0 ? 'bg-indigo-500' : 'bg-indigo-500/60'}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex-1 bg-surface/50 rounded-lg p-4 border border-border">
+                        <h4 className="text-xs font-bold text-text-secondary uppercase mb-4 tracking-wider flex items-center gap-1.5"><Activity size={12} className="text-amber-400"/> Market Cap</h4>
+                        <div className="space-y-3">
+                          {Object.entries(allocationData.marketCaps)
+                            .sort((a, b) => b[1].value - a[1].value)
+                            .map(([mc, data], i) => (
+                            <ProgressBar 
+                              key={mc}
+                              label={mc}
+                              value={data.value}
+                              max={totalValue}
+                              assets={data.assets}
+                              color={i === 0 ? 'bg-amber-500' : 'bg-amber-500/60'}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="h-full flex flex-col items-center justify-center text-text-secondary/50">
+                      <PieChartIcon size={48} className="mb-3 opacity-20" />
+                      <p className="text-xs">Add holdings to see asset allocation</p>
+                    </div>
+                  )
                ) : chartMode === 'stress' ? (
                  /* Macro Stress-Test */
                  <ResponsiveContainer width="100%" height="100%">
@@ -1042,55 +1467,91 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                      <XAxis type="number" stroke="#64748b" tick={{ fontSize: 10 }} label={{ value: 'Projected Impact (%)', position: 'bottom', offset: 5, style: { fontSize: 10, fill: '#64748b' } }} />
                      <YAxis type="category" dataKey="event" stroke="#64748b" tick={{ fontSize: 10 }} width={90} />
                      <RechartsTooltip
-                       contentStyle={{ backgroundColor: '#1e222d', borderColor: '#2a2e39', fontSize: 11 }}
-                       formatter={(val: any, name: any) => [`${val}%`, name === 'stocks' ? 'Stocks Impact' : name === 'funds' ? 'Funds Buffer' : 'Benchmark']}
+                       cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }}
+                       content={({ active, payload }) => {
+                         if (active && payload && payload.length) {
+                           const data = payload[0].payload;
+                           return (
+                             <div className="bg-[#1e222d] border border-[#2a2e39] p-3 rounded shadow-xl text-xs min-w-[300px] z-50">
+                               <div className="font-bold text-white mb-2">{data.event}</div>
+                               <div className="flex justify-between text-text-secondary mb-1">
+                                 <span>Portfolio Return:</span>
+                                 <span className={`font-bold ${data.combined >= 0 ? 'text-alpha' : 'text-red-400'}`}>{data.combined}%</span>
+                               </div>
+                               <div className="flex justify-between text-text-secondary mb-3 pb-2 border-b border-border">
+                                 <span>Benchmark:</span>
+                                 <span className={`font-bold ${data.benchmark >= 0 ? 'text-alpha' : 'text-red-400'}`}>{data.benchmark}%</span>
+                               </div>
+                             </div>
+                           );
+                         }
+                         return null;
+                       }}
                      />
-                     <Bar dataKey="stocks" fill="#ef4444" fillOpacity={0.8} name="Stocks" radius={[0, 4, 4, 0]} />
-                     <Bar dataKey="funds" fill="#06b6d4" fillOpacity={0.8} name="Funds" radius={[0, 4, 4, 0]} />
+                     <Bar dataKey="combined" fill="#06b6d4" fillOpacity={0.8} name="Portfolio" radius={[0, 4, 4, 0]} />
                      <Bar dataKey="benchmark" fill="#64748b" fillOpacity={0.4} name="Benchmark" radius={[0, 4, 4, 0]} />
                    </BarChart>
                  </ResponsiveContainer>
-               ) : chartMode === 'shap' ? (
-                 /* SHAP Factor Waterfall */
-                 shapWaterfallData.length > 0 ? (
-                   <ResponsiveContainer width="100%" height="100%">
-                     <BarChart data={shapWaterfallData} margin={{ top: 10, right: 20, bottom: 20, left: 10 }} layout="vertical">
-                       <CartesianGrid strokeDasharray="3 3" stroke="#27272a" horizontal={false} />
-                       <XAxis type="number" stroke="#64748b" tick={{ fontSize: 10 }} label={{ value: 'Weighted Alpha Impact', position: 'bottom', offset: 5, style: { fontSize: 10, fill: '#64748b' } }} />
-                       <YAxis type="category" dataKey="name" stroke="#64748b" tick={{ fontSize: 9 }} width={100} />
-                       <RechartsTooltip
-                         contentStyle={{ backgroundColor: '#1e222d', borderColor: '#2a2e39', fontSize: 11 }}
-                         formatter={(val: any, _name: any, entry: any) => [`Impact: ${val}`, `Appears in ${entry.payload.count} holdings`]}
-                       />
-                       <Bar dataKey="impact" radius={[0, 4, 4, 0]}>
-                         {shapWaterfallData.map((entry, i) => (
-                           <Cell key={i} fill={entry.impact >= 0 ? '#10b981' : '#ef4444'} fillOpacity={0.8} />
-                         ))}
-                       </Bar>
-                       <ReferenceLine x={0} stroke="#64748b" strokeOpacity={0.5} />
-                     </BarChart>
-                   </ResponsiveContainer>
-                 ) : (
-                   <div className="h-full flex flex-col items-center justify-center text-text-secondary/50">
-                     <BarChart3 size={48} className="mb-3 opacity-20" />
-                     <p className="text-xs">Add stock holdings to see SHAP factor attribution</p>
-                   </div>
-                 )
+               ) : chartMode === 'performance' ? (
+                  /* Performance Matrix */
+                  performanceData.length > 0 ? (
+                    <div className="w-full h-full overflow-y-auto px-2 pb-6">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-border text-[10px] text-text-secondary uppercase tracking-wider sticky top-0 bg-[#161821] z-10">
+                            <th className="p-3 font-bold">Asset</th>
+                            <th className="p-3 font-bold text-right">Value (₹)</th>
+                            <th className="p-3 font-bold text-right">1M Ret</th>
+                            <th className="p-3 font-bold text-right">6M Ret</th>
+                            <th className="p-3 font-bold text-right">1Y Ret</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {performanceData.map((d, i) => {
+                            const fmt = (val: number | null) => {
+                              if (val == null) return '-';
+                              const pct = val * 100;
+                              return <span className={pct >= 0 ? 'text-emerald-400' : 'text-red-400'}>{pct > 0 ? '+' : ''}{pct.toFixed(1)}%</span>;
+                            };
+                            return (
+                              <tr key={i} className="border-b border-border/30 hover:bg-surface-hover/30 transition-colors">
+                                <td className="p-3">
+                                  <div className="text-sm font-bold text-text-primary whitespace-nowrap truncate max-w-[150px]">{d.name}</div>
+                                  <div className="text-[10px] text-text-secondary capitalize">{d.type}</div>
+                                </td>
+                                <td className="p-3 text-right text-sm text-text-primary">
+                                  ₹{d.value.toLocaleString(undefined, {maximumFractionDigits: 0})}
+                                </td>
+                                <td className="p-3 text-right text-sm">{fmt(d.ret1m)}</td>
+                                <td className="p-3 text-right text-sm">{fmt(d.ret6m)}</td>
+                                <td className="p-3 text-right text-sm">{fmt(d.ret1y)}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="h-full flex flex-col items-center justify-center text-text-secondary/50 text-center px-6">
+                       <List size={48} className="mb-3 opacity-20" />
+                       <p className="text-xs">Add holdings to see historical performance.</p>
+                    </div>
+                  )
                ) : (
                  /* Drawdown Profile */
                  drawdownData.length > 0 ? (
                    <ResponsiveContainer width="100%" height="100%">
                      <AreaChart data={drawdownData} margin={{ top: 10, right: 20, bottom: 20, left: 10 }}>
-                       <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                       <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
                        <XAxis dataKey="date" stroke="#64748b" tick={{ fontSize: 9 }} tickFormatter={(d: string) => { const parts = d.split('-'); return parts.length >= 2 ? `${parts[1]}/${parts[0]?.slice(2)}` : d; }} />
                        <YAxis stroke="#64748b" tick={{ fontSize: 10 }} domain={['auto', 0]} label={{ value: 'Drawdown %', angle: -90, position: 'insideLeft', style: { fontSize: 10, fill: '#64748b' } }} />
                        <RechartsTooltip
                          contentStyle={{ backgroundColor: '#1e222d', borderColor: '#2a2e39', fontSize: 11 }}
-                         formatter={(val: any, name: any) => [`${val}%`, name === 'portfolio' ? 'Portfolio' : 'Nifty 50']}
+                         formatter={(val: any, name: any) => [`${val}%`, String(name).toLowerCase() === 'portfolio' ? 'Portfolio' : 'Nifty 50']}
                        />
                        <ReferenceLine y={0} stroke="#64748b" strokeOpacity={0.3} />
-                       <Area type="monotone" dataKey="portfolio" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.15} strokeWidth={2} name="portfolio" />
-                       <Area type="monotone" dataKey="benchmark" stroke="#64748b" fill="#64748b" fillOpacity={0.05} strokeWidth={1} strokeDasharray="4 4" name="benchmark" />
+                       <Area type="monotone" dataKey="portfolio" stroke="#ef4444" fillOpacity={0.2} fill="#ef4444" name="Portfolio" />
+                       <Area type="monotone" dataKey="benchmark" stroke="#64748b" fillOpacity={0.1} fill="#64748b" name="Benchmark" />
                      </AreaChart>
                    </ResponsiveContainer>
                  ) : (
@@ -1206,6 +1667,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                      </div>
                    </div>
                    {/* P/E */}
+                   {/* P/E */}
                    <div className="p-2 bg-surface/50 rounded border border-border">
                      <span className="text-[8px] text-text-secondary uppercase font-bold tracking-wider block mb-0.5">Aggregate P/E</span>
                      <div className="flex items-baseline gap-2">
@@ -1217,13 +1679,19 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                    </div>
                    {/* Benchmark comparison */}
                    <div className="flex gap-2">
-                     <div className="flex-1 p-1.5 bg-surface/50 rounded border border-border text-center">
+                     <div className="flex-1 p-1.5 bg-surface/50 rounded border border-border text-center group relative">
                        <span className="text-[8px] text-text-secondary uppercase font-bold block">Portfolio P/E</span>
                        <span className="text-xs font-bold font-mono text-text-primary">{yieldValuation.aggPE}x</span>
                      </div>
-                     <div className="flex-1 p-1.5 bg-surface/50 rounded border border-border text-center">
-                       <span className="text-[8px] text-text-secondary uppercase font-bold block">Sector Avg P/E</span>
+                     <div className="flex-1 p-1.5 bg-surface/50 rounded border border-border text-center group relative">
+                       <div className="flex items-center justify-center gap-1">
+                          <span className="text-[8px] text-text-secondary uppercase font-bold block">Sector Avg P/E</span>
+                          <Info size={8} className="text-text-secondary opacity-50" />
+                       </div>
                        <span className="text-xs font-bold font-mono text-text-secondary">{yieldValuation.benchmarkPE}x</span>
+                       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 border border-gray-700 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                          The value-weighted average of the Industry P/E for every holding in your portfolio. This ensures accurate peer comparison based on your exact capital allocation.
+                       </div>
                      </div>
                    </div>
                  </div>

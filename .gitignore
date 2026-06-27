@@ -2,3 +2,4 @@ datasets/
 .env
 *.md
 test_*
+check_*

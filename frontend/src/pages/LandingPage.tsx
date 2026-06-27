@@ -2,9 +2,10 @@ import React, { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, ChevronRight, BarChart2, Info, TrendingUp, TrendingDown, ArrowRight, Activity, ArrowUpRight, BrainCircuit, RefreshCw } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchAllStocks, fetchStockData, fetchMacroData, fetchBatchLiveQuotes, fetchBatchStockData } from '../api';
+import { fetchAllStocks, fetchStockData, fetchMacroData, fetchBatchLiveQuotes, fetchBatchStockData, fetchMutualFunds } from '../api';
 import Chart from 'react-apexcharts';
 import { StockLogo } from '../components/StockLogo';
+import { GlobalSearch } from '../components/GlobalSearch';
 import { Skeleton } from '../components/Skeleton';
 import type { ApexOptions } from 'apexcharts';
 
@@ -353,7 +354,7 @@ const ComplexMarketCard = ({ stock }: { stock: any }) => {
           <div className="text-[10px] font-bold text-text-secondary mb-2 uppercase">{stock.industry || 'General'} Metrics</div>
           <div className="flex justify-between items-center py-1 border-b border-border/50">
             <span className="text-[10px] font-bold text-text-primary">AI Alpha Score</span>
-            <span className={`text-[10px] font-bold ${stock.alpha_score > 0 ? 'text-alpha' : 'text-beta'}`}>{(stock.alpha_score * 100).toFixed(2)}%</span>
+            <span className={`text-[10px] font-bold ${Math.max(stock.alpha_score_conservative || 0, stock.alpha_score_moonshot || 0) > 0 ? 'text-alpha' : 'text-beta'}`}>{(Math.max(stock.alpha_score_conservative || 0, stock.alpha_score_moonshot || 0) * 100).toFixed(2)}%</span>
           </div>
           <div className="flex justify-between items-center py-1 border-b border-border/50">
             <span className="text-[10px] font-bold text-text-primary">Inst. Flow Rate</span>
@@ -716,12 +717,14 @@ const MarketSectors = ({ macro, stocks }: { macro: any, stocks: any[] }) => {
 
 const StockListGrid = ({ stocks }: { stocks: any[] }) => {
   const validStocks = stocks?.filter((s: any) => s.ticker && s.day_change && (s.marketCap || 0) >= 5000) || [];
+  
   const highestVolume = [...validStocks].sort((a, b) => (b.inst_accum || 0) - (a.inst_accum || 0)).slice(0, 5);
   const mostVolatile = [...validStocks].sort((a, b) => (b.rs_rating || 0) - (a.rs_rating || 0)).slice(0, 5);
-  const topGainers = [...validStocks].sort((a, b) => (b.alpha_score || 0) - (a.alpha_score || 0)).slice(0, 5);
-  const topLosers = [...stocks].sort((a, b) => (a.alpha_score || 0) - (b.alpha_score || 0)).slice(0, 5);
+  
+  const topCompounders = [...stocks].sort((a, b) => (b.alpha_score_conservative || 0) - (a.alpha_score_conservative || 0)).slice(0, 5);
+  const topMoonshots = [...stocks].sort((a, b) => (b.alpha_score_moonshot || 0) - (a.alpha_score_moonshot || 0)).slice(0, 5);
 
-  const List = ({ title, tooltip, data, metricFormat, metricColor }: any) => (
+  const List = ({ title, tooltip, data, metricFormat, metricColor, subtextFormat, stockTooltip }: any) => (
     <div>
       <div className="flex items-center gap-2 mb-6 group/header relative">
         <h2 className="text-2xl font-bold text-text-primary flex items-center gap-1 hover:text-alpha cursor-pointer transition-colors">
@@ -746,6 +749,11 @@ const StockListGrid = ({ stocks }: { stocks: any[] }) => {
                     <span className="truncate max-w-[120px] md:max-w-[180px]">{s.name}</span>
                     <span className="px-1 py-0.5 bg-canvas rounded text-[8px] text-text-secondary border border-border uppercase shrink-0">{s.ticker}</span>
                   </div>
+                  {subtextFormat && (
+                    <div className="text-[10px] text-text-secondary mt-0.5 truncate">
+                      {subtextFormat(s)}
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-4 shrink-0">
@@ -755,8 +763,15 @@ const StockListGrid = ({ stocks }: { stocks: any[] }) => {
                     {change.isPositive ? '+' : '-'}{change.pct}
                   </div>
                 </div>
-                <div className={`text-sm font-bold px-3 py-1.5 rounded min-w-[80px] text-center border border-transparent group-hover:border-current transition-colors ${metricColor}`}>
-                  {metricFormat(s)}
+                <div className="relative group/pill flex items-center justify-center">
+                  <div className={`text-sm font-bold px-3 py-1.5 rounded min-w-[80px] text-center border border-transparent group-hover:border-current transition-colors ${metricColor}`}>
+                    {metricFormat(s)}
+                  </div>
+                  {stockTooltip && (
+                    <div className="absolute top-1/2 -translate-y-1/2 right-[calc(100%+10px)] w-72 p-4 bg-surface border border-border rounded-lg shadow-2xl text-xs text-text-primary opacity-0 invisible group-hover/pill:opacity-100 group-hover/pill:visible transition-all z-[100] pointer-events-none">
+                      {stockTooltip(s)}
+                    </div>
+                  )}
                 </div>
               </div>
             </Link>
@@ -774,28 +789,70 @@ const StockListGrid = ({ stocks }: { stocks: any[] }) => {
         tooltip="Ranks stocks by net institutional accumulation over the last quarter. A stock may have high accumulation but still experience short-term daily volatility."
         data={highestVolume} 
         metricColor="bg-alpha/10 text-alpha"
-        metricFormat={(s: any) => `Flow +${s.inst_accum?.toFixed(1)}`}
+        metricFormat={(s: any) => `+${s.inst_accum?.toFixed(1)}% Inst. Holding`}
+        stockTooltip={(s: any) => (
+          <div className="flex flex-col gap-2">
+            <div className="font-bold text-sm text-alpha border-b border-border/50 pb-2 mb-1">Institutional Flow</div>
+            <div className="text-text-secondary">Institutions increased their net ownership in this company by <span className="text-alpha font-bold">{s.inst_accum?.toFixed(1)}%</span> over the last recorded quarter.</div>
+          </div>
+        )}
       />
       <List 
         title="Momentum leaders" 
         tooltip="Ranks stocks by Relative Score (RS) over a 52-week rolling basis. A stock scoring RS 99 is in the top 1% of structural momentum, regardless of today's price change."
         data={mostVolatile} 
         metricColor="bg-warning/10 text-warning"
-        metricFormat={(s: any) => `RS ${s.rs_rating?.toFixed(0)}`}
+        metricFormat={(s: any) => `${s.rs_rating?.toFixed(0)}th Pctile`}
+        stockTooltip={(s: any) => (
+          <div className="flex flex-col gap-2">
+            <div className="font-bold text-sm text-warning border-b border-border/50 pb-2 mb-1">Relative Strength Rating</div>
+            <div className="text-text-secondary">This stock is outperforming <span className="text-warning font-bold">{s.rs_rating?.toFixed(0)}%</span> of the entire Indian stock market over a 1-year window.</div>
+          </div>
+        )}
       />
       <List 
-        title="Top AI Alpha" 
-        tooltip="The AI Engine predicts forward 1-year outperformance probability. Today's price movement is distinct from the 1-year expected trajectory."
-        data={topGainers} 
+        title={
+          <span className="flex items-center gap-2">
+            The Institutional Compounder 
+            <span className="bg-yellow-500/20 text-yellow-500 text-[10px] px-1.5 py-0.5 rounded-sm uppercase tracking-wider font-bold">AI</span>
+          </span>
+        }
+        tooltip="Conservative track: Maximize capital preservation, CAGR > 25%, MDD < 20%, Size >= 5000Cr, ADTV >= 1Cr."
+        data={topCompounders} 
         metricColor="bg-alpha/10 text-alpha"
-        metricFormat={(s: any) => `+${(s.alpha_score * 100)?.toFixed(1)}%`}
+        metricFormat={(s: any) => `${(s.alpha_score_conservative * 100)?.toFixed(1)}% AI Prob`}
+        subtextFormat={(s: any) => s.shap_reason_1 ? <span className="text-text-secondary">Top Driver: {s.shap_reason_1.split(' (')[0]}</span> : null}
+        stockTooltip={(s: any) => (
+          <div className="flex flex-col gap-2">
+            <div className="font-bold text-sm text-alpha border-b border-border/50 pb-2 mb-1">AI Alpha Probability: {(s.alpha_score_conservative * 100)?.toFixed(1)}%</div>
+            <div className="text-text-secondary mb-2">This stock has a {(s.alpha_score_conservative * 100)?.toFixed(1)}% mathematical probability of outperforming the Nifty 50 over the next 12 months with low downside risk.</div>
+            {s.shap_reason_1 && <div className="text-alpha text-xs font-mono bg-alpha/10 p-1.5 rounded truncate">🟩 {s.shap_reason_1}</div>}
+            {s.shap_reason_2 && <div className="text-alpha text-xs font-mono bg-alpha/10 p-1.5 rounded truncate">🟩 {s.shap_reason_2}</div>}
+            {s.shap_reason_3 && <div className="text-alpha text-xs font-mono bg-alpha/10 p-1.5 rounded truncate">🟩 {s.shap_reason_3}</div>}
+          </div>
+        )}
       />
       <List 
-        title="Lowest AI Alpha" 
-        tooltip="The AI Engine predicts a high probability of underperformance over the next 1-year. Even if the stock is up today, the structural outlook is negative."
-        data={topLosers} 
-        metricColor="bg-beta/10 text-beta"
-        metricFormat={(s: any) => `${(s.alpha_score * 100)?.toFixed(1)}%`}
+        title={
+          <span className="flex items-center gap-2">
+            The Hyper-Growth Moonshot 
+            <span className="bg-yellow-500/20 text-yellow-500 text-[10px] px-1.5 py-0.5 rounded-sm uppercase tracking-wider font-bold">AI</span>
+          </span>
+        }
+        tooltip="Moonshot track: Maximize explosive returns, Size <= 5000Cr, ADTV >= 25L, Revenue YoY > 35%."
+        data={topMoonshots} 
+        metricColor="bg-[#8A2BE2]/10 text-[#8A2BE2]"
+        metricFormat={(s: any) => `${(s.alpha_score_moonshot * 100)?.toFixed(1)}% AI Prob`}
+        subtextFormat={(s: any) => s.shap_reason_1 ? <span className="text-text-secondary">Top Driver: {s.shap_reason_1.split(' (')[0]}</span> : null}
+        stockTooltip={(s: any) => (
+          <div className="flex flex-col gap-2">
+            <div className="font-bold text-sm text-[#8A2BE2] border-b border-border/50 pb-2 mb-1">AI Moonshot Probability: {(s.alpha_score_moonshot * 100)?.toFixed(1)}%</div>
+            <div className="text-text-secondary mb-2">This micro-cap stock has a {(s.alpha_score_moonshot * 100)?.toFixed(1)}% mathematical probability of explosive asymmetric returns (&gt;100% upside) over the next 12 months.</div>
+            {s.shap_reason_1 && <div className="text-[#8A2BE2] text-xs font-mono bg-[#8A2BE2]/10 p-1.5 rounded truncate">🚀 {s.shap_reason_1}</div>}
+            {s.shap_reason_2 && <div className="text-[#8A2BE2] text-xs font-mono bg-[#8A2BE2]/10 p-1.5 rounded truncate">🚀 {s.shap_reason_2}</div>}
+            {s.shap_reason_3 && <div className="text-[#8A2BE2] text-xs font-mono bg-[#8A2BE2]/10 p-1.5 rounded truncate">🚀 {s.shap_reason_3}</div>}
+          </div>
+        )}
       />
     </div>
   );
@@ -803,7 +860,7 @@ const StockListGrid = ({ stocks }: { stocks: any[] }) => {
 
 const TickerTapeItem = ({ asset }: { asset: any }) => {
   const navigate = useNavigate();
-  const needsFetch = !asset.livePrice || !asset.day_change;
+  const needsFetch = !asset.is_mf && (!asset.livePrice || !asset.day_change);
   const { data: stockData } = useQuery({ 
     queryKey: ['stockData', asset.slug], 
     queryFn: () => fetchStockData(asset.slug),
@@ -812,7 +869,7 @@ const TickerTapeItem = ({ asset }: { asset: any }) => {
   });
 
   let livePrice = asset.livePrice;
-  let rawChange = parseDayChange(asset.day_change);
+  let rawChange = asset.is_mf ? { isPositive: true, pct: asset.day_change, val: 0 } : parseDayChange(asset.day_change);
 
   let seriesData: any[] = [];
   if (needsFetch && stockData?.absolute?.OHLCV) {
@@ -825,30 +882,34 @@ const TickerTapeItem = ({ asset }: { asset: any }) => {
     }
   }
 
-  const change = computeFallbackChange(seriesData, rawChange);
+  const change = asset.is_mf ? rawChange : computeFallbackChange(seriesData, rawChange);
   
   const isIndex = asset.slug.includes('nifty') || asset.slug.includes('sensex') || asset.slug.includes('vix');
   let cleanPrice = livePrice?.includes('₹') 
     ? livePrice.replace('₹', '') 
     : Number(livePrice || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
   
-  const priceDisplay = isIndex ? cleanPrice : `₹${cleanPrice}`;
+  const priceDisplay = asset.is_mf ? `₹${cleanPrice} Cr` : (isIndex ? cleanPrice : `₹${cleanPrice}`);
 
   const displayName = asset.ticker === '1' ? 'SENSEX' : asset.ticker;
 
   return (
     <div 
-      className="inline-flex items-center justify-between w-72 px-5 border-r border-white/10 cursor-pointer hover:bg-surface-hover transition-colors h-10 shrink-0"
-      onClick={() => navigate(`/terminal/${asset.slug}`)}
+      className="inline-flex items-center justify-between w-[22rem] px-8 border-r border-white/10 cursor-pointer hover:bg-surface-hover transition-colors h-10 shrink-0"
+      onClick={() => navigate(asset.is_mf ? `/mutual-funds/${asset.slug}` : `/terminal/${asset.slug}`)}
     >
-      <div className="flex items-center gap-2">
-        <StockLogo ticker={asset.ticker} className="w-5 h-5 border-white/20" textClass="text-[9px]" />
+      <div className="flex items-center gap-3">
+        {asset.is_mf && asset.logo_url ? (
+           <img src={asset.logo_url} className="w-5 h-5 rounded-full bg-white object-contain shrink-0" alt="" />
+        ) : (
+           <StockLogo ticker={asset.ticker} className="w-5 h-5 border-white/20" textClass="text-[9px]" />
+        )}
         <span className="font-bold text-[11px] text-text-primary uppercase tracking-wider truncate w-28">{displayName}</span>
       </div>
       <div className="flex items-center gap-2">
-        <span className={`font-bold text-xs ${change.isPositive ? 'text-alpha' : 'text-beta'}`}>{priceDisplay}</span>
-        <span className={`text-[10px] font-bold ${change.isPositive ? 'text-alpha' : 'text-beta'}`}>
-          {change.isPositive ? '+' : '-'}{change.pct}
+        <span className={`font-bold text-xs ${asset.is_mf ? 'text-text-primary' : (change.isPositive ? 'text-alpha' : 'text-beta')}`}>{priceDisplay}</span>
+        <span className={`text-[10px] font-bold ${asset.is_mf || change.isPositive ? 'text-alpha' : 'text-beta'}`}>
+          {change.isPositive && !asset.is_mf ? '+' : ''}{change.pct}
         </span>
       </div>
     </div>
@@ -858,8 +919,6 @@ const TickerTapeItem = ({ asset }: { asset: any }) => {
 const KNOWN_INDICES = ['nifty', 'sp-bse-sensex', 'india-vix', 'nifty-bank', 'nifty-it', 'nifty-metal', 'nifty-smallcap-100', 'nifty-midcap', 'nifty-total-market-index'];
 
 export const LandingPage = () => {
-  const [query, setQuery] = useState('');
-  const [showDropdown, setShowDropdown] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -871,32 +930,10 @@ export const LandingPage = () => {
     s && s.ticker && s.ticker !== 'N/A' && s.name && s.marketCap
   );
 
-  const searchResults = React.useMemo(() => {
-    if (!query) return [];
-    const lowerQuery = query.toLowerCase();
-    return safeStocks.filter((s: any) => 
-      (s.name && s.name.toLowerCase().includes(lowerQuery)) || 
-      (s.ticker && s.ticker.toLowerCase().includes(lowerQuery))
-    ).slice(0, 8);
-  }, [query, safeStocks]);
-
   const fallbackSlug = (stocks || []).find((s: any) => s.slug === 'nifty')?.slug || safeStocks[0]?.slug;
   const [summarySlug, setSummarySlug] = useState<string | null>(null);
 
   const activeSlug = summarySlug || fallbackSlug;
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (query.trim()) {
-      const match = safeStocks.find((s: any) => 
-        s.ticker.toLowerCase() === query.toLowerCase() || 
-        s.ticker.toLowerCase().includes(query.toLowerCase())
-      );
-      if (match) {
-        navigate(`/terminal/${match.slug}`);
-      }
-    }
-  };
 
   const majorStocks = [...safeStocks].sort((a, b) => b.marketCap - a.marketCap).slice(0, 10);
   
@@ -935,19 +972,29 @@ export const LandingPage = () => {
     enabled: indicesToFetch.length > 0,
     staleTime: Infinity
   });
+  const { data: mfsResp } = useQuery({ queryKey: ['allMFs'], queryFn: () => fetchMutualFunds({ limit: 1000 }), staleTime: Infinity });
+  const topFunds = ((mfsResp as any)?.data || []).slice(0, 10).map((mf: any) => ({
+    slug: mf.scheme_code || mf.direct_search_id,
+    ticker: mf.fund_name || mf.scheme_name,
+    livePrice: mf.aum ? (mf.aum >= 1000 ? `${(mf.aum / 1000).toFixed(0)}k` : String(mf.aum.toFixed(1))) : '0',
+    day_change: `${mf.return1y || 0}%`,
+    logo_url: mf.logo_url,
+    is_mf: true
+  }));
 
-  const [tickerMode, setTickerMode] = useState<'stocks' | 'indices'>('stocks');
-  const activeTickerItems = tickerMode === 'stocks' ? majorStocks.slice(0, 10) : indexAssets;
+  const [tickerMode, setTickerMode] = useState<'stocks' | 'indices' | 'funds'>('stocks');
+  const activeTickerItems = tickerMode === 'stocks' ? majorStocks.slice(0, 10) : (tickerMode === 'indices' ? indexAssets : topFunds);
 
   const handleSyncMarket = async () => {
     setIsSyncing(true);
     const trace: string[] = [];
     const tStart = performance.now();
     try {
-      const slugsToSync = Array.from(new Set([
-        ...activeTickerItems.map((s: any) => s.slug),
-        ...majorStocks.map((s: any) => s.slug)
-      ]));
+        const slugsToSync = Array.from(new Set([
+          ...(tickerMode === 'stocks' || tickerMode === 'indices' ? activeTickerItems.map((s: any) => s.slug) : []),
+          ...majorStocks.map((s: any) => s.slug),
+          ...indexAssets.map((s: any) => s.slug)
+        ]));
       trace.push(`[${(performance.now() - tStart).toFixed(1)}ms] Extracted ${slugsToSync.length} slugs`);
       
       const tFetch = performance.now();
@@ -1008,11 +1055,11 @@ export const LandingPage = () => {
 
   const hasSynced = React.useRef(false);
   React.useEffect(() => {
-    if (activeTickerItems.length > 0 && !hasSynced.current) {
+    if ((tickerMode === 'stocks' || tickerMode === 'indices') && activeTickerItems.length > 0 && !hasSynced.current) {
       hasSynced.current = true;
       handleSyncMarket();
     }
-  }, [activeTickerItems]);
+  }, [activeTickerItems, tickerMode]);
 
   return (
     <div className="min-h-full bg-canvas flex flex-col overflow-y-auto">
@@ -1022,45 +1069,7 @@ export const LandingPage = () => {
           <div className="flex items-center">
             <img src="/logo-nobg.png" alt="Finugreek" className="h-10 w-auto object-contain" />
           </div>
-          <div className="relative hidden md:block w-64" onBlur={(e) => {
-             // Delay hiding to allow click event to fire on dropdown items
-             if (!e.currentTarget.contains(e.relatedTarget)) {
-               setTimeout(() => setShowDropdown(false), 200);
-             }
-          }}>
-            <form onSubmit={handleSearch}>
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" size={16} />
-              <input 
-                type="text" 
-                placeholder="Search stocks..." 
-                className="w-full pl-9 pr-4 py-2 bg-canvas border border-border rounded-full text-sm text-text-primary focus:outline-none focus:border-alpha transition-colors"
-                value={query}
-                onChange={(e) => { setQuery(e.target.value); setShowDropdown(true); }}
-                onFocus={() => { if(query) setShowDropdown(true); }}
-              />
-            </form>
-            {showDropdown && searchResults.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-border rounded-lg shadow-[0_8px_30px_rgb(0,0,0,0.5)] overflow-hidden z-[100] max-h-[300px] overflow-y-auto">
-                {searchResults.map((res: any) => (
-                   <div 
-                     key={res.slug}
-                     className="px-4 py-3 hover:bg-surface-hover cursor-pointer border-b border-border/50 last:border-0 flex justify-between items-center group"
-                     onMouseDown={(e) => {
-                        e.preventDefault(); // Prevents input onBlur from firing before click
-                        setQuery('');
-                        setShowDropdown(false);
-                        navigate(`/terminal/${res.slug}`);
-                     }}
-                   >
-                     <div className="flex flex-col">
-                       <span className="text-sm font-bold text-text-primary group-hover:text-alpha transition-colors truncate">{res.name}</span>
-                       <span className="text-[10px] text-text-secondary uppercase tracking-widest">{res.ticker}</span>
-                     </div>
-                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <GlobalSearch className="hidden md:block w-96 lg:w-[400px] xl:w-[480px]" />
         </div>
         <div className="flex gap-6 items-center">
           <Link to="/ai-research" className="flex items-center gap-2 px-4 py-2 bg-indigo-500/10 text-indigo-400 font-bold rounded-lg border border-indigo-500/30 hover:bg-indigo-500/20 transition-all shadow-[0_0_15px_rgba(99,102,241,0.2)]">
@@ -1095,6 +1104,12 @@ export const LandingPage = () => {
              className={`text-[9px] font-bold px-5 py-1 rounded-md transition-all tracking-widest ${tickerMode === 'indices' ? 'text-white bg-surface-hover shadow-sm border border-border' : 'text-text-secondary hover:text-white border border-transparent'}`}
            >
              INDICES
+           </button>
+           <button 
+             onClick={() => setTickerMode('funds')}
+             className={`text-[9px] font-bold px-5 py-1 rounded-md transition-all tracking-widest ${tickerMode === 'funds' ? 'text-white bg-surface-hover shadow-sm border border-border' : 'text-text-secondary hover:text-white border border-transparent'}`}
+           >
+             MUTUAL FUNDS
            </button>
         </div>
       </div>

@@ -5,12 +5,13 @@ import { Link } from 'react-router-dom';
 import { Search, Plus, Trash2, AlertTriangle, BellRing } from 'lucide-react';
 import { InfoTooltip } from '../components/InfoTooltip';
 import { StockLogo } from '../components/StockLogo';
+import { GlobalSearch } from '../components/GlobalSearch';
 import { Skeleton } from '../components/Skeleton';
 
 export const Watchlists = ({ isPanel = false }: { isPanel?: boolean }) => {
   const [watchlists, setWatchlists] = useState<{ id: string, name: string, slugs: string[] }[]>([]);
   const [activeListId, setActiveListId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [newListName, setNewListName] = useState('');
   
   const { data: allStocks, isLoading } = useQuery({
     queryKey: ['allStocks'],
@@ -65,7 +66,7 @@ export const Watchlists = ({ isPanel = false }: { isPanel?: boolean }) => {
       return w;
     });
     saveWatchlists(newList);
-    setSearchQuery('');
+    // State is maintained in GlobalSearch
   };
 
   const removeStock = (slug: string) => {
@@ -80,9 +81,6 @@ export const Watchlists = ({ isPanel = false }: { isPanel?: boolean }) => {
   };
 
   const activeList = watchlists.find(w => w.id === activeListId);
-  const searchResults = searchQuery.length > 1 && allStocks 
-    ? allStocks.filter((s: any) => s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.ticker.toLowerCase().includes(searchQuery.toLowerCase())).slice(0, 5)
-    : [];
 
   const getScoreColor = (val: number) => {
     if (val >= 80) return "text-[#42bd7f]";
@@ -179,29 +177,10 @@ export const Watchlists = ({ isPanel = false }: { isPanel?: boolean }) => {
               <div className={`flex justify-between items-center bg-surface border-b border-border ${isPanel ? 'p-2' : 'p-4'}`}>
                 <h3 className={`${isPanel ? 'text-sm' : 'text-xl'} font-bold text-text-primary`}>{activeList.name}</h3>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none text-text-secondary">
-                    <Search size={14} />
-                  </div>
-                  <input
-                    type="text"
-                    className={`pl-8 pr-4 py-1.5 bg-canvas border border-border rounded-md text-text-primary focus:outline-none focus:border-alpha transition-colors ${isPanel ? 'text-xs w-32' : 'text-sm w-64'}`}
-                    placeholder="Add stock..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                  <GlobalSearch 
+                    className={isPanel ? 'w-48' : 'w-64'} 
+                    onSelect={(res) => addStock(res.slug)}
                   />
-                  {searchResults.length > 0 && (
-                    <div className="absolute top-full right-0 mt-2 bg-surface border border-border rounded-lg shadow-xl z-50 w-48 overflow-hidden">
-                      {searchResults.map((s: any) => (
-                        <div key={s.slug} className="p-2 hover:bg-surface-hover cursor-pointer text-xs" onClick={() => addStock(s.slug)}>
-                          <div className="flex items-center gap-2">
-                            <StockLogo ticker={s.ticker} className="w-5 h-5" textClass="text-[8px]" fallbackClass="bg-surface-hover border border-border text-text-primary" />
-                            <div className="font-bold text-text-primary">{s.ticker}</div>
-                          </div>
-                          <div className="text-text-secondary truncate">{s.name}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
               </div>
                 

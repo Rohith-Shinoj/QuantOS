@@ -82,13 +82,40 @@ def init_db(target_dir):
                 rel_json_str = f.read()
                 rel_data = json.loads(rel_json_str)
         
+        # Temporal & Price Viability Gate (Phase 1 Filter)
+        ohlcv = abs_data.get("OHLCV", [])
+        if not ohlcv or len(ohlcv) < 252:
+            continue
+            
+        try:
+            current_price = float(ohlcv[-1].get("Close", 0))
+            if current_price < 5.0:
+                continue
+        except Exception:
+            continue
+            
         # Materialize fields
         ticker = abs_data.get("ticker") or "N/A"
         name = abs_data.get("displayName")
         market_cap_type = abs_data.get("cappedType")
         market_cap = abs_data.get("marketCap")
         pe_ratio = abs_data.get("peRatio")
-        day_change = abs_data.get("day change")
+        
+        # Calculate true day change from OHLCV array instead of flawed API string
+        day_change = "0.00 (0.00%)"
+        ohlcv = abs_data.get("OHLCV", [])
+        if len(ohlcv) >= 2:
+            try:
+                c1 = float(ohlcv[-1].get("Close", 0))
+                c2 = float(ohlcv[-2].get("Close", 0))
+                if c2 > 0:
+                    diff = c1 - c2
+                    pct = (diff / c2) * 100
+                    day_change = f"{diff:.2f} ({pct:.2f}%)"
+            except:
+                day_change = abs_data.get("day change", "0.00 (0.00%)")
+        else:
+            day_change = abs_data.get("day change", "0.00 (0.00%)")
         
         # Extract from relative data
         industry = rel_data.get("meta_features", {}).get("industry_name")
@@ -111,18 +138,43 @@ def init_db(target_dir):
     if insert_data:
         con.executemany("INSERT INTO stocks_staging VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", insert_data)
             
-    # Calculate RS Rating (1-99 percentile) and create final table
-    print("Calculating Global RS Ratings...")
+    import glob
+    import datetime
+    
+    snapshot_files = sorted(glob.glob("datasets/snapshots/snapshot_*.parquet"))
+    t_minus1_file = None
+    if snapshot_files:
+        today = datetime.datetime.now()
+        best_diff = 999999
+        for f in snapshot_files:
+            basename = os.path.basename(f).replace('snapshot_', '').replace('.parquet', '')
+            try:
+                d = datetime.datetime.strptime(basename, '%Y-%m-%d')
+                diff = abs((today - d).days - 365)
+                if diff < best_diff:
+                    best_diff = diff
+                    t_minus1_file = f
+            except: pass
+            
+    if t_minus1_file:
+        print(f"Joining T-1 Historical Snapshot: {t_minus1_file}")
+        con.execute(f"CREATE TABLE historical_snap AS SELECT slug, absolute_data as abs_tminus1 FROM '{t_minus1_file}'")
+    else:
+        con.execute("CREATE TABLE historical_snap AS SELECT '' as slug, '' as abs_tminus1")
+        
+    print("Calculating Global RS Ratings and Joining T-1 Data...")
     con.execute("""
         CREATE TABLE stocks AS 
         WITH ranked AS (
             SELECT 
-                *,
+                s.*,
+                h.abs_tminus1,
                 PERCENT_RANK() OVER (
-                    PARTITION BY (CASE WHEN CAST(json_extract_string(relative_data, '$.relative_strength_signals.rs_nifty_52w') AS DOUBLE) IS NOT NULL THEN 1 ELSE 0 END)
-                    ORDER BY CAST(json_extract_string(relative_data, '$.relative_strength_signals.rs_nifty_52w') AS DOUBLE) ASC
+                    PARTITION BY (CASE WHEN CAST(json_extract_string(s.relative_data, '$.relative_strength_signals.rs_nifty_52w') AS DOUBLE) IS NOT NULL THEN 1 ELSE 0 END)
+                    ORDER BY CAST(json_extract_string(s.relative_data, '$.relative_strength_signals.rs_nifty_52w') AS DOUBLE) ASC
                 ) as raw_rank
-            FROM stocks_staging
+            FROM stocks_staging s
+            LEFT JOIN historical_snap h ON s.slug = h.slug
         )
         SELECT 
             *,

@@ -46,8 +46,8 @@ python3 ml_engine/archive_manager.py \
     --new-db "datasets/$INACTIVE_BUFFER/market_data.duckdb"
 
 # Step 7: Predictive Intelligence Inference
-echo "Step 7: Running ensemble inference and SHAP explainability..."
-python3 ml_engine/predictor.py \
+echo "Step 7: Running dual-engine inference and SHAP explainability..."
+python3 ml_engine/predictor_2.py \
     --db "datasets/$INACTIVE_BUFFER/market_data.duckdb" \
     --parquet "datasets/$INACTIVE_BUFFER/market_data.parquet"
 
@@ -63,5 +63,8 @@ echo "Step 9: Signaling backend reload..."
 curl -X POST http://localhost:8000/api/admin/reload_db \
      -H "X-Admin-Token: $ADMIN_TOKEN" \
      --max-time 30 --retry 5 --retry-delay 5 --retry-connrefused
+
+echo "Step 10: Snapshotting user portfolio..."
+python3 scripts/snapshot_portfolio.py
 
 echo "--- Data Update Successful ---"

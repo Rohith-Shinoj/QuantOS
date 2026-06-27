@@ -1,8 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Activity, LayoutDashboard, LineChart, Target, FileText, Search } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchAllStocks } from './api';
+import { fetchAllStocks, fetchMutualFunds } from './api';
 import { CompanySnapshot } from './pages/CompanySnapshot';
 import { Screener } from './pages/Screener';
 import { MarketOverview } from './pages/MarketOverview';
@@ -17,62 +17,7 @@ import { MutualFundSnapshot } from './pages/MutualFundSnapshot';
 import { TerminalLayout } from './layouts/TerminalLayout';
 import { useAppStore } from './store';
 
-const GlobalSearch = () => {
-  const [query, setQuery] = useState('');
-  const [isOpen, setIsOpen] = useState(false);
-  const navigate = useNavigate();
-
-  const { data: stocks } = useQuery({
-    queryKey: ['allStocks'],
-    queryFn: fetchAllStocks,
-  });
-
-  const filtered = query.length > 1 && stocks 
-    ? stocks.filter((s: any) => 
-        (s.ticker && s.ticker.toLowerCase().includes(query.toLowerCase())) || 
-        (s.name && s.name.toLowerCase().includes(query.toLowerCase()))
-      ).slice(0, 8)
-    : [];
-
-  return (
-    <div className="relative w-full max-w-md">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" size={16} />
-        <input 
-          type="text"
-          placeholder="Search any stock (e.g. HDFC, Reliance)..."
-          value={query}
-          onChange={(e) => { setQuery(e.target.value); setIsOpen(true); }}
-          onFocus={() => setIsOpen(true)}
-          onBlur={() => setTimeout(() => setIsOpen(false), 200)}
-          className="w-full pl-10 pr-4 py-2 text-sm bg-surface border border-border rounded-md text-text-primary focus:outline-none focus:border-alpha transition-colors"
-        />
-      </div>
-      {isOpen && filtered.length > 0 && (
-        <div className="absolute top-full mt-2 w-full bg-surface border border-border rounded-md shadow-xl overflow-hidden z-50">
-          {filtered.map((stock: any) => (
-            <div 
-              key={stock.slug}
-              className="px-4 py-3 hover:bg-surface-hover cursor-pointer border-b border-border last:border-0"
-              onMouseDown={() => {
-                navigate(`/terminal/${stock.slug}`);
-                setQuery('');
-                setIsOpen(false);
-              }}
-            >
-              <div className="flex justify-between items-center">
-                <span className="font-bold text-text-primary">{stock.ticker}</span>
-                <span className="text-xs text-text-secondary px-2 py-0.5 bg-canvas rounded">{stock.industry || 'Equity'}</span>
-              </div>
-              <div className="text-sm text-text-secondary truncate mt-0.5">{stock.name}</div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
+import { GlobalSearch } from './components/GlobalSearch';
 // Layout Component
 const Layout = () => {
   const { selectedStockSlug } = useAppStore();

@@ -16,7 +16,10 @@
 14       relative_data        JSON
 15            raw_rank      DOUBLE
 16           rs_rating      DOUBLE
-17         alpha_score      DOUBLE
-18       shap_reason_1     VARCHAR
-19       shap_reason_2     VARCHAR
-20       shap_reason_3     VARCHAR
+17  alpha_score_conservative      DOUBLE
+18  alpha_score_moonshot      DOUBLE
+19       shap_reason_1     VARCHAR
+20       shap_reason_2     VARCHAR
+21       shap_reason_3     VARCHAR
+22 ml_confidence_conservative     VARCHAR
+23 ml_confidence_moonshot     VARCHAR

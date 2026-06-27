@@ -289,7 +289,7 @@ class MLDatasetEngineer:
         except: qs = []
         if len(qs) < 2: return {"institutional_accumulation_qoq": np.nan, "free_float_pct": 0.5, "promoter_pledge_delta": np.nan}
         t, t1 = qs[-1], qs[-2]
-        def get_inst(q): return get_nested(shp[q], "mutualFunds.percent", 0.0) + get_nested(shp[q], "foreignInstitutions.percent", 0.0)
+        def get_inst(q): return get_nested(shp[q], "mutualFunds.percent", 0.0) + get_nested(shp[q], "foreignInstitutions.percent", 0.0) + get_nested(shp[q], "otherDomesticInstitutions.percent", 0.0)
         inst_t, inst_t1 = get_inst(t), get_inst(t1)
         pledge_t, pledge_t1 = get_nested(shp[t], "promoters.pledgedPercent", 0.0), get_nested(shp[t1], "promoters.pledgedPercent", 0.0)
         prom_total = get_nested(shp[t], "promoters.total", 0.0)

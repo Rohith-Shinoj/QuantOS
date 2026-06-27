@@ -29,6 +29,7 @@ load_dotenv(dotenv_path=env_path, override=True)
 
 from agent_api import router as agent_router
 from screener_api import router as screener_router
+from portfolio_api import router as portfolio_router
 
 app = FastAPI(title="Quant Dashboard API")
 
@@ -43,6 +44,7 @@ app.add_middleware(
 
 app.include_router(agent_router)
 app.include_router(screener_router)
+app.include_router(portfolio_router)
 
 # Use absolute path to resolve the symlink relative to this file
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -203,7 +205,7 @@ async def list_stocks():
                 slug, ticker, name, market_cap_type, market_cap, 
                 pe_ratio, day_change, industry, inst_accum, 
                 volatility_squeeze, qes_flag, rs_rating,
-                alpha_score, shap_reason_1, shap_reason_2, shap_reason_3,
+                alpha_score_conservative, alpha_score_moonshot, shap_reason_1, shap_reason_2, shap_reason_3,
                 absolute_data->>'$."live price"',
                 absolute_data->>'$.roe'
             FROM stocks
@@ -224,12 +226,13 @@ async def list_stocks():
                 "v_squeeze": r[9],
                 "qes_flag": r[10],
                 "rs_rating": r[11],
-                "alpha_score": r[12] if r[12] is not None else 0.0,
-                "shap_reason_1": r[13],
-                "shap_reason_2": r[14],
-                "shap_reason_3": r[15],
-                "livePrice": r[16],
-                "roe": r[17] if r[17] is not None else 0.0
+                "alpha_score_conservative": r[12] if r[12] is not None else 0.0,
+                "alpha_score_moonshot": r[13] if r[13] is not None else 0.0,
+                "shap_reason_1": r[14],
+                "shap_reason_2": r[15],
+                "shap_reason_3": r[16],
+                "livePrice": r[17],
+                "roe": r[18] if r[18] is not None else 0.0
             } for r in result
         ]
         return _search_cache
@@ -621,7 +624,7 @@ async def analyze_portfolio(request: PortfolioRequest):
                     CAST(json_extract_string(relative_data, '$.aggregated_news_signals.active_regulatory_flag') AS INT) as reg_flag,
                     pledge_delta,
                     tax_divergence,
-                    alpha_score,
+                    alpha_score_conservative as alpha_score,
                     industry
                 FROM stocks WHERE slug = ?
             """, (slug,)).fetchone()
@@ -660,16 +663,16 @@ async def analyze_portfolio(request: PortfolioRequest):
                 # Smart Swap Logic: If alpha is low or risk is high, find a better stock in the same industry AND same market cap tier
                 if r["alpha_score"] < 0.5 or r["individual_score"] >= 30:
                     better_stock = con.execute("""
-                        SELECT slug, ticker, alpha_score 
+                        SELECT slug, ticker, alpha_score_conservative as alpha_score 
                         FROM stocks 
                         WHERE industry = ? 
                         AND market_cap_type = ?
                         AND slug != ?
-                        AND alpha_score > ? + 0.10
+                        AND alpha_score_conservative > ? + 0.10
                         AND qes_flag = 0
                         AND (pledge_delta IS NULL OR pledge_delta <= 1.0)
                         AND (tax_divergence IS NULL OR tax_divergence <= 0.3)
-                        ORDER BY alpha_score DESC 
+                        ORDER BY alpha_score_conservative DESC 
                         LIMIT 1
                     """, (r["industry"], r["market_cap_type"], r["slug"], r["alpha_score"])).fetchone()
                     
@@ -784,7 +787,7 @@ async def ai_analyze_portfolio(req: PortfolioAIRequest):
         # Gather data and calculate weights
         portfolio_data = []
         for h in req.stockHoldings:
-            stock = con.execute("SELECT ticker, name, industry, pe_ratio, alpha_score, volatility_squeeze FROM stocks WHERE slug = ?", (h.slug,)).fetchone()
+            stock = con.execute("SELECT ticker, name, industry, pe_ratio, alpha_score_conservative as alpha_score, volatility_squeeze FROM stocks WHERE slug = ?", (h.slug,)).fetchone()
             if stock:
                 weight = (h.amount / total_value) * 100
                 portfolio_data.append({

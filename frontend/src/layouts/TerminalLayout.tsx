@@ -20,64 +20,7 @@ import { Watchlists } from '../pages/Watchlists';
 import { StockLogo } from '../components/StockLogo';
 import { fetchAllStocks, fetchStockData } from '../api';
 
-export const GlobalSearch = () => {
-  const [query, setQuery] = useState('');
-  const [isOpen, setIsOpen] = useState(false);
-  const navigate = useNavigate();
-  const { setSelectedStockSlug } = useAppStore();
-
-  const { data: stocks } = useQuery({ queryKey: ['allStocks'], queryFn: fetchAllStocks });
-
-  const filtered = query.length > 1 && stocks 
-    ? stocks.filter((s: any) => 
-        (s.ticker && s.ticker.toLowerCase().includes(query.toLowerCase())) || 
-        (s.name && s.name.toLowerCase().includes(query.toLowerCase()))
-      ).slice(0, 8)
-    : [];
-
-  return (
-    <div className="relative w-64 z-50">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" size={14} />
-        <input 
-          type="text"
-          placeholder="Symbol Search"
-          value={query}
-          onChange={(e) => { setQuery(e.target.value); setIsOpen(true); }}
-          onFocus={() => setIsOpen(true)}
-          onBlur={() => setTimeout(() => setIsOpen(false), 200)}
-          className="w-full pl-9 pr-4 py-1.5 text-sm bg-surface-hover border border-border rounded-md text-text-primary focus:outline-none focus:border-alpha transition-colors placeholder:text-text-secondary font-medium"
-        />
-      </div>
-      {isOpen && filtered.length > 0 && (
-        <div className="absolute top-full mt-1 w-full bg-surface border border-border rounded-md shadow-2xl overflow-hidden z-50">
-          {filtered.map((stock: any) => (
-            <div 
-              key={stock.slug}
-              className="px-4 py-3 hover:bg-surface-hover cursor-pointer border-b border-border last:border-0 flex items-center gap-3"
-              onMouseDown={() => {
-                setSelectedStockSlug(stock.slug);
-                navigate(`/terminal/${stock.slug}`);
-                setQuery('');
-                setIsOpen(false);
-              }}
-            >
-              <StockLogo ticker={stock.ticker} className="w-8 h-8 shrink-0" textClass="text-[10px]" fallbackClass="bg-canvas border border-border text-text-primary" />
-              <div className="flex flex-col flex-1 overflow-hidden">
-                <div className="flex justify-between items-center w-full">
-                  <span className="font-bold text-text-primary text-sm">{stock.ticker}</span>
-                  <span className="text-[10px] text-text-secondary px-1.5 py-0.5 bg-canvas rounded uppercase shrink-0">{stock.industry || 'Equity'}</span>
-                </div>
-                <div className="text-xs text-text-secondary truncate mt-0.5">{stock.name}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
+import { GlobalSearch } from '../components/GlobalSearch';
 
 
 export const TerminalLayout = () => {

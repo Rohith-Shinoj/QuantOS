@@ -30,7 +30,9 @@ def query_quant_database(ticker: str) -> str:
                 inst_accum,
                 volatility_squeeze,
                 qes_flag,
-                alpha_score,
+                GREATEST(COALESCE(alpha_score_conservative, 0), COALESCE(alpha_score_moonshot, 0)) AS alpha_score,
+                alpha_score_conservative,
+                alpha_score_moonshot,
                 pledge_delta,
                 tax_divergence,
                 shap_reason_1,
@@ -48,6 +50,7 @@ def query_quant_database(ticker: str) -> str:
         columns = [
             "ticker", "name", "industry", "market_cap", "pe_ratio", "rs_rating", 
             "inst_accum", "volatility_squeeze", "qes_flag", "alpha_score", 
+            "alpha_score_conservative", "alpha_score_moonshot",
             "pledge_delta", "tax_divergence", "shap_reason_1", "shap_reason_2", "absolute_data"
         ]
         
@@ -68,7 +71,7 @@ def query_quant_database(ticker: str) -> str:
         
         # Fetch peer comps for the same industry
         peer_query = """
-            SELECT ticker, alpha_score, pe_ratio, absolute_data,
+            SELECT ticker, GREATEST(COALESCE(alpha_score_conservative, 0), COALESCE(alpha_score_moonshot, 0)) AS alpha_score, pe_ratio, absolute_data,
                    CASE WHEN pe_ratio < ? THEN 'UNDERVALUED' ELSE 'OVERVALUED' END as valuation_status
             FROM stocks 
             WHERE industry = ? AND ticker != ?
@@ -143,7 +146,7 @@ def execute_duckdb_query(query: str) -> str:
     CREATE TABLE stocks (
         slug VARCHAR, ticker VARCHAR, name VARCHAR, market_cap_type VARCHAR, market_cap DOUBLE, pe_ratio DOUBLE,
         day_change VARCHAR, industry VARCHAR, inst_accum DOUBLE, volatility_squeeze DOUBLE, qes_flag INTEGER,
-        tax_divergence DOUBLE, pledge_delta DOUBLE, absolute_data JSON, relative_data JSON, rs_rating DOUBLE, alpha_score DOUBLE
+        tax_divergence DOUBLE, pledge_delta DOUBLE, absolute_data JSON, relative_data JSON, rs_rating DOUBLE, alpha_score_conservative DOUBLE, alpha_score_moonshot DOUBLE
     );
     
     -- Daily Equities Timeseries (OLAP)

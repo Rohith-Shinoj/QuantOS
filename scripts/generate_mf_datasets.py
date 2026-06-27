@@ -46,7 +46,7 @@ def process_fund(fund):
 
     return fund
 
-def fetch_all_mutual_funds(target_dir, full_refresh=False):
+def fetch_all_mutual_funds(target_dir, full_refresh=False, extra_slugs=None):
     all_funds = []
     page = 0
     size = 100
@@ -55,30 +55,80 @@ def fetch_all_mutual_funds(target_dir, full_refresh=False):
     print(f"Fetching Mutual Funds data to {target_dir}...")
     
     with tqdm(desc="Fetching pages") as pbar:
-        while True:
-            try:
-                url = f"{base_url}?available_for_investment=true&doc_type=scheme&index=false&page={page}&plan_type=Direct&scheme_type=Growth&size={size}&sort_by=3"
-                response = requests.get(url, timeout=10)
-                response.raise_for_status()
-                data = response.json()
-                
-                content = data.get("content", [])
-                if not content:
-                    break
+        for idx_flag in ["false", "true"]:
+            page = 0
+            while True:
+                try:
+                    url = f"{base_url}?available_for_investment=true&doc_type=scheme&index={idx_flag}&page={page}&plan_type=Direct&scheme_type=Growth&size={size}&sort_by=3"
+                    response = requests.get(url, timeout=10)
+                    response.raise_for_status()
+                    data = response.json()
                     
-                all_funds.extend(content)
-                pbar.update(1)
-                pbar.set_postfix(funds=len(all_funds))
-                
-                if len(content) < size:
-                    break
+                    content = data.get("content", [])
+                    if not content:
+                        break
+                        
+                    all_funds.extend(content)
+                    pbar.update(1)
+                    pbar.set_postfix(funds=len(all_funds))
                     
-                page += 1
-                sleep(0.2)  # Polite delay
-            except Exception as e:
-                print(f"Error fetching page {page}: {e}")
-                break
+                    if len(content) < size:
+                        break
+                        
+                    page += 1
+                    sleep(0.2)  # Polite delay
+                except Exception as e:
+                    print(f"Error fetching page {page} with index={idx_flag}: {e}")
+                    break
             
+    # Explicitly fetch missing funds from the provided extra slugs file
+    if extra_slugs and os.path.exists(extra_slugs):
+        try:
+            with open(extra_slugs, "r") as f:
+                missing_slugs = [line.strip() for line in f if line.strip()]
+            
+            existing_slugs = set()
+            for f in all_funds:
+                if f.get("search_id"): existing_slugs.add(f["search_id"])
+                if f.get("direct_search_id"): existing_slugs.add(f["direct_search_id"])
+                if f.get("scheme_code"): existing_slugs.add(str(f["scheme_code"]))
+                
+            missing_slugs = [slug for slug in missing_slugs if slug not in existing_slugs]
+            
+            if missing_slugs:
+                print(f"Fetching {len(missing_slugs)} extra funds manually...")
+                for slug in missing_slugs:
+                    try:
+                        url = f"https://groww.in/mutual-funds/{slug}"
+                        headers = {"User-Agent": "Mozilla/5.0"}
+                        html = requests.get(url, headers=headers, timeout=10).text
+                        soup = BeautifulSoup(html, "html.parser")
+                        script = soup.find("script", id="__NEXT_DATA__")
+                        if script:
+                            data = json.loads(script.string)
+                            mf_data = data.get("props", {}).get("pageProps", {}).get("mfServerSideData", {})
+                            if mf_data:
+                                fund = {
+                                    "search_id": mf_data.get("search_id", slug),
+                                    "direct_search_id": mf_data.get("direct_search_id", slug),
+                                    "scheme_code": mf_data.get("scheme_code"),
+                                    "direct_scheme_code": mf_data.get("direct_scheme_code"),
+                                    "scheme_name": mf_data.get("scheme_name", slug.replace("-", " ").title()),
+                                    "fund_name": mf_data.get("fund_name", ""),
+                                    "category": mf_data.get("category", "Mutual Fund"),
+                                    "sub_category": mf_data.get("sub_category", ""),
+                                    "nav": mf_data.get("nav", 0),
+                                    "amc": mf_data.get("amc", ""),
+                                    "fund_house": mf_data.get("fund_house", ""),
+                                    "return1y": mf_data.get("return_stats", {}).get("return1y", 0) if isinstance(mf_data.get("return_stats"), dict) else 0,
+                                }
+                                all_funds.append(fund)
+                                print(f"Added extra fund: {slug}")
+                    except Exception as e:
+                        print(f"Failed to manually fetch {slug}: {e}")
+        except Exception as e:
+            print(f"Error reading extra slugs file: {e}")
+
     # If full refresh is enabled, fetch detailed data
     if full_refresh:
         print(f"Starting FULL REFRESH: Scraping detailed data for {len(all_funds)} funds with 32 workers...")
@@ -113,6 +163,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--target", required=True, help="Target buffer directory (e.g., datasets/B)")
     parser.add_argument("--full-refresh", action="store_true", help="Scrape detailed HTML for holdings and ratios")
+    parser.add_argument("--extra-slugs", default="mf_slugs.txt", help="Text file with additional slugs to fetch")
     args = parser.parse_args()
     
-    fetch_all_mutual_funds(args.target, args.full_refresh)
+    fetch_all_mutual_funds(args.target, args.full_refresh, args.extra_slugs)

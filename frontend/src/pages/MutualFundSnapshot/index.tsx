@@ -6,7 +6,8 @@ import { ChevronLeft, HelpCircle, TrendingDown, Target, Shield, Activity, BarCha
 import { MutualFundPriceChart } from './MutualFundPriceChart';
 import { RollingReturnsChart } from './RollingReturnsChart';
 import { AIAssistantOverlay } from '../../components/AIAssistantOverlay';
-import { GlobalSearch } from '../../layouts/TerminalLayout';
+import { TerminalLayout } from '../../layouts/TerminalLayout';
+import { GlobalSearch } from '../../components/GlobalSearch';
 import { SipSimulatorCard } from './SipSimulatorCard';
 import { AlphaDeviationCard } from './AlphaDeviationCard';
 import { OperationalProfileCard } from './OperationalProfileCard';

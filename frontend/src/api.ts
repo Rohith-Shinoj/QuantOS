@@ -2,6 +2,16 @@ import axios from 'axios';
 
 const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
+export const fetchPortfolio = async () => {
+  const response = await axios.get(`${API_BASE_URL}/portfolio`);
+  return response.data;
+};
+
+export const savePortfolio = async (payload: any) => {
+  const response = await axios.post(`${API_BASE_URL}/portfolio`, payload);
+  return response.data;
+};
+
 export const fetchStockData = async (slug: string) => {
   const response = await axios.get(`${API_BASE_URL}/stocks/${slug}`);
   return response.data;
