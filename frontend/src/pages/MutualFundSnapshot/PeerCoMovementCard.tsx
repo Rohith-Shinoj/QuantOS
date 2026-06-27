@@ -56,33 +56,33 @@ export const PeerCoMovementCard = ({ fund }: { fund: any }) => {
       
 
       <div className="flex-1 flex flex-col gap-3 pr-2">
-        <div className="flex justify-between items-center text-[10px] font-bold text-text-secondary uppercase tracking-wider pb-2 border-b border-white/5 sticky top-0 bg-[#111114] z-10">
+        <div className="flex justify-between items-center text-[10px] font-semibold text-text-secondary uppercase tracking-wider pb-2 border-b border-white/5 sticky top-0 bg-[#111114] z-10">
           <span className="flex-1">Competing Peer ({category})</span>
           <span className="w-12 text-center">Rank</span>
           <span className="w-16 text-right">Correlation</span>
         </div>
         
         {peers.map((peer, i) => {
-          const rank = period === '1Y' ? peer.rank1y : period === '3Y' ? peer.rank3y : peer.rank5y;
+          const rank = period === '1Y' ? peer.rank1y : period === '3Y' ? peer.rank3y : period === '5Y' ? peer.rank5y : peer.rank5y;
           const isHighCorr = peer.corr > 80;
           return (
             <div key={i} className="flex justify-between items-center py-2 shrink-0 group">
               <div className="flex flex-col flex-1 min-w-0 pr-2">
                 <div className="flex items-center gap-2 truncate">
-                  <span className="text-[11px] font-bold text-text-primary truncate">{peer.name}</span>
+                  <span className="text-xs font-semibold text-text-primary truncate">{peer.name}</span>
                   {isHighCorr && (
-                    <span className="bg-red-500/10 text-red-400 text-[8px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider shrink-0 border border-red-500/30">
+                    <span className="bg-red-500/10 text-red-400 text-[9px] px-1 py-px rounded font-medium uppercase tracking-widest shrink-0 border border-red-500/20 transform scale-75 origin-left">
                       Unhealthy Correlation
                     </span>
                   )}
                 </div>
-                <span className="text-[9px] text-text-secondary">Category Peer</span>
+                <span className="text-[10px] text-text-secondary">Category Peer</span>
               </div>
               <div className="w-12 text-center">
-                <span className="text-xs font-bold font-mono text-white">#{rank}</span>
+                <span className="text-xs font-semibold font-mono text-white">#{rank}</span>
               </div>
               <div className="w-16 flex flex-col items-end gap-1">
-                <span className={`text-[11px] font-bold font-mono ${isHighCorr ? 'text-red-400' : 'text-emerald-400'}`}>
+                <span className={`text-[11px] font-semibold font-mono ${isHighCorr ? 'text-red-400' : 'text-emerald-400'}`}>
                   {peer.corr.toFixed(1)}%
                 </span>
                 <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
@@ -94,7 +94,7 @@ export const PeerCoMovementCard = ({ fund }: { fund: any }) => {
         })}
         
         <div className="mt-2 text-[10px] text-text-secondary leading-relaxed p-2 bg-white/5 rounded border border-white/5 border-dashed">
-          <span className="font-bold text-white">Insight:</span> Buying multiple funds with &gt;80% correlation offers zero diversification benefit. You are simply paying double fees for the exact same underlying asset movements.
+          <span className="font-semibold text-white">Insight:</span> Buying multiple funds with &gt;80% correlation offers zero diversification benefit. You are simply paying double fees for the exact same underlying asset movements.
         </div>
       </div>
     </div>

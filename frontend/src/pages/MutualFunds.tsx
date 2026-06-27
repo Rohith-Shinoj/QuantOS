@@ -6,6 +6,7 @@ import {
   Treemap
 } from 'recharts';
 import { Filter, TrendingUp, AlertTriangle, Shield, Maximize2, X } from 'lucide-react';
+import { MarketCaptureScatterplot } from './MutualFunds/MarketCaptureScatterplot';
 
 export const MutualFunds = () => {
   const [funds, setFunds] = useState<any[]>([]);
@@ -36,26 +37,6 @@ export const MutualFunds = () => {
     setLoading(false);
   };
 
-  // Prepare Scatter Data
-  const scatterData = funds
-    .filter(f => f.return3y && f.advanced_stats)
-    .map(f => {
-      let stats = [];
-      try {
-        stats = typeof f.advanced_stats === 'string' ? JSON.parse(f.advanced_stats) : f.advanced_stats;
-      } catch(e) {}
-      
-      const betaStat = stats?.find((s:any) => s.name === 'Beta');
-      const beta = betaStat ? parseFloat(betaStat.value) : 1;
-      
-      return {
-        name: f.fund_name || f.scheme_name,
-        return: parseFloat(f.return3y),
-        risk: beta,
-        aum: f.aum ? parseFloat(f.aum) : 100
-      };
-    }).filter(d => !isNaN(d.risk) && !isNaN(d.return));
-
   // Extract holdings for modal
   const getFundHoldings = (fund: any) => {
     if (!fund.detailed_holdings) return [];
@@ -81,33 +62,9 @@ export const MutualFunds = () => {
       </div>
 
       {/* Top Visualizations Panel */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-surface rounded-lg border border-border p-6">
-          <h3 className="text-sm font-semibold text-text-primary mb-4 flex items-center">
-            <TrendingUp className="w-4 h-4 mr-2 text-alpha" />
-            Risk vs. 3Y Return
-          </h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <ScatterChart margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#2D3748" vertical={false} />
-                <XAxis type="number" dataKey="risk" name="Beta (Risk)" stroke="#A0AEC0" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis type="number" dataKey="return" name="3Y Return %" stroke="#A0AEC0" fontSize={12} tickLine={false} axisLine={false} />
-                <ZAxis type="number" dataKey="aum" range={[50, 400]} name="AUM" />
-                <RechartsTooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ backgroundColor: '#1A202C', borderColor: '#2D3748', borderRadius: '8px' }} />
-                <Scatter name="Funds" data={scatterData} fill="#3B82F6" opacity={0.6} />
-              </ScatterChart>
-            </ResponsiveContainer>
-          </div>
-          <p className="text-xs text-text-secondary text-center mt-2">X-Axis: Beta (Volatility), Y-Axis: 3Y Return %, Bubble Size: AUM</p>
-        </div>
-
-        <div className="bg-surface rounded-lg border border-border p-6 flex flex-col justify-center items-center text-center">
-          <Shield className="w-10 h-10 text-alpha mb-4 opacity-80" />
-          <h3 className="text-lg font-bold text-text-primary">Core & Satellite Ready</h3>
-          <p className="text-text-secondary mt-2 text-sm max-w-sm">
-            Use these mutual funds as the stable core of your portfolio, reducing overall volatility while allowing high-alpha satellite stock picks.
-          </p>
+      <div className="w-full">
+        <div className="h-[500px]">
+          <MarketCaptureScatterplot />
         </div>
       </div>
 

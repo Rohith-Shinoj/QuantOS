@@ -1,0 +1,5 @@
+[] Bug of the extra stuff from landing page leaking in stock temrinal view
+[] MF Dashboard Scatterplot
+[] Moving the terminal -> stock links
+[] Replacing the slugs with tickers in urls
+[] MAJOR - Upgade portfolio analyzer to include number units, prices, allow monitoring like stocks, filters, etc

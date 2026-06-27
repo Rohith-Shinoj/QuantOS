@@ -92,7 +92,7 @@ const Layout = () => {
   return (
     <div className="flex h-screen bg-canvas text-text-primary overflow-hidden">
       {/* Sidebar Navigation */}
-      <aside className="w-16 lg:w-64 border-r border-border bg-surface flex flex-col shrink-0 transition-all duration-300 z-40">
+      <aside className={`border-r border-border bg-surface flex flex-col shrink-0 transition-all duration-300 z-40 ${location.pathname === '/portfolio' ? 'hidden' : 'w-16 lg:w-64'}`}>
         <div className="h-16 flex items-center justify-center lg:justify-start lg:px-6 border-b border-border shrink-0">
           <img src="../../logo-nobg.png" alt="Finugreek" className="h-8 w-auto object-contain" />
         </div>

@@ -481,7 +481,7 @@ class GrowwFetcher:
 
     def get_stock_data(self, slug):
         """Unified fetch for all metadata with exponential backoff for 429s."""
-        KNOWN_INDICES = ["nifty", "india-vix", "sp-bse-sensex", "nifty-smallcap-100", "nifty-midcap", "nifty-total-market-index", "nifty-metal", "nifty-it", "nifty-bank"]
+        KNOWN_INDICES = ["nifty", "india-vix", "sp-bse-sensex", "nifty-smallcap-100", "nifty-midcap", "nifty-total-market-index", "nifty-metal", "nifty-it", "nifty-bank", "nifty-next", "nifty-midcap-150", "nifty-pharma", "nifty-218500", "nifty-auto", "nifty-financial-services", "nifty-realty", "nifty-psu-bank", "nifty-fmcg", "nifty-pvt-bank"]
         if slug in KNOWN_INDICES:
             path_type = "indices"
             url = f"https://groww.in/indices/{slug}"
@@ -581,7 +581,7 @@ def process_stock_unified(slug, fetcher, index_map, market_breadth_map, args):
         if not raw: return False
         
         page_props = raw["raw_next_data"]
-        KNOWN_INDICES = ["nifty", "india-vix", "sp-bse-sensex", "nifty-smallcap-100", "nifty-midcap", "nifty-total-market-index", "nifty-metal", "nifty-it", "nifty-bank"]
+        KNOWN_INDICES = ["nifty", "india-vix", "sp-bse-sensex", "nifty-smallcap-100", "nifty-midcap", "nifty-total-market-index", "nifty-metal", "nifty-it", "nifty-bank", "nifty-next", "nifty-midcap-150", "nifty-pharma", "nifty-218500", "nifty-auto", "nifty-financial-services", "nifty-realty", "nifty-psu-bank", "nifty-fmcg", "nifty-pvt-bank"]
         if slug in KNOWN_INDICES:
             stock_data = page_props.get("indexData", {})
         else:

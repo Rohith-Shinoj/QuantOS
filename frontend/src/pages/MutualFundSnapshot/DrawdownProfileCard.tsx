@@ -6,53 +6,41 @@ export const DrawdownProfileCard = ({ fund }: { fund: any }) => {
   const [period, setPeriod] = useState('5Y');
   
   const data = useMemo(() => {
-    // Generate synthetic drawdown data that looks authentic
-    const seed = fund?.scheme_code ? parseInt(fund.scheme_code.replace(/\D/g, '')) : 12345;
-    const isEquity = (fund?.category || '').toLowerCase().includes('equity');
+    if (!fund?.historical_navs || !Array.isArray(fund.historical_navs) || fund.historical_navs.length === 0) {
+      return [];
+    }
     
+    // Create a new array and sort chronologically (timestamp is index 0)
+    const sortedNavs = [...fund.historical_navs].sort((a, b) => a[0] - b[0]);
+    
+    // Filter by period
+    const now = new Date().getTime();
+    const periodYears = period === '1Y' ? 1 : period === '3Y' ? 3 : 5;
+    const cutoffDate = now - (periodYears * 365 * 24 * 60 * 60 * 1000);
+    
+    // For performance on Recharts, we can sample the data if it's daily (e.g. weekly sampling)
+    // but AreaChart can handle ~1500 points fine.
+    const filteredNavs = sortedNavs.filter(n => n[0] >= cutoffDate);
+    if (filteredNavs.length === 0) return [];
+    
+    let peak = filteredNavs[0][1];
     const points = [];
-    let currentDrawdown = 0;
-    const now = new Date();
     
-    // Simulate 5 years of weekly data (~260 points)
-    const dataPoints = period === '5Y' ? 260 : period === '3Y' ? 156 : 52;
-    
-    // Key crash periods
-    const crash2020 = new Date('2020-03-15').getTime();
-    const crash2022 = new Date('2022-06-15').getTime();
-    
-    for (let i = dataPoints; i >= 0; i--) {
-      const d = new Date(now.getTime() - (i * 7 * 24 * 60 * 60 * 1000));
-      const t = d.getTime();
-      
-      // Base recovery (drift towards 0)
-      currentDrawdown *= 0.95;
-      
-      // Add random shocks
-      if (Math.random() < 0.1) {
-        currentDrawdown -= (Math.random() * (isEquity ? 5 : 2));
-      }
-      
-      // Inject macro crashes if they fall in the window
-      if (Math.abs(t - crash2020) < 30 * 24 * 60 * 60 * 1000) {
-        currentDrawdown = isEquity ? -35 : -12;
-      }
-      if (Math.abs(t - crash2022) < 30 * 24 * 60 * 60 * 1000) {
-        currentDrawdown = isEquity ? -18 : -6;
-      }
-      
-      // Ensure we don't go above 0 (0 is peak)
-      if (currentDrawdown > 0) currentDrawdown = 0;
+    for (const [timestamp, nav] of filteredNavs) {
+      if (nav > peak) peak = nav;
+      // Drawdown is calculated as (Current NAV - Peak NAV) / Peak NAV
+      let drawdown = ((nav - peak) / peak) * 100;
       
       points.push({
-        date: d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
-        value: Number(currentDrawdown.toFixed(2))
+        date: new Date(timestamp).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+        value: Number(drawdown.toFixed(2))
       });
     }
+    
     return points;
   }, [fund, period]);
 
-  const maxDrawdown = Math.min(...data.map(d => d.value));
+  const maxDrawdown = data.length > 0 ? Math.min(...data.map(d => d.value)) : 0;
   
   // Calculate Time to Recovery from Max Drawdown
   const ttr = useMemo(() => {
@@ -102,6 +90,13 @@ export const DrawdownProfileCard = ({ fund }: { fund: any }) => {
          </div>
       </div>
 
+      {data.length === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center text-text-secondary border border-white/5 border-dashed rounded-lg bg-white/5">
+           <Activity size={24} className="mb-2 opacity-50" />
+           <span className="text-xs font-semibold">Historical NAV data not available</span>
+           <span className="text-[10px] mt-1 opacity-70">Cannot compute real drawdown profile.</span>
+        </div>
+      ) : (
       <div className="flex-1 min-h-0 relative">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
@@ -144,6 +139,7 @@ export const DrawdownProfileCard = ({ fund }: { fund: any }) => {
           </AreaChart>
         </ResponsiveContainer>
       </div>
+      )}
     </div>
   );
 };

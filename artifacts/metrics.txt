@@ -76,22 +76,32 @@ This payload contains advanced, normalized, and synthetic features explicitly en
 ---
 
 ## 4. Mutual Funds Schema
-Top-level fields from the `mutual_funds` table.
+Top-level fields from the `mutual_funds` table (`mutual_funds.parquet`).
 
-- **Identity**: `scheme_code`, `direct_search_id`, `id`, `search_id`, `fund_name`, `scheme_name`, `amc`, `fund_house`, `logo_url`
-- **Classification**: `category`, `sub_category`, `sub_sub_category`, `scheme_type`, `plan_type`
-- **Metrics**: `nav`, `aum`, `expense_ratio`, `exit_load`, `risk`, `risk_rating`
-- **Historical Returns**: `return1d`, `return3m`, `return6m`, `return1y`, `return3y`, `return5y`, `return7y`, `return10y`, `mean_return`
-- **SIP Returns**: `sipReturn3m`, `sipReturn6m`, `sipReturn1y`, `sipReturn3y`, `sipReturn5y`, `sip_return10y`
-- **Scores**: `groww_rating`, `groww_verdict_score`, `sub_category_average_return3y`
-- **Complex Structs**: `detailed_holdings` (Sector, ratings, percentages), `advanced_stats` (Sharpe, Beta, Alpha, Standard Deviation over 1/3/5Y)
+- **Identity & Classification**: `search_id`, `fund_name`, `scheme_name`, `category`, `direct_fund`, `available_for_investment`, `risk`, `groww_rating`
+- **Analytics & Engagement**: `page_view`, `launch_date`
+- **Historical Returns**: `return3m`, `return5y`, `return7y`, `return10y`, `mean_return`
+- **SIP Returns**: `sipReturn6m`, `sipReturn3y`, `sip_return3y`, `sipReturn5y`, `sip_return5y`, `sip_return10y`
+- **Complex Structs & Series**:
+  - `detailed_holdings`: Struct containing (`scheme_code`, `portfolio_date`, `company_name`, `nature_name`, `sector_name`, `instrument_name`, `rating`, `market_value`, `corpus_per`, `market_cap`, `rating_market_cap`, `stock_search_id`)
+  - `advanced_stats`: Struct array containing `type`, `stat_1y`, `stat_3y`, `stat_5y`, `stat_all`, `title` (e.g., Sharpe, Beta, Alpha, Standard Deviation)
+  - `historical_navs`: 2D array of historical NAV prices
+
+---
+
+## 5. Capture Ratios & Index Benchmarking Schema
+Fields from the `capture_ratios.parquet` table tracking performance against benchmarks.
+
+- **Identity**: `search_id`, `fund_name`, `category`
+- **Market Capture Ratios (Up/Down)**: `up_1M`, `down_1M`, `up_3M`, `down_3M`, `up_6M`, `down_6M`, `up_1Y`, `down_1Y`, `up_3Y`, `down_3Y`, `up_5Y`, `down_5Y`
+- **Hit Ratios (Consistency)**: `up_hit_1M`, `down_hit_1M`, `up_hit_3M`, `down_hit_3M`, `up_hit_6M`, `down_hit_6M`, `up_hit_1Y`, `down_hit_1Y`, `up_hit_3Y`, `down_hit_3Y`, `up_hit_5Y`, `down_hit_5Y`
 
 ---
 
 > [!TIP]
 > The data below outlines what the system *does not need an API for*. Using the historical `OHLCV` arrays and financial statements from the JSON above, our internal engine can mathematically construct these advanced metrics on the fly.
 
-## 5. Instantaneously Derivable Metrics (AI Generated Additions)
+## 6. Instantaneously Derivable Metrics (AI Generated Additions)
 
 ### A. Technical & Trend Indicators (Calculated from OHLCV)
 - **Moving Averages**: SMA (Simple), EMA (Exponential), WMA (Weighted) across standard periods (9, 20, 50, 100, 200).

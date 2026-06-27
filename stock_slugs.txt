@@ -6540,3 +6540,13 @@ nifty-total-market-index
 nifty-metal
 nifty-it
 nifty-bank
+nifty-next
+nifty-midcap-150
+nifty-pharma
+nifty-218500
+nifty-auto
+nifty-financial-services
+nifty-realty
+nifty-psu-bank
+nifty-fmcg
+nifty-pvt-bank

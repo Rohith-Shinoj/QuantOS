@@ -3,10 +3,10 @@ import { createChart, ColorType, CrosshairMode, LineStyle } from 'lightweight-ch
 import type { IChartApi, ISeriesApi } from 'lightweight-charts';
 import { HelpCircle, RefreshCw } from 'lucide-react';
 import { StockLogo } from '../../components/StockLogo';
-import { useQueryClient } from '@tanstack/react-query';
-import { fetchLiveQuote } from '../../api';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { fetchLiveQuote, fetchStockData } from '../../api';
 
-const TIMEFRAMES = ['1M', '3M', '6M', '1Y', '5Y', 'ALL'];
+const TIMEFRAMES = ['1M', '3M', '6M', '1Y', '5Y', 'ALL', 'CUSTOM'];
 
 // Simple SMA calculator
 function calculateSMA(data: any[], period: number) {
@@ -93,15 +93,54 @@ export const MultidimensionalChart = ({ data }: { data: any }) => {
   
   const [viewMode, setViewMode] = useState<'candles' | 'baseline'>('candles');
   const [showNifty, setShowNifty] = useState(false);
+  const [showSector, setShowSector] = useState(false);
   const [showBands, setShowBands] = useState(false);
   const [timeframe, setTimeframe] = useState('ALL');
+  const [customRange, setCustomRange] = useState({ start: '', end: '' });
   const [periodStats, setPeriodStats] = useState({ change: 0, percentChange: 0, cagr: 0 });
+
+  const getSectorSlug = (industry: string) => {
+    const ind = (industry || '').toLowerCase();
+    
+    if (ind.includes('financial')) return 'nifty-financial-services';
+    if (ind.includes('bank')) return 'nifty-bank';
+    if (ind.includes('information technology') || ind.includes('software') || ind.includes('tech')) return 'nifty-it';
+    if (ind.includes('real estate') || ind.includes('realty')) return 'nifty-realty';
+    if (ind.includes('metal')) return 'nifty-metal';
+    if (ind.includes('pharma') || ind.includes('health')) return 'nifty-pharma';
+    if (ind.includes('auto')) return 'nifty-auto';
+    if (ind.includes('food') || ind.includes('beverage') || ind.includes('fmcg') || ind.includes('consumption')) return 'nifty-fmcg';
+    
+    return 'nifty-total-market-index';
+  };
+
+  const getSectorName = (slug: string) => {
+    switch (slug) {
+      case 'nifty-financial-services': return 'NIFTY Fin Service';
+      case 'nifty-bank': return 'Nifty Bank';
+      case 'nifty-it': return 'Nifty IT';
+      case 'nifty-pharma': return 'NIFTY Pharma';
+      case 'nifty-metal': return 'Nifty Metal';
+      case 'nifty-auto': return 'NIFTY Auto';
+      case 'nifty-realty': return 'NIFTY Realty';
+      case 'nifty-fmcg': return 'NIFTY FMCG';
+      case 'nifty-total-market-index': return 'Total Market';
+      default: return 'Index';
+    }
+  };
+
+  const sectorSlug = getSectorSlug(data?.absolute?.header_raw?.industryName || '');
+  const { data: sectorRaw } = useQuery({
+    queryKey: ['stock', sectorSlug],
+    queryFn: () => fetchStockData(sectorSlug),
+    enabled: showSector,
+  });
 
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRefs = useRef<any>({});
   const baseLineRef = useRef<any>(null);
 
-  const { parsedData, niftyData, baseValue } = useMemo(() => {
+  const { parsedData, niftyData, sectorData, baseValue } = useMemo(() => {
     const ohlcv = data?.absolute?.OHLCV || [];
     const rawNifty = data?.benchmark_ohlcv || [];
 
@@ -147,11 +186,30 @@ export const MultidimensionalChart = ({ data }: { data: any }) => {
       }
     }
 
+    // Process Sector
+    const sData = ([...(sectorRaw?.absolute?.OHLCV || [])].reverse().map((d: any) => {
+      if (!d || !d.Date) return null;
+      const [day, month, year] = d.Date.split('-');
+      return {
+        time: `${year}-${month}-${day}`,
+        value: d.Close,
+      };
+    }).filter(Boolean) as any[]).sort((a: any, b: any) => new Date(a.time).getTime() - new Date(b.time).getTime());
+
+    const sUnique: any[] = [];
+    const sSeen = new Set();
+    for (const d of sData) {
+      if (!sSeen.has(d.time) && !isNaN(new Date(d.time).getTime()) && seenTimes.has(d.time)) {
+        sSeen.add(d.time);
+        sUnique.push(d);
+      }
+    }
+
     // Default base value for the Baseline chart (start of visible range ideally, but we use first point for now)
     const baseVal = uniqueData.length > 0 ? uniqueData[0].close : 0;
 
-    return { parsedData: uniqueData, niftyData: nUnique, baseValue: baseVal };
-  }, [data]);
+    return { parsedData: uniqueData, niftyData: nUnique, sectorData: sUnique, baseValue: baseVal };
+  }, [data, sectorRaw]);
 
   // Main Chart Initialization
   useEffect(() => {
@@ -282,12 +340,25 @@ export const MultidimensionalChart = ({ data }: { data: any }) => {
       color: 'rgba(234, 179, 8, 0.6)', // Less opaque
       lineWidth: 1, // Thinner line
       crosshairMarkerVisible: false,
+      lastValueVisible: true,
+      priceLineVisible: true,
     });
     niftySeries.setData(niftyData);
     seriesRefs.current.nifty = niftySeries;
 
+    // 6. Sector Overlay
+    const sectorSeries = chart.addLineSeries({
+      color: 'rgba(168, 85, 247, 0.6)', // Purple for sector
+      lineWidth: 1,
+      crosshairMarkerVisible: false,
+      lastValueVisible: true,
+      priceLineVisible: true,
+    });
+    // @ts-ignore
+    sectorSeries.setData(sectorData || []);
+    seriesRefs.current.sector = sectorSeries;
+
     // Add Axis Labels via Price Lines
-    // Add Axis Labels via Price Lines (for numbers only, no title)
     if (parsedData.length > 0) {
       const lastPrice = parsedData[parsedData.length - 1].close;
       candleSeries.createPriceLine({
@@ -415,6 +486,7 @@ export const MultidimensionalChart = ({ data }: { data: any }) => {
   const bandValuesRef = useRef({ upper: 0, lower: 0, sma: 0 });
   const labelRef = useRef<HTMLDivElement>(null);
   const niftyLabelRef = useRef<HTMLDivElement>(null);
+  const sectorLabelRef = useRef<HTMLDivElement>(null);
   const upperLabelRef = useRef<HTMLDivElement>(null);
   const lowerLabelRef = useRef<HTMLDivElement>(null);
   const smaLabelRef = useRef<HTMLDivElement>(null);
@@ -441,6 +513,17 @@ export const MultidimensionalChart = ({ data }: { data: any }) => {
           niftyLabelRef.current.style.display = 'block';
         } else {
           niftyLabelRef.current.style.display = 'none';
+        }
+      }
+
+      if (sectorLabelRef.current && (sectorData as any)?.length > 0) {
+        const sData = sectorData as any;
+        const y = seriesRefs.current.sector.priceToCoordinate(sData[sData.length - 1].value);
+        if (y !== null && !isNaN(y) && showSector) {
+          sectorLabelRef.current.style.top = `${y}px`;
+          sectorLabelRef.current.style.display = 'block';
+        } else {
+          sectorLabelRef.current.style.display = 'none';
         }
       }
       
@@ -478,7 +561,14 @@ export const MultidimensionalChart = ({ data }: { data: any }) => {
     };
     reqId = requestAnimationFrame(syncPositions);
     return () => cancelAnimationFrame(reqId);
-  }, [parsedData, niftyData, showNifty, showBands]);
+  }, [parsedData, niftyData, sectorData, showNifty, showSector, showBands]);
+
+  // Update Sector Data when fetched
+  useEffect(() => {
+    if (seriesRefs.current.sector && sectorData) {
+      seriesRefs.current.sector.setData(sectorData);
+    }
+  }, [sectorData]);
 
   // Handle Toggles & Timeframes
   useEffect(() => {
@@ -499,10 +589,13 @@ export const MultidimensionalChart = ({ data }: { data: any }) => {
     refs.lowerBand.applyOptions({ visible: showBands });
     refs.sma.applyOptions({ visible: showBands });
 
-    // Nifty Overlay (Percentage mode logic)
-    refs.nifty.applyOptions({ visible: showNifty });
+    // Sector Overlay
+    refs.sector?.applyOptions({ visible: showSector });
     
-    if (showNifty) {
+    // Nifty Overlay
+    refs.nifty?.applyOptions({ visible: showNifty });
+    
+    if (showNifty || showSector) {
       chartRef.current.applyOptions({
         rightPriceScale: { mode: 2 } // Percentage mode
       });
@@ -512,7 +605,7 @@ export const MultidimensionalChart = ({ data }: { data: any }) => {
       });
     }
 
-  }, [viewMode, showNifty, showBands]);
+  }, [viewMode, showNifty, showSector, showBands]);
 
   // Handle Timeframe changes
   useEffect(() => {
@@ -538,30 +631,55 @@ export const MultidimensionalChart = ({ data }: { data: any }) => {
       return;
     }
 
-    const now = new Date(parsedData[parsedData.length - 1].time).getTime();
-    let cutoff = 0;
-    
-    switch (timeframe) {
-      case '1M': cutoff = now - 30 * 24 * 60 * 60 * 1000; break;
-      case '3M': cutoff = now - 90 * 24 * 60 * 60 * 1000; break;
-      case '6M': cutoff = now - 180 * 24 * 60 * 60 * 1000; break;
-      case '1Y': cutoff = now - 365 * 24 * 60 * 60 * 1000; break;
-      case '5Y': cutoff = now - 5 * 365 * 24 * 60 * 60 * 1000; break;
-    }
-
-    // Find the closest point
+    let startRange = parsedData[0].time;
+    let endRange = parsedData[parsedData.length - 1].time;
     let startIndex = 0;
-    for (let i = parsedData.length - 1; i >= 0; i--) {
-      if (new Date(parsedData[i].time).getTime() < cutoff) {
-        startIndex = i + 1;
-        break;
+
+    if (timeframe === 'CUSTOM' && customRange.start && customRange.end) {
+      const startCutoff = new Date(customRange.start).getTime();
+      const endCutoff = new Date(customRange.end).getTime();
+      
+      for (let i = 0; i < parsedData.length; i++) {
+        if (new Date(parsedData[i].time).getTime() >= startCutoff) {
+          startIndex = i;
+          break;
+        }
       }
+      
+      let endIndex = parsedData.length - 1;
+      for (let i = parsedData.length - 1; i >= 0; i--) {
+        if (new Date(parsedData[i].time).getTime() <= endCutoff) {
+          endIndex = i;
+          break;
+        }
+      }
+      
+      if (startIndex <= endIndex) {
+        startRange = parsedData[startIndex].time;
+        endRange = parsedData[endIndex].time;
+      }
+    } else {
+      const now = new Date(parsedData[parsedData.length - 1].time).getTime();
+      let cutoff = 0;
+      
+      switch (timeframe) {
+        case '1M': cutoff = now - 30 * 24 * 60 * 60 * 1000; break;
+        case '3M': cutoff = now - 90 * 24 * 60 * 60 * 1000; break;
+        case '6M': cutoff = now - 180 * 24 * 60 * 60 * 1000; break;
+        case '1Y': cutoff = now - 365 * 24 * 60 * 60 * 1000; break;
+        case '5Y': cutoff = now - 5 * 365 * 24 * 60 * 60 * 1000; break;
+      }
+  
+      for (let i = parsedData.length - 1; i >= 0; i--) {
+        if (new Date(parsedData[i].time).getTime() < cutoff) {
+          startIndex = i + 1;
+          break;
+        }
+      }
+      if (startIndex >= parsedData.length) startIndex = parsedData.length - 1;
+      startRange = parsedData[startIndex].time;
+      endRange = parsedData[parsedData.length - 1].time;
     }
-    
-    if (startIndex >= parsedData.length) startIndex = parsedData.length - 1;
-    
-    const startRange = parsedData[startIndex].time;
-    const endRange = parsedData[parsedData.length - 1].time;
 
     // Update baseline value to start of visible range for ALL synced series
     const baseValueConfig = { type: 'price' as const, price: parsedData[startIndex].close };
@@ -588,7 +706,7 @@ export const MultidimensionalChart = ({ data }: { data: any }) => {
 
     chartRef.current.timeScale().setVisibleRange({ from: startRange, to: endRange });
 
-  }, [timeframe, parsedData]);
+  }, [timeframe, customRange, parsedData]);
 
   // Top header metrics strictly 1D
   let pctChange = 0;
@@ -622,6 +740,11 @@ export const MultidimensionalChart = ({ data }: { data: any }) => {
             <div className="flex items-center gap-3">
               <h3 className="text-2xl font-extrabold text-white tracking-tight leading-none">{data?.absolute?.ticker}</h3>
               <span className="text-sm text-text-secondary leading-none">{data?.absolute?.name}</span>
+              {data?.absolute?.header_raw?.industryName && (
+                <span className="px-2 py-0.5 rounded-full bg-surface border border-border text-[10px] text-text-secondary font-medium tracking-wide shadow-sm">
+                  {data.absolute.header_raw.industryName}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-2 mt-1">
               <span className="text-lg font-bold text-white leading-none">₹{currentPrice.toFixed(2)}</span>
@@ -673,6 +796,7 @@ export const MultidimensionalChart = ({ data }: { data: any }) => {
               <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 bg-surface/95 backdrop-blur-md border border-border rounded-lg p-2 text-[10px] text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl whitespace-normal text-left">
                 <div className="font-bold text-text-primary mb-1 text-[11px]">Overlays</div>
                 <div className="mb-0.5 leading-tight"><strong className="text-yellow-400">vs Nifty 50:</strong> Market context (relative strength).</div>
+                <div className="mb-0.5 leading-tight"><strong className="text-purple-400">vs Sector:</strong> Industry-specific benchmark.</div>
                 <div className="leading-tight"><strong className="text-purple-400">Volatility Bands:</strong> Risk/Entry (Top=Overbought).</div>
               </div>
             </span>
@@ -688,9 +812,19 @@ export const MultidimensionalChart = ({ data }: { data: any }) => {
             </button>
             <button 
               onClick={() => {
+                const nextState = !showSector;
+                setShowSector(nextState);
+                if (nextState) setShowBands(false);
+              }}
+              className={`px-3 py-1.5 rounded transition-all border ${showSector ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' : 'bg-surface text-text-secondary border-border hover:text-text-primary hover:bg-surface-hover'}`}
+            >
+              Sector ({getSectorName(sectorSlug)})
+            </button>
+            <button 
+              onClick={() => {
                 const nextState = !showBands;
                 setShowBands(nextState);
-                if (nextState) setShowNifty(false);
+                if (nextState) { setShowNifty(false); setShowSector(false); }
               }}
               className={`px-3 py-1.5 rounded transition-all border ${showBands ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' : 'bg-surface text-text-secondary border-border hover:text-text-primary hover:bg-surface-hover'}`}
             >
@@ -704,12 +838,31 @@ export const MultidimensionalChart = ({ data }: { data: any }) => {
               <span className={`text-sm font-bold ${periodStats.change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                 {periodStats.change >= 0 ? '+' : ''}{periodStats.change.toFixed(2)} ({periodStats.change >= 0 ? '+' : ''}{periodStats.percentChange.toFixed(2)}%)
               </span>
-              {(timeframe === '1Y' || timeframe === '5Y' || timeframe === 'ALL') && (
+              {(timeframe === '1Y' || timeframe === '5Y' || timeframe === 'ALL' || timeframe === 'CUSTOM') && (
                 <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">
                   {periodStats.cagr.toFixed(2)}% CAGR
                 </span>
               )}
             </div>
+            
+            {timeframe === 'CUSTOM' && (
+              <div className="flex items-center gap-2 mr-2">
+                <input 
+                  type="date" 
+                  value={customRange.start}
+                  onChange={(e) => setCustomRange(prev => ({ ...prev, start: e.target.value }))}
+                  className="bg-surface border border-border text-xs text-text-primary px-2 py-1 rounded outline-none focus:border-alpha"
+                />
+                <span className="text-text-secondary text-xs">to</span>
+                <input 
+                  type="date" 
+                  value={customRange.end}
+                  onChange={(e) => setCustomRange(prev => ({ ...prev, end: e.target.value }))}
+                  className="bg-surface border border-border text-xs text-text-primary px-2 py-1 rounded outline-none focus:border-alpha"
+                />
+              </div>
+            )}
+
             <div className="flex bg-surface-hover p-1 rounded-md border border-border gap-1">
               {TIMEFRAMES.map(t => (
                 <button 
@@ -746,6 +899,11 @@ export const MultidimensionalChart = ({ data }: { data: any }) => {
           <div ref={niftyLabelRef} className="absolute left-1 hidden transform -translate-y-1/2 pointer-events-none z-50">
             <div className="bg-yellow-500/90 text-black text-[10px] px-1.5 py-0.5 rounded font-medium shadow-lg whitespace-nowrap">
               NIFTY 50
+            </div>
+          </div>
+          <div ref={sectorLabelRef} className="absolute left-1 hidden transform -translate-y-1/2 pointer-events-none z-50">
+            <div className="bg-purple-500/90 text-white text-[10px] px-1.5 py-0.5 rounded font-medium shadow-lg whitespace-nowrap">
+              {getSectorName(sectorSlug)}
             </div>
           </div>
           <div ref={upperLabelRef} className="absolute left-1 hidden transform -translate-y-1/2 pointer-events-none z-50">

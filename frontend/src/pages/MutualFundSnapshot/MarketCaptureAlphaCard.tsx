@@ -22,28 +22,28 @@ export const MarketCaptureAlphaCard = ({ fund }: { fund: any }) => {
 
   const CaptureColumn = ({ title, up, down, ratio }: any) => (
     <div className="flex flex-col gap-2 bg-white/5 rounded-lg p-2.5 border border-white/5">
-      <span className="text-[10px] font-bold text-white uppercase tracking-wider">{title}</span>
+      <span className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">{title}</span>
       <div className="flex flex-col gap-1">
-        <div className="flex justify-between items-center text-[10px] font-bold">
+        <div className="flex justify-between items-center text-xs font-medium">
           <span className="text-text-secondary">Up-Capture</span>
           <span className="font-mono text-emerald-400">{up}%</span>
         </div>
-        <div className="h-1.5 w-full bg-[#111114] rounded-full overflow-hidden flex">
+        <div className="h-1 w-full bg-[#111114] rounded-full overflow-hidden flex">
           <div className="h-full bg-emerald-500" style={{ width: `${Math.min(up, 150) / 1.5}%` }}></div>
         </div>
       </div>
       <div className="flex flex-col gap-1">
-        <div className="flex justify-between items-center text-[10px] font-bold">
+        <div className="flex justify-between items-center text-xs font-medium">
           <span className="text-text-secondary">Down-Capture</span>
           <span className="font-mono text-red-400">{down}%</span>
         </div>
-        <div className="h-1.5 w-full bg-[#111114] rounded-full overflow-hidden flex">
+        <div className="h-1 w-full bg-[#111114] rounded-full overflow-hidden flex">
           <div className="h-full bg-red-500" style={{ width: `${Math.min(down, 150) / 1.5}%` }}></div>
         </div>
       </div>
-      <div className="flex justify-between items-center mt-1 pt-1 border-t border-white/10">
-        <span className="text-[9px] font-bold text-text-secondary uppercase">Ratio</span>
-        <span className={`text-[11px] font-mono font-bold ${ratio > 1 ? 'text-emerald-400' : 'text-red-400'}`}>{ratio}</span>
+      <div className="flex justify-between items-center mt-1 pt-1.5 border-t border-white/10">
+        <span className="text-[10px] font-semibold text-text-secondary uppercase">Ratio</span>
+        <span className={`text-xs font-mono font-bold ${ratio > 1 ? 'text-emerald-400' : 'text-red-400'}`}>{ratio}</span>
       </div>
     </div>
   );
@@ -78,8 +78,8 @@ export const MarketCaptureAlphaCard = ({ fund }: { fund: any }) => {
             <CaptureColumn title="vs Nifty 50" up={niftyUp} down={niftyDown} ratio={niftyRatio} />
             <CaptureColumn title="vs Sector" up={sectorUp} down={sectorDown} ratio={sectorRatio} />
           </div>
-          <div className="text-[9px] text-text-secondary leading-relaxed bg-white/5 p-2 rounded border border-white/5 border-dashed">
-            <span className="font-bold text-white">Insight:</span> An upcapture to downcapture ratio &gt; 1 indicates the fund consistently beats the reference.
+          <div className="text-[10px] text-text-secondary leading-relaxed bg-white/5 p-2 rounded border border-white/5 border-dashed">
+            <span className="font-semibold text-white">Insight:</span> An upcapture to downcapture ratio &gt; 1 indicates the fund consistently beats the reference.
           </div>
         </div>
         
@@ -89,33 +89,33 @@ export const MarketCaptureAlphaCard = ({ fund }: { fund: any }) => {
         <div className="flex flex-col gap-6 pt-2">
            {/* Alpha Slider */}
            <div className="relative flex flex-col">
-              <div className="flex justify-between items-end mb-2">
-                <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Generated Alpha</span>
-                <span className={`text-lg font-bold font-mono ${alpha > 0 ? 'text-emerald-400' : 'text-red-400'}`}>{alpha > 0 ? '+' : ''}{alpha.toFixed(2)}%</span>
-              </div>
+               <div className="flex justify-between items-end mb-2">
+                 <span className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">Generated Alpha</span>
+                 <span className={`text-base font-bold font-mono ${alpha > 0 ? 'text-emerald-400' : 'text-red-400'}`}>{alpha > 0 ? '+' : ''}{alpha.toFixed(2)}%</span>
+               </div>
               <div className="h-2 w-full rounded-full bg-gradient-to-r from-red-500 via-yellow-500 to-emerald-500 relative flex items-center">
                  <div className="absolute w-3 h-3 bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.8)] border-2 border-[#111114] transform -translate-x-1/2" style={{ left: `${alphaPercentile}%` }}></div>
                  <div className="absolute w-0.5 h-4 bg-white/30 transform -translate-x-1/2" style={{ left: '50%' }}></div>
               </div>
-              <div className="flex justify-between mt-1.5 text-[9px] font-bold text-text-secondary uppercase tracking-widest">
-                <span>Value Destructor</span>
-                <span>Value Creator</span>
-              </div>
+               <div className="flex justify-between mt-1.5 text-[10px] font-medium text-text-secondary uppercase tracking-widest">
+                 <span>Value Destructor</span>
+                 <span>Value Creator</span>
+               </div>
            </div>
 
            {/* Tracking Error Slider */}
            <div className="relative flex flex-col">
-              <div className="flex justify-between items-end mb-2">
-                <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Tracking Error (Risk)</span>
-                <span className="text-lg font-bold font-mono text-white">{teValue.toFixed(2)}%</span>
-              </div>
+               <div className="flex justify-between items-end mb-2">
+                 <span className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">Tracking Error (Risk)</span>
+                 <span className="text-base font-bold font-mono text-white">{teValue.toFixed(2)}%</span>
+               </div>
               <div className="h-2 w-full rounded-full bg-gradient-to-r from-emerald-500 via-yellow-500 to-red-500 relative flex items-center">
                  <div className="absolute w-3 h-3 bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.8)] border-2 border-[#111114] transform -translate-x-1/2" style={{ left: `${tePercentile}%` }}></div>
               </div>
-              <div className="flex justify-between mt-1.5 text-[9px] font-bold text-text-secondary uppercase tracking-widest">
-                <span>Index Hugger</span>
-                <span>Active Divergence</span>
-              </div>
+               <div className="flex justify-between mt-1.5 text-[10px] font-medium text-text-secondary uppercase tracking-widest">
+                 <span>Index Hugger</span>
+                 <span>Active Divergence</span>
+               </div>
            </div>
         </div>
       </div>

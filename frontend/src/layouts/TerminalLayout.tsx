@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
-import type { PanelImperativeHandle as ImperativePanelHandle } from 'react-resizable-panels';
 import { Search, Maximize2, Minimize2, Activity, Hexagon, Target, Settings, ActivitySquare, ArrowUpRight, ArrowDownRight, BrainCircuit } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useAppStore } from '../store';
@@ -80,23 +78,14 @@ export const GlobalSearch = () => {
   );
 };
 
-const ResizeHandle = ({ direction = "vertical" }: { direction?: "vertical" | "horizontal" }) => (
-  <PanelResizeHandle className={`relative flex items-center justify-center transition-colors hover:bg-alpha/30 ${direction === 'horizontal' ? 'w-1 cursor-col-resize' : 'h-1 cursor-row-resize'}`}>
-    <div className={`bg-border ${direction === 'horizontal' ? 'w-[1px] h-full' : 'h-[1px] w-full'}`} />
-  </PanelResizeHandle>
-);
+
 
 export const TerminalLayout = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { selectedStockSlug, setSelectedStockSlug, centralMode, setCentralMode } = useAppStore();
   
-  // Panel Refs for imperative sizing (Max/Min)
-  const bottomPanelRef = useRef<ImperativePanelHandle>(null);
-  const [isBottomMaximized, setIsBottomMaximized] = useState(false);
   const [isAIOverlayOpen, setIsAIOverlayOpen] = useState(false);
-
-  const [rightTab, setRightTab] = useState<'watchlist'|'peers'>('watchlist');
 
   // Sync URL -> Store
   useEffect(() => {
@@ -186,10 +175,6 @@ export const TerminalLayout = () => {
             displayName={abs?.name}
             internalPrompt={`Provide a verified expert investment breakdown for ${abs?.ticker} including Executive Analysis, Catalyst Path, Risk Asymmetry, and Execution Roadmap.`}
           />
-          <PanelGroup orientation="horizontal">
-            
-            {/* Left/Center Column (Chart + Bottom Panel) */}
-            <Panel defaultSize={75} minSize={30}>
               <div className="w-full h-full flex flex-col overflow-y-auto bg-canvas">
                 
                 {/* Central Canvas (Chart) */}
@@ -226,35 +211,6 @@ export const TerminalLayout = () => {
                 </div>
 
               </div>
-            </Panel>
-
-            <ResizeHandle direction="horizontal" />
-
-            {/* Right Sidebar */}
-            <Panel defaultSize={25} minSize={15} maxSize={40}>
-              <div className="w-full h-full bg-surface border-l border-border flex flex-col">
-                <div className="h-10 border-b border-border flex items-center px-4 shrink-0 bg-surface gap-4">
-                  <button 
-                    onClick={() => setRightTab('watchlist')}
-                    className={`text-xs font-bold h-10 ${rightTab === 'watchlist' ? 'text-alpha border-b-2 border-alpha' : 'text-text-secondary hover:text-text-primary'}`}
-                  >
-                    Watchlist & Alerts
-                  </button>
-                  <button 
-                    onClick={() => setRightTab('peers')}
-                    className={`text-xs font-bold h-10 ${rightTab === 'peers' ? 'text-alpha border-b-2 border-alpha' : 'text-text-secondary hover:text-text-primary'}`}
-                  >
-                    Peers
-                  </button>
-                </div>
-                <div className="flex-1 overflow-hidden relative">
-                   {rightTab === 'watchlist' && <Watchlists isPanel />}
-                   {rightTab === 'peers' && stockData && <PeerComparison data={stockData} isPanel />}
-                </div>
-              </div>
-            </Panel>
-
-          </PanelGroup>
         </div>
 
       </div>

@@ -1057,3 +1057,19 @@ def get_mutual_fund(scheme_code: str):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/funds/capture-ratios")
+def get_capture_ratios():
+    try:
+        db = get_db()
+        CR_DB_PATH = os.path.realpath(os.path.join(BASE_DIR, "datasets/active/capture_ratios.parquet"))
+        if not os.path.exists(CR_DB_PATH):
+            return []
+            
+        df = db.execute(f"SELECT * FROM '{CR_DB_PATH}'").df()
+        import json
+        records = json.loads(df.to_json(orient="records", date_format="iso"))
+        return records
+    except Exception as e:
+        print(f"Error fetching capture ratios: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

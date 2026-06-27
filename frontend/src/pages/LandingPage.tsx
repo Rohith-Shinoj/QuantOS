@@ -8,20 +8,29 @@ import { StockLogo } from '../components/StockLogo';
 import { Skeleton } from '../components/Skeleton';
 import type { ApexOptions } from 'apexcharts';
 
-const filterSeriesByTimeframe = (seriesData: {x: number, y: number}[], timeframe: string) => {
+const filterSeriesByTimeframe = (seriesData: {x: number, y: number}[], timeframe: string, customRange?: {start: string, end: string}) => {
   if (seriesData.length === 0) return { filtered: [], min: 0, max: 0 };
   const now = seriesData[seriesData.length - 1].x;
-  let msToSubtract = 0;
-  switch (timeframe) {
-    case '5D': msToSubtract = 5 * 24 * 60 * 60 * 1000; break;
-    case '1M': msToSubtract = 30 * 24 * 60 * 60 * 1000; break;
-    case '3M': msToSubtract = 90 * 24 * 60 * 60 * 1000; break;
-    case '6M': msToSubtract = 180 * 24 * 60 * 60 * 1000; break;
-    case '1Y': msToSubtract = 365 * 24 * 60 * 60 * 1000; break;
-    case '5Y': default: msToSubtract = 5 * 365 * 24 * 60 * 60 * 1000; break;
+  let threshold = 0;
+  let endThreshold = Infinity;
+
+  if (timeframe === 'CUSTOM' && customRange?.start && customRange?.end) {
+    threshold = new Date(customRange.start).getTime();
+    endThreshold = new Date(customRange.end).getTime();
+  } else {
+    let msToSubtract = 0;
+    switch (timeframe) {
+      case '5D': msToSubtract = 5 * 24 * 60 * 60 * 1000; break;
+      case '1M': msToSubtract = 30 * 24 * 60 * 60 * 1000; break;
+      case '3M': msToSubtract = 90 * 24 * 60 * 60 * 1000; break;
+      case '6M': msToSubtract = 180 * 24 * 60 * 60 * 1000; break;
+      case '1Y': msToSubtract = 365 * 24 * 60 * 60 * 1000; break;
+      case '5Y': default: msToSubtract = 5 * 365 * 24 * 60 * 60 * 1000; break;
+    }
+    threshold = now - msToSubtract;
   }
-  const threshold = now - msToSubtract;
-  const filtered = seriesData.filter(d => d.x >= threshold);
+  
+  const filtered = seriesData.filter(d => d.x >= threshold && d.x <= endThreshold);
   
   if (filtered.length === 0) return { filtered: seriesData, min: 0, max: 0 };
   
@@ -36,20 +45,51 @@ const filterSeriesByTimeframe = (seriesData: {x: number, y: number}[], timeframe
   };
 };
 
-const TIMEFRAMES = ['5D', '1M', '3M', '6M', '1Y', '5Y'];
+const TIMEFRAMES = ['5D', '1M', '3M', '6M', '1Y', '5Y', 'CUSTOM'];
 
-const TimeframeSelector = ({ selected, onSelect, minimal = false }: { selected: string, onSelect: (t: string) => void, minimal?: boolean }) => {
+const TimeframeSelector = ({ 
+  selected, 
+  onSelect, 
+  minimal = false,
+  customRange,
+  setCustomRange
+}: { 
+  selected: string, 
+  onSelect: (t: string) => void, 
+  minimal?: boolean,
+  customRange?: { start: string, end: string },
+  setCustomRange?: React.Dispatch<React.SetStateAction<{ start: string, end: string }>>
+}) => {
   return (
-    <div className={`flex items-center z-20 ${minimal ? 'gap-1 bg-surface border border-border p-0.5 rounded shadow-sm' : 'gap-1 bg-canvas border border-border p-1 rounded-lg'}`}>
-      {TIMEFRAMES.map(t => (
-        <button
-          key={t}
-          onClick={(e) => { e.stopPropagation(); onSelect(t); }}
-          className={`${minimal ? 'text-[9px] px-1.5 py-0.5 rounded transition-colors' : 'text-[10px] font-bold px-2 py-1 rounded transition-colors'} ${selected === t ? (minimal ? 'text-alpha font-bold bg-alpha/10' : 'bg-surface text-alpha border border-border/50 shadow-sm') : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'}`}
-        >
-          {t}
-        </button>
-      ))}
+    <div className="flex items-center gap-2 z-20">
+      {selected === 'CUSTOM' && customRange && setCustomRange && (
+        <div className={`flex items-center gap-1 ${minimal ? 'mr-1' : 'mr-2'}`}>
+          <input 
+            type="date" 
+            value={customRange.start}
+            onChange={(e) => setCustomRange(prev => ({ ...prev, start: e.target.value }))}
+            className={`bg-surface border border-border text-text-primary rounded outline-none focus:border-alpha ${minimal ? 'text-[9px] px-1 py-0.5' : 'text-xs px-2 py-1'}`}
+          />
+          <span className={`text-text-secondary ${minimal ? 'text-[9px]' : 'text-xs'}`}>to</span>
+          <input 
+            type="date" 
+            value={customRange.end}
+            onChange={(e) => setCustomRange(prev => ({ ...prev, end: e.target.value }))}
+            className={`bg-surface border border-border text-text-primary rounded outline-none focus:border-alpha ${minimal ? 'text-[9px] px-1 py-0.5' : 'text-xs px-2 py-1'}`}
+          />
+        </div>
+      )}
+      <div className={`flex items-center ${minimal ? 'gap-1 bg-surface border border-border p-0.5 rounded shadow-sm' : 'gap-1 bg-canvas border border-border p-1 rounded-lg'}`}>
+        {TIMEFRAMES.map(t => (
+          <button
+            key={t}
+            onClick={(e) => { e.stopPropagation(); onSelect(t); }}
+            className={`${minimal ? 'text-[9px] px-1.5 py-0.5 rounded transition-colors' : 'text-[10px] font-bold px-2 py-1 rounded transition-colors'} ${selected === t ? (minimal ? 'text-alpha font-bold bg-alpha/10' : 'bg-surface text-alpha border border-border/50 shadow-sm') : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'}`}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
     </div>
   );
 };
@@ -139,6 +179,7 @@ const HorizontalStockCards = ({ title, stocks }: { title: string, stocks: any[] 
 
 const MarketSummaryChart = ({ slug }: { slug: string }) => {
   const [timeframe, setTimeframe] = useState('1Y');
+  const [customRange, setCustomRange] = useState({ start: '', end: '' });
   const { data: stockData, isLoading } = useQuery({ 
     queryKey: ['stockData', slug], 
     queryFn: () => fetchStockData(slug),
@@ -181,7 +222,7 @@ const MarketSummaryChart = ({ slug }: { slug: string }) => {
       return { x: 0, y: d.Close };
     });
 
-  const { filtered: chartData, min: yMin, max: yMax } = filterSeriesByTimeframe(seriesData, timeframe);
+  const { filtered: chartData, min: yMin, max: yMax } = filterSeriesByTimeframe(seriesData, timeframe, customRange);
 
   const isPositive = chartData.length > 1 ? chartData[chartData.length - 1].y >= chartData[0].y : true;
   const color = isPositive ? '#10b981' : '#ef4444'; 
@@ -221,7 +262,7 @@ const MarketSummaryChart = ({ slug }: { slug: string }) => {
             </div>
           </div>
         </div>
-        <TimeframeSelector selected={timeframe} onSelect={setTimeframe} />
+        <TimeframeSelector selected={timeframe} onSelect={setTimeframe} customRange={customRange} setCustomRange={setCustomRange} />
       </div>
       <div className="flex-1 w-full min-h-[200px] relative overflow-hidden mt-2">
         {ticker && ticker.toLowerCase().includes('nifty') && (
@@ -246,6 +287,8 @@ const MarketSummaryChart = ({ slug }: { slug: string }) => {
 
 const ComplexMarketCard = ({ stock }: { stock: any }) => {
   const slug = stock.slug;
+  const [timeframe, setTimeframe] = useState('1Y');
+  const [customRange, setCustomRange] = useState({ start: '', end: '' });
   const { data: stockData } = useQuery({ 
     queryKey: ['stockData', slug], 
     queryFn: () => fetchStockData(slug),
@@ -264,6 +307,8 @@ const ComplexMarketCard = ({ stock }: { stock: any }) => {
       return { x: 0, y: d.Close };
     });
 
+  const { filtered: chartData, min: yMin, max: yMax } = filterSeriesByTimeframe(seriesData, timeframe, customRange);
+
   const rawChange = parseDayChange(stock.day_change);
   const change = computeFallbackChange(seriesData, rawChange);
   const color = change.isPositive ? '#10b981' : '#ef4444';
@@ -274,7 +319,7 @@ const ComplexMarketCard = ({ stock }: { stock: any }) => {
     colors: [color],
     fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.2, opacityTo: 0.0, stops: [0, 100] } },
     xaxis: { type: 'datetime' },
-    yaxis: { show: false },
+    yaxis: { show: false, min: yMin, max: yMax },
     tooltip: { theme: 'dark' }
   };
   
@@ -295,8 +340,8 @@ const ComplexMarketCard = ({ stock }: { stock: any }) => {
           <div className={`text-[10px] font-bold ${displayColor}`}>{change.isPositive ? '+' : '-'}{change.pct}</div>
         </div>
         <div className="flex-1 w-full mt-2 min-h-[60px]">
-          {seriesData.length > 0 ? (
-            <Chart options={options} series={[{ name: 'Price', data: seriesData }]} type="area" height="100%" />
+          {chartData.length > 0 ? (
+            <Chart options={options} series={[{ name: 'Price', data: chartData }]} type="area" height="100%" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-[10px] text-text-secondary">Loading...</div>
           )}
@@ -331,6 +376,7 @@ const ComplexMarketCard = ({ stock }: { stock: any }) => {
 const MiniSectorCard = ({ stock, stockData, isLoading }: { stock: any, stockData?: any, isLoading?: boolean }) => {
   const slug = stock.slug;
   const [timeframe, setTimeframe] = useState('1Y');
+  const [customRange, setCustomRange] = useState({ start: '', end: '' });
 
   if (isLoading) {
     return (
@@ -362,7 +408,7 @@ const MiniSectorCard = ({ stock, stockData, isLoading }: { stock: any, stockData
       return { x: 0, y: d.Close };
     });
 
-  const { filtered: chartData, min: yMin, max: yMax } = filterSeriesByTimeframe(seriesData, timeframe);
+  const { filtered: chartData, min: yMin, max: yMax } = filterSeriesByTimeframe(seriesData, timeframe, customRange);
 
   const rawChange = parseDayChange(stock.day_change);
   const change = computeFallbackChange(seriesData, rawChange);
@@ -406,7 +452,7 @@ const MiniSectorCard = ({ stock, stockData, isLoading }: { stock: any, stockData
         </div>
       </div>
       <div className="flex justify-end mb-2">
-        <TimeframeSelector selected={timeframe} onSelect={setTimeframe} minimal={true} />
+        <TimeframeSelector selected={timeframe} onSelect={setTimeframe} customRange={customRange} setCustomRange={setCustomRange} minimal={true} />
       </div>
       <div className="flex-1 w-full min-h-0 relative">
         <div className="absolute inset-0">
@@ -422,6 +468,7 @@ const MiniSectorCard = ({ stock, stockData, isLoading }: { stock: any, stockData
 const CommodityRowCard = ({ stock }: { stock: any }) => {
   const slug = stock.slug;
   const [timeframe, setTimeframe] = useState('1Y');
+  const [customRange, setCustomRange] = useState({ start: '', end: '' });
   const { data: stockData } = useQuery({ 
     queryKey: ['stockData', slug], 
     queryFn: () => fetchStockData(slug),
@@ -440,7 +487,7 @@ const CommodityRowCard = ({ stock }: { stock: any }) => {
       return { x: 0, y: d.Close };
     });
 
-  const { filtered: chartData, min: yMin, max: yMax } = filterSeriesByTimeframe(seriesData, timeframe);
+  const { filtered: chartData, min: yMin, max: yMax } = filterSeriesByTimeframe(seriesData, timeframe, customRange);
 
   const rawChange = parseDayChange(stock.day_change);
   const change = computeFallbackChange(seriesData, rawChange);
@@ -475,7 +522,7 @@ const CommodityRowCard = ({ stock }: { stock: any }) => {
             <div className={`text-xs font-bold mt-0.5 ${displayColor}`}>{change.pct}</div>
           </div>
         </div>
-        <TimeframeSelector selected={timeframe} onSelect={setTimeframe} />
+        <TimeframeSelector selected={timeframe} onSelect={setTimeframe} customRange={customRange} setCustomRange={setCustomRange} />
       </div>
       <div className="flex-1 w-full min-h-0 mt-2 relative">
         <div className="absolute inset-0">
@@ -491,6 +538,7 @@ const CommodityRowCard = ({ stock }: { stock: any }) => {
 const IndexMarketCard = ({ stock, isActive, stockData, isLoading }: { stock: any, isActive: boolean, stockData?: any, isLoading?: boolean }) => {
   const slug = stock.slug;
   const [timeframe, setTimeframe] = useState('1Y');
+  const [customRange, setCustomRange] = useState({ start: '', end: '' });
 
   if (isLoading) {
     return (
@@ -527,7 +575,7 @@ const IndexMarketCard = ({ stock, isActive, stockData, isLoading }: { stock: any
       return { x: 0, y: d.Close };
     });
 
-  const { filtered: chartData, min: yMin, max: yMax } = filterSeriesByTimeframe(seriesData, timeframe);
+  const { filtered: chartData, min: yMin, max: yMax } = filterSeriesByTimeframe(seriesData, timeframe, customRange);
 
   const rawChange = parseDayChange(stock.day_change);
   const change = computeFallbackChange(seriesData, rawChange);
@@ -554,7 +602,7 @@ const IndexMarketCard = ({ stock, isActive, stockData, isLoading }: { stock: any
             <StockLogo ticker={stock.ticker} className="w-8 h-8" textClass="text-[10px]" fallbackClass="bg-canvas border border-border text-text-primary" />
             <div className="text-base font-bold text-text-primary group-hover:text-alpha transition-colors truncate">{stock.name}</div>
           </div>
-          <TimeframeSelector selected={timeframe} onSelect={setTimeframe} />
+          <TimeframeSelector selected={timeframe} onSelect={setTimeframe} customRange={customRange} setCustomRange={setCustomRange} />
         </div>
         <div className="mt-2 flex justify-between items-end">
           <div>
