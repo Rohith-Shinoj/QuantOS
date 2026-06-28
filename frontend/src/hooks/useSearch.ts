@@ -16,13 +16,14 @@ export interface SearchResult {
 
 export const useSearch = (query: string, activeFilter: string = 'All'): SearchResult[] => {
   const { data: stocks } = useQuery({ queryKey: ['allStocks'], queryFn: fetchAllStocks });
-  const { data: mfsResp } = useQuery({ queryKey: ['allMFs'], queryFn: () => fetchMutualFunds({ limit: 1000 }) });
+  const { data: mfsResp } = useQuery({ queryKey: ['allMFsSearch'], queryFn: () => fetchMutualFunds({ limit: 5000, minimal: true }) });
   const mfs = (mfsResp as any)?.data;
 
   const results = useMemo(() => {
     if (!query || query.trim().length === 0) return [];
     
     const q = query.toLowerCase().trim();
+    const tokens = q.split(/\s+/);
     let combined: SearchResult[] = [];
     
     if (stocks) {
@@ -37,6 +38,7 @@ export const useSearch = (query: string, activeFilter: string = 'All'): SearchRe
         else if (name.startsWith(q)) score = 70;
         else if (ticker.includes(q)) score = 60;
         else if (name.includes(q)) score = 50;
+        else if (tokens.every(token => ticker.includes(token) || name.includes(token))) score = 40;
         
         let type: 'Stock' | 'ETF' = 'Stock';
         const isETF = /\betf\b/i.test(name) || /\betf\b/i.test(s.industry || '') || /\betf\b/i.test(s.sector || '');
@@ -66,6 +68,7 @@ export const useSearch = (query: string, activeFilter: string = 'All'): SearchRe
         if (sname === q || fname === q || sid === q) score = 100;
         else if (sname.startsWith(q) || fname.startsWith(q) || sid.startsWith(q)) score = 80;
         else if (sname.includes(q) || fname.includes(q) || sid.includes(q)) score = 60;
+        else if (tokens.every(token => sname.includes(token) || fname.includes(token) || sid.includes(token))) score = 40;
         
         const slug = m.scheme_code || m.direct_search_id || m.search_id;
 
@@ -84,11 +87,21 @@ export const useSearch = (query: string, activeFilter: string = 'All'): SearchRe
       combined = combined.concat(mfResults);
     }
     
-    return combined
+    const sortedResults = combined
       .filter((res) => res.score > 0)
       .filter((res) => activeFilter === 'All' || res.type === (activeFilter === 'Mutual Funds' ? 'Mutual Fund' : activeFilter === 'Stocks' ? 'Stock' : 'ETF'))
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 50);
+      .sort((a, b) => b.score - a.score);
+
+    const seen = new Set();
+    const uniqueResults = [];
+    for (const res of sortedResults) {
+      if (!seen.has(res.slug)) {
+        seen.add(res.slug);
+        uniqueResults.push(res);
+        if (uniqueResults.length >= 50) break;
+      }
+    }
+    return uniqueResults;
   }, [query, stocks, mfs, activeFilter]);
 
   return results;

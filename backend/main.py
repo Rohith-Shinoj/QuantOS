@@ -117,9 +117,11 @@ def fetch_live_quote(slug: str, session: requests.Session):
             props = data.get("props", {}).get("pageProps", {})
             stock_data = props.get("stockData", {})
             live_price = props.get("livePriceData", {})
+            header = stock_data.get("header", {})
             
-            nse = stock_data.get("nseSymbol")
-            bse = stock_data.get("bseSymbol")
+            # Groww moved symbols from stockData root to stockData.header
+            nse = header.get("nseScriptCode") or stock_data.get("nseSymbol")
+            bse = str(header.get("bseScriptCode", "")) or stock_data.get("bseSymbol")
             
             quote = None
             if nse and nse in live_price:
@@ -267,6 +269,45 @@ async def get_stock(slug: str):
 class BatchStockRequest(BaseModel):
     slugs: list[str]
 
+import pandas as pd
+import numpy as np
+
+def calculate_true_beta(stock_ohlcv, market_ohlcv):
+    try:
+        if not stock_ohlcv or not market_ohlcv:
+            return None
+            
+        df_stock = pd.DataFrame(stock_ohlcv)
+        df_market = pd.DataFrame(market_ohlcv)
+        
+        if 'Date' not in df_stock.columns or 'Close' not in df_stock.columns: return None
+        if 'Date' not in df_market.columns or 'Close' not in df_market.columns: return None
+            
+        df_stock = df_stock[['Date', 'Close']].rename(columns={'Close': 'stock_close'})
+        df_market = df_market[['Date', 'Close']].rename(columns={'Close': 'market_close'})
+        
+        # Merge on Date to align trading days
+        df = pd.merge(df_stock, df_market, on='Date', how='inner')
+        
+        # Require at least 20 trading days for statistical relevance
+        if len(df) < 20:
+            return None
+            
+        # Calculate normalized daily percentage returns
+        df['stock_ret'] = df['stock_close'].pct_change()
+        df['market_ret'] = df['market_close'].pct_change()
+        df = df.dropna()
+        
+        cov = df['stock_ret'].cov(df['market_ret'])
+        var = df['market_ret'].var()
+        
+        if var == 0:
+            return None
+            
+        return round(float(cov / var), 3)
+    except Exception as e:
+        return None
+
 @app.post("/api/stocks/batch")
 async def get_stocks_batch(req: BatchStockRequest):
     try:
@@ -286,6 +327,13 @@ async def get_stocks_batch(req: BatchStockRequest):
             slug = row[0]
             abs_data = json.loads(row[1]) if row[1] else {}
             rel_data = json.loads(row[2]) if row[2] else {}
+            
+            # Strict Beta Math Engine: If true beta is missing, calculate covariance on the fly against Nifty 50
+            if 'beta' not in abs_data and 'OHLCV' in abs_data and nifty_ohlcv:
+                true_beta = calculate_true_beta(abs_data['OHLCV'], nifty_ohlcv)
+                if true_beta is not None:
+                    abs_data['beta'] = true_beta
+            
             results[slug] = {
                 "slug": slug, 
                 "absolute": abs_data, 
@@ -998,14 +1046,16 @@ def get_mutual_funds(
     limit: int = 50,
     category: str = None,
     sort_by: str = "aum",
-    sort_order: str = "desc"
+    sort_order: str = "desc",
+    minimal: bool = False
 ):
     try:
         db = get_db()
         offset = (page - 1) * limit
         
         # Build query
-        query = "SELECT * FROM mutual_funds"
+        select_fields = "scheme_code, fund_name, scheme_name, direct_search_id, category, logo_url" if minimal else "*"
+        query = f"SELECT {select_fields} FROM mutual_funds"
         count_query = "SELECT COUNT(*) FROM mutual_funds"
         
         conditions = []

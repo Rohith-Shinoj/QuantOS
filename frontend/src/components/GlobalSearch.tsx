@@ -5,7 +5,7 @@ import { useSearch } from '../hooks/useSearch';
 import { useAppStore } from '../store';
 import { StockLogo } from './StockLogo';
 
-export const GlobalSearch = ({ className = "w-96 lg:w-[400px] xl:w-[480px]", onSelect, value, onChange }: { className?: string, onSelect?: (res: any) => void, value?: string, onChange?: (val: string) => void }) => {
+export const GlobalSearch = ({ className = "w-96 lg:w-[400px] xl:w-[480px]", onSelect, value, onChange, fixedFilter }: { className?: string, onSelect?: (res: any) => void, value?: string, onChange?: (val: string) => void, fixedFilter?: string }) => {
   const [internalQuery, setInternalQuery] = useState('');
   const query = value !== undefined ? value : internalQuery;
   const setQuery = onChange !== undefined ? onChange : setInternalQuery;
@@ -14,7 +14,7 @@ export const GlobalSearch = ({ className = "w-96 lg:w-[400px] xl:w-[480px]", onS
   const navigate = useNavigate();
   const { setSelectedStockSlug } = useAppStore();
 
-  const filtered = useSearch(query, activeFilter);
+  const filtered = useSearch(query, fixedFilter || activeFilter);
 
   const getTagColor = (type: string) => {
     if (type === 'Mutual Fund') return 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30';
@@ -40,10 +40,12 @@ export const GlobalSearch = ({ className = "w-96 lg:w-[400px] xl:w-[480px]", onS
       {isOpen && (query.length > 0) && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-border rounded-lg shadow-[0_8px_30px_rgb(0,0,0,0.5)] overflow-hidden z-[100]">
           {/* Filters */}
-          <div className="flex gap-2 p-2 border-b border-border bg-canvas">
+          {!fixedFilter && (
+            <div className="flex gap-2 p-2 border-b border-border bg-canvas">
             {['All', 'Stocks', 'ETFs', 'Mutual Funds'].map(f => (
               <button
                 key={f}
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => setActiveFilter(f)}
                 className={`px-2 py-1 text-[10px] font-bold rounded transition-colors ${
                   activeFilter === f 
@@ -54,7 +56,8 @@ export const GlobalSearch = ({ className = "w-96 lg:w-[400px] xl:w-[480px]", onS
                 {f}
               </button>
             ))}
-          </div>
+            </div>
+          )}
 
           {/* Results */}
           <div className="overflow-y-auto max-h-[360px] hide-scrollbar">
@@ -70,8 +73,8 @@ export const GlobalSearch = ({ className = "w-96 lg:w-[400px] xl:w-[480px]", onS
                       setSelectedStockSlug(res.slug);
                     }
                     navigate(res.navPath);
+                    setQuery('');
                   }
-                  setQuery('');
                   setIsOpen(false);
                 }}
               >

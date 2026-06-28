@@ -24,11 +24,11 @@ rsync -a --delete "datasets/$CURRENT_TARGET/" "datasets/$INACTIVE_BUFFER/"
 
 # Step 3: Unified Data Generation
 echo "Step 3: Running unified parallel data generation for stocks..."
-python3 scripts/generate_datasets.py --target "datasets/$INACTIVE_BUFFER" --workers 64
+python3 scripts/generate_datasets.py --target "datasets/$INACTIVE_BUFFER" --workers 32
 echo "Stock data generation complete."
 
 echo "Step 3.5: Running data generation for mutual funds..."
-python3 scripts/generate_mf_datasets.py --target "datasets/$INACTIVE_BUFFER" --full-refresh
+python3 scripts/generate_mf_datasets.py --target "datasets/$INACTIVE_BUFFER" --full-refresh --extra-slugs mf_slugs.txt
 echo "Mutual fund data generation complete."
 
 # Step 4: Shadow Ingestion
@@ -47,7 +47,7 @@ python3 ml_engine/archive_manager.py \
 
 # Step 7: Predictive Intelligence Inference
 echo "Step 7: Running dual-engine inference and SHAP explainability..."
-python3 ml_engine/predictor_2.py \
+PYTHONPATH=. python3 ml_engine/predictor_2.py \
     --db "datasets/$INACTIVE_BUFFER/market_data.duckdb" \
     --parquet "datasets/$INACTIVE_BUFFER/market_data.parquet"
 

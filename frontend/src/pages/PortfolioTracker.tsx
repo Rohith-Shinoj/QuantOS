@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { fetchAllStocks, fetchMutualFunds, fetchPortfolioAIAnalysis, sendPortfolioChat, fetchBatchStockData, fetchMutualFundByCode, fetchCaptureRatios, fetchPortfolio, savePortfolio } from '../api';
-import { Search, X, PieChart as PieChartIcon, BrainCircuit, AlertTriangle, Send, Loader2, Globe, Zap, List, Activity, Maximize2, Minimize2, TrendingUp, TrendingDown, Shield, Eye, Wallet, Crosshair, Waves, BarChart3, Info } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, BarChart, Bar, AreaChart, Area, ReferenceLine, LineChart, Line } from 'recharts';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { fetchAllStocks, fetchMutualFunds, fetchPortfolioAIAnalysis, sendPortfolioChat, fetchBatchStockData, fetchMutualFundByCode, fetchCaptureRatios, fetchPortfolio, savePortfolio, fetchBatchLiveQuotes } from '../api';
+import { Search, X, PieChart as PieChartIcon, BrainCircuit, AlertTriangle, Send, Loader2, Globe, Zap, List, Activity, Maximize2, Minimize2, TrendingUp, TrendingDown, Shield, Eye, Wallet, Crosshair, Waves, BarChart3, Info, RefreshCw, Edit3, Check } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, BarChart, Bar, AreaChart, Area, ReferenceLine, ReferenceArea, LineChart, Line } from 'recharts';
 import ReactMarkdown from 'react-markdown';
 import { StockLogo } from '../components/StockLogo';
 import { GlobalSearch } from '../components/GlobalSearch';
@@ -14,21 +14,33 @@ interface LocalHolding {
   type: string;
   units: number;
   invested_amount: number;
+  holding_value: number;
 }
 
 export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => {
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'STOCKS' | 'MUTUAL_FUNDS'>('STOCKS');
+  const [editingSlug, setEditingSlug] = useState<string | null>(null);
+  const [editHoldingVal, setEditHoldingVal] = useState<string>('');
+  const [editInvestedVal, setEditInvestedVal] = useState<string>('');
   
   const [stockHoldings, setStockHoldings] = useState<LocalHolding[]>([]);
   const [mfHoldings, setMfHoldings] = useState<LocalHolding[]>([]);
   const [portfolioHistory, setPortfolioHistory] = useState<any[]>([]);
   const [isPortfolioLoaded, setIsPortfolioLoaded] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [liveQuotesMap, setLiveQuotesMap] = useState<Record<string, any>>({});
+  const [inceptionDateString, setInceptionDateString] = useState<string>('');
 
   useEffect(() => {
     fetchPortfolio().then(data => {
       if (data && data.holdings) {
-        setStockHoldings(data.holdings.filter((h: any) => h.type === 'STOCKS'));
-        setMfHoldings(data.holdings.filter((h: any) => h.type === 'MUTUAL_FUNDS'));
+        const migrated = data.holdings.map((h: any) => ({
+          ...h,
+          holding_value: h.holding_value || 0,
+        }));
+        setStockHoldings(migrated.filter((h: any) => h.type === 'STOCKS'));
+        setMfHoldings(migrated.filter((h: any) => h.type === 'MUTUAL_FUNDS'));
       }
       if (data && data.history) {
         setPortfolioHistory(data.history);
@@ -74,7 +86,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
   useEffect(() => { localStorage.setItem('portfolio_chat', JSON.stringify(chatHistory)); }, [chatHistory]);
 
   const { data: allStocks } = useQuery({ queryKey: ['allStocks'], queryFn: fetchAllStocks });
-  const { data: mfData } = useQuery({ queryKey: ['allMFs'], queryFn: () => fetchMutualFunds({ limit: 500 }) });
+  const { data: mfData } = useQuery({ queryKey: ['allMFsSearch'], queryFn: () => fetchMutualFunds({ limit: 5000, minimal: true }) });
   const allMFs = mfData?.data || [];
 
   // Chart mode toggle
@@ -83,7 +95,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
   // Fetch detailed batch stock data (OHLCV, relative_data) for portfolio holdings
   const stockSlugs = useMemo(() => stockHoldings.map(h => h.slug), [stockHoldings]);
   const { data: batchStockData } = useQuery({
-    queryKey: ['batchStocks', stockSlugs],
+    queryKey: ['batchStockData_v2', stockSlugs.join(',')],
     queryFn: () => fetchBatchStockData(stockSlugs),
     enabled: stockSlugs.length > 0,
   });
@@ -110,20 +122,64 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
     enabled: mfHoldings.length > 0,
   });
 
+  const handleSync = async () => {
+    setIsSyncing(true);
+    try {
+      const stockSlugs = stockHoldings.map(h => h.slug);
+      if (stockSlugs.length > 0) {
+        const quotes = await fetchBatchLiveQuotes(stockSlugs);
+        setLiveQuotesMap(quotes);
+      }
+      // Also refresh MF NAV data
+      queryClient.invalidateQueries({ queryKey: ['mfDetails'] });
+      queryClient.invalidateQueries({ queryKey: ['allMFsSearch'] });
+    } catch (e) {
+      console.error("Sync failed:", e);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const getLivePrice = (slug: string, tab: 'STOCKS' | 'MUTUAL_FUNDS'): number => {
     if (tab === 'STOCKS') {
+      // Priority 1: Live quote from sync
+      if (liveQuotesMap[slug] && liveQuotesMap[slug].currentPrice) {
+        return liveQuotesMap[slug].currentPrice;
+      }
+      // Priority 2: Parse livePrice string from allStocks
       const stock = allStocks?.find((s: any) => s.slug === slug);
       let price = stock?.livePrice;
       if (typeof price === 'string') {
         price = parseFloat(price.replace(/[^0-9.-]+/g, ""));
       }
-      return (price && !isNaN(price)) ? price : (stock?.peRatio || 100);
-    } else {
-      const mf = allMFs?.find((m: any) => (m.scheme_code || m.direct_search_id) === slug);
-      if (mf && mf.historical_navs && mf.historical_navs.length > 0) {
-        return mf.historical_navs[mf.historical_navs.length - 1][1];
+      if (price && !isNaN(price) && price > 0) return price;
+      // Priority 3: Derive from stored holding_value (never use peRatio as price)
+      const holding = stockHoldings.find(h => h.slug === slug);
+      if (holding && holding.holding_value > 0 && holding.units > 0) {
+        return holding.holding_value / holding.units;
       }
-      return 100;
+      return 0;
+    } else {
+      // Priority 1: Dedicated detail fetch (works for ALL funds, not just top 500)
+      const detail = mfDetails[slug];
+      if (detail?.historical_navs?.length) {
+        const lastNav = detail.historical_navs[detail.historical_navs.length - 1];
+        if (Array.isArray(lastNav) && lastNav.length >= 2 && lastNav[1] > 0) return lastNav[1];
+      }
+      if (detail?.nav && detail.nav > 0) return detail.nav;
+      // Priority 2: Bulk list (allMFs, top 500 only)
+      const mf = allMFs?.find((m: any) => (m.scheme_code || m.direct_search_id) === slug);
+      if (mf?.historical_navs?.length) {
+        const lastNav = mf.historical_navs[mf.historical_navs.length - 1];
+        if (Array.isArray(lastNav) && lastNav.length >= 2 && lastNav[1] > 0) return lastNav[1];
+      }
+      if (mf?.nav && mf.nav > 0) return mf.nav;
+      // Priority 3: Derive from stored holding_value (never return hardcoded 100)
+      const holding = mfHoldings.find(h => h.slug === slug);
+      if (holding && holding.holding_value > 0 && holding.units > 0) {
+        return holding.holding_value / holding.units;
+      }
+      return 0;
     }
   };
 
@@ -137,7 +193,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
   };
 
   const getMfDayChange = (slug: string): { amount: number, pct: number } => {
-    const mf = allMFs?.find((m: any) => (m.scheme_code || m.direct_search_id) === slug);
+    const mf = mfDetails[slug] || allMFs?.find((m: any) => (m.scheme_code || m.direct_search_id) === slug);
     if (mf && mf.historical_navs && mf.historical_navs.length > 1) {
       const latest = mf.historical_navs[mf.historical_navs.length - 1][1];
       const prev = mf.historical_navs[mf.historical_navs.length - 2][1];
@@ -207,11 +263,11 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
     if (type === 'STOCKS') {
       const price = getLivePrice(slug, 'STOCKS');
       const units = price > 0 ? holdVal / price : 0;
-      setStockHoldings([...stockHoldings, { slug, type: 'STOCKS', units, invested_amount: inv }]);
+      setStockHoldings([...stockHoldings, { slug, type: 'STOCKS', units, invested_amount: inv, holding_value: holdVal }]);
     } else {
       const price = getLivePrice(slug, 'MUTUAL_FUNDS');
       const units = price > 0 ? holdVal / price : 0;
-      setMfHoldings([...mfHoldings, { slug, type: 'MUTUAL_FUNDS', units, invested_amount: inv }]);
+      setMfHoldings([...mfHoldings, { slug, type: 'MUTUAL_FUNDS', units, invested_amount: inv, holding_value: holdVal }]);
     }
     
     setQuery('');
@@ -219,6 +275,26 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
     setUnitsInput('');
     setInvestedInput('');
     setIsOpen(false);
+  };
+
+  const updateAsset = (slug: string, type: 'STOCKS' | 'MUTUAL_FUNDS') => {
+    const newHoldVal = parseFloat(editHoldingVal);
+    const newInvested = parseFloat(editInvestedVal);
+    if (!newHoldVal || isNaN(newHoldVal) || newHoldVal <= 0) return;
+    if (!newInvested || isNaN(newInvested) || newInvested <= 0) return;
+
+    if (type === 'STOCKS') {
+      const price = getLivePrice(slug, 'STOCKS');
+      const units = price > 0 ? newHoldVal / price : 0;
+      setStockHoldings(stockHoldings.map(h => h.slug === slug ? { ...h, units, invested_amount: newInvested, holding_value: newHoldVal } : h));
+    } else {
+      const price = getLivePrice(slug, 'MUTUAL_FUNDS');
+      const units = price > 0 ? newHoldVal / price : 0;
+      setMfHoldings(mfHoldings.map(h => h.slug === slug ? { ...h, units, invested_amount: newInvested, holding_value: newHoldVal } : h));
+    }
+    setEditingSlug(null);
+    setEditHoldingVal('');
+    setEditInvestedVal('');
   };
 
   const removeAsset = (slug: string, type: 'STOCKS' | 'MUTUAL_FUNDS') => {
@@ -262,11 +338,20 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
 
   const mfsPie = useMemo(() => {
     return mfHoldings.map(h => {
-      const mf = allMFs?.find((m: any) => (m.scheme_code || m.direct_search_id) === h.slug);
+      const mf = mfDetails[h.slug] || allMFs?.find((m: any) => (m.scheme_code || m.direct_search_id) === h.slug);
       const val = h.units * getLivePrice(h.slug, 'MUTUAL_FUNDS');
-      return { name: (mf?.fund_name || h.slug).substring(0, 15) + '...', slug: h.slug, ticker: h.slug, logoUrl: mf?.logo_url, value: val };
+      const fundName = mf?.fund_name || h.slug;
+      
+      let finalLogoUrl = mf?.logo_url;
+      if (!finalLogoUrl && fundName) {
+        const firstWord = fundName.split(' ')[0].toLowerCase();
+        if (firstWord === 'axis') finalLogoUrl = 'https://assets-netstorage.groww.in/mf-assets/logos/axis_groww.png';
+        else if (firstWord === 'nippon' || firstWord === 'reliance') finalLogoUrl = 'https://assets-netstorage.groww.in/mf-assets/logos/reliance_groww.png';
+      }
+
+      return { name: fundName.substring(0, 15) + '...', slug: h.slug, ticker: h.slug, logoUrl: finalLogoUrl, value: val };
     }).sort((a, b) => b.value - a.value);
-  }, [mfHoldings, allMFs]);
+  }, [mfHoldings, allMFs, mfDetails, totalValue, liveQuotesMap]);
 
   const overallPie = [
     { name: 'Stocks', value: stockTotalValue, slug: 'stocks' },
@@ -289,12 +374,16 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
       const val = h.units * getLivePrice(h.slug, 'STOCKS');
       const name = (stock?.name || h.slug).substring(0, 20);
       
-      const sector = stock?.industry || 'Unknown';
-      if (!sectors[sector]) sectors[sector] = { value: 0, assets: [] };
-      sectors[sector].value += val;
-      sectors[sector].assets.push({ name, val });
+      let sector = stock?.industry || 'Unknown';
+      let mc = stock?.marketCapType || 'Unknown';
+      const isETF = /\betf\b/i.test(name) || /\betf\b/i.test(sector) || /\betf\b/i.test(h.slug);
       
-      const mc = stock?.marketCapType || 'Unknown';
+      if (isETF) {
+        sector = 'Index/ETF';
+        mc = 'Index/ETF';
+      }
+      
+      if (!sectors[sector]) sectors[sector] = { value: 0, assets: [] };
       if (!marketCaps[mc]) marketCaps[mc] = { value: 0, assets: [] };
       marketCaps[mc].value += val;
       marketCaps[mc].assets.push({ name, val });
@@ -303,7 +392,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
     });
 
     mfHoldings.forEach(h => {
-      const mf = allMFs?.find((m: any) => (m.scheme_code || m.direct_search_id) === h.slug);
+      const mf = mfDetails[h.slug] || allMFs?.find((m: any) => (m.scheme_code || m.direct_search_id) === h.slug);
       const val = h.units * getLivePrice(h.slug, 'MUTUAL_FUNDS');
       const name = (mf?.fund_name || h.slug).substring(0, 20);
       
@@ -488,7 +577,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
 
         // Calculate MF Returns for this period
         mfHoldings.forEach(h => {
-          const mf = allMFs?.find((m: any) => (m.scheme_code || m.direct_search_id) === h.slug);
+          const mf = mfDetails[h.slug] || allMFs?.find((m: any) => (m.scheme_code || m.direct_search_id) === h.slug);
           if (!mf?.historical_navs?.length) return;
           
           const val = h.units * getLivePrice(h.slug, 'MUTUAL_FUNDS');
@@ -573,7 +662,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
     });
 
     mfHoldings.forEach(h => {
-      const mf = allMFs?.find((m: any) => (m.scheme_code || m.direct_search_id) === h.slug);
+      const mf = mfDetails[h.slug] || allMFs?.find((m: any) => (m.scheme_code || m.direct_search_id) === h.slug);
       const detail = mfDetails[h.slug];
       if (mf && detail?.historical_navs) {
         data.push({
@@ -590,17 +679,12 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
     return data.sort((a, b) => b.value - a.value);
   }, [stockHoldings, mfHoldings, allStocks, allMFs, batchStockData]);
 
-  // CHART 4: Drawdown Data (from OHLCV for stocks, historical_navs for MFs)
-  const drawdownData = useMemo(() => {
-    // Compute portfolio-level drawdown from stock OHLCV data
-    if (!batchStockData && mfHoldings.length === 0) return [];
 
-    // Collect all available time series and compute weighted returns
+  const returnsData = useMemo(() => {
     const dateReturns: Record<string, number> = {};
     const benchmarkReturns: Record<string, number> = {};
     let benchmarkOhlcv: any[] = [];
 
-    // Process stocks
     const parseDateKey = (val: any) => {
       if (typeof val === 'number' || /^\d+$/.test(String(val))) {
         const d = new Date(parseInt(val as string));
@@ -631,7 +715,6 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
       }
     });
 
-    // Process MF NAVs
     mfHoldings.forEach(h => {
       const detail = mfDetails[h.slug];
       if (!detail?.historical_navs?.length) return;
@@ -645,7 +728,6 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
       }
     });
 
-    // Fallback if no stock provided it
     if (!benchmarkOhlcv.length) {
       benchmarkOhlcv = (Object.values(batchStockData || {}) as any[]).find((d: any) => d.absolute?.benchmark_key === 'NIFTY')?.benchmark_ohlcv || [];
       if (!benchmarkOhlcv.length) {
@@ -653,24 +735,37 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
       }
     }
 
-    // Benchmark returns
-    for (let i = 1; i < benchmarkOhlcv.length; i++) {
+    const niftyMap: Record<string, number> = {};
+    for (let i = 0; i < benchmarkOhlcv.length; i++) {
       const dateRaw = benchmarkOhlcv[i].Date !== undefined ? benchmarkOhlcv[i].Date : benchmarkOhlcv[i][0];
       const close = benchmarkOhlcv[i].Close !== undefined ? benchmarkOhlcv[i].Close : benchmarkOhlcv[i][4];
-      const prevClose = benchmarkOhlcv[i - 1].Close !== undefined ? benchmarkOhlcv[i - 1].Close : benchmarkOhlcv[i - 1][4];
-      if (close == null || prevClose == null) continue;
-      const date = parseDateKey(dateRaw);
-      const ret = (close - prevClose) / prevClose;
-      benchmarkReturns[date] = ret;
+      if (close != null) {
+        niftyMap[parseDateKey(dateRaw)] = close;
+      }
+      if (i > 0) {
+        const prevClose = benchmarkOhlcv[i - 1].Close !== undefined ? benchmarkOhlcv[i - 1].Close : benchmarkOhlcv[i - 1][4];
+        if (prevClose != null && close != null) {
+          const ret = (close - prevClose) / prevClose;
+          benchmarkReturns[parseDateKey(dateRaw)] = ret;
+        }
+      }
     }
 
+    return { dateReturns, benchmarkReturns, benchmarkOhlcv, niftyMap };
+  }, [batchStockData, stockHoldings, mfHoldings, allMFs, totalValue, liveQuotesMap]);
+
+  // CHART 4: Drawdown Data
+  const drawdownData = useMemo(() => {
+    if (!batchStockData && mfHoldings.length === 0) return [];
+    const { dateReturns, benchmarkReturns } = returnsData;
     const dates = Object.keys(dateReturns).filter(d => d !== 'undefined' && d !== 'NaN' && d !== 'null').sort();
+    
     let portfolioPeak = 100;
     let portfolioCumValue = 100;
     let benchmarkPeak = 100;
     let benchmarkCumValue = 100;
 
-    return dates.slice(-252).map(d => { // Last ~1 year
+    return dates.slice(-252).map(d => {
       portfolioCumValue *= (1 + (dateReturns[d] || 0));
       portfolioPeak = Math.max(portfolioPeak, portfolioCumValue);
       const portfolioDD = ((portfolioCumValue - portfolioPeak) / portfolioPeak) * 100;
@@ -685,65 +780,44 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
         benchmark: parseFloat(benchmarkDD.toFixed(2)),
       };
     });
-  }, [batchStockData, stockHoldings, mfHoldings, allMFs, totalValue]);
+  }, [returnsData]);
 
   // ═══ CHART: Foundational Growth ═══
   const growthData = useMemo(() => {
-    let benchmarkOhlcv: any[] = [];
-    if (!benchmarkOhlcv.length) {
-      benchmarkOhlcv = (Object.values(batchStockData || {}) as any[]).find((d: any) => d.absolute?.benchmark_key === 'NIFTY')?.benchmark_ohlcv || [];
-      if (!benchmarkOhlcv.length) {
-        benchmarkOhlcv = (Object.values(batchStockData || {}) as any[]).find((d: any) => d.benchmark_ohlcv)?.benchmark_ohlcv || [];
-      }
-    }
-
-    const parseDateKey = (val: any) => {
-      if (typeof val === 'number' || /^\d+$/.test(String(val))) {
-        const d = new Date(parseInt(val as string));
-        if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
-      } else if (typeof val === 'string' && val.includes('-')) {
-        const parts = val.split('-');
-        if (parts[0].length === 2 && parts[2]?.length === 4) return `${parts[2]}-${parts[1]}-${parts[0]}`;
-        return val;
-      }
-      return String(val);
-    };
-
-    const niftyMap: Record<string, number> = {};
-    for (let i = 0; i < benchmarkOhlcv.length; i++) {
-      const dateRaw = benchmarkOhlcv[i].Date !== undefined ? benchmarkOhlcv[i].Date : benchmarkOhlcv[i][0];
-      const close = benchmarkOhlcv[i].Close !== undefined ? benchmarkOhlcv[i].Close : benchmarkOhlcv[i][4];
-      if (close != null) {
-        niftyMap[parseDateKey(dateRaw)] = close;
-      }
-    }
+    const { dateReturns, benchmarkReturns, niftyMap } = returnsData;
+    
+    const today = new Date().toISOString().split('T')[0];
+    const liveInvested = stockHoldings.reduce((sum, h) => sum + (h.invested_amount || 0), 0) + mfHoldings.reduce((sum, h) => sum + (h.invested_amount || 0), 0);
+    const liveValue = totalValue;
 
     const data = [];
     let shadowNiftyUnits = 0;
     let lastInvested = 0;
     
-    // Find the earliest valid nifty price for defaults
     const availableNiftyDates = Object.keys(niftyMap).sort();
     let lastNiftyPrice = availableNiftyDates.length > 0 ? niftyMap[availableNiftyDates[availableNiftyDates.length - 1]] : 25000;
 
     for (let i = 0; i < portfolioHistory.length; i++) {
       const point = portfolioHistory[i];
       if (i === 0 && availableNiftyDates.length > 0) {
-         // Attempt to find nifty price on or near start date
          lastNiftyPrice = niftyMap[point.date] || niftyMap[availableNiftyDates.find(d => d >= point.date) || availableNiftyDates[0]] || 25000;
       }
       const currentNifty = niftyMap[point.date] || lastNiftyPrice;
       
       const cashAdded = point.invested - lastInvested;
-      if (cashAdded !== 0) {
-        shadowNiftyUnits += cashAdded / currentNifty;
+      if (i === 0) {
+         // Fix Nifty Shadow on day 1
+         shadowNiftyUnits = cashAdded / currentNifty;
+      } else if (cashAdded !== 0) {
+         shadowNiftyUnits += cashAdded / currentNifty;
       }
       
       data.push({
         date: point.date,
         portfolio: parseFloat(point.value.toFixed(2)),
         invested: parseFloat(point.invested.toFixed(2)),
-        benchmark: parseFloat((shadowNiftyUnits * currentNifty).toFixed(2))
+        benchmark: parseFloat((shadowNiftyUnits * currentNifty).toFixed(2)),
+        isProjected: false
       });
       
       lastInvested = point.invested;
@@ -751,10 +825,6 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
     }
     
     // LIVE STITCHING
-    const today = new Date().toISOString().split('T')[0];
-    const liveInvested = stockHoldings.reduce((sum, h) => sum + (h.invested_amount || 0), 0) + mfHoldings.reduce((sum, h) => sum + (h.invested_amount || 0), 0);
-    const liveValue = totalValue;
-    
     if (data.length > 0) {
       const lastPoint = data[data.length - 1];
       if (lastPoint.date < today) {
@@ -766,14 +836,20 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
           date: today,
           portfolio: parseFloat(liveValue.toFixed(2)),
           invested: parseFloat(liveInvested.toFixed(2)),
-          benchmark: parseFloat((newShadowUnits * currentNifty).toFixed(2))
+          benchmark: parseFloat((newShadowUnits * currentNifty).toFixed(2)),
+          isProjected: false
         });
       } else if (lastPoint.date === today) {
         lastPoint.portfolio = parseFloat(liveValue.toFixed(2));
+        const currentNifty = niftyMap[today] || lastNiftyPrice;
+        const snapInvested = portfolioHistory.length > 0 ? portfolioHistory[portfolioHistory.length - 1].invested : 0;
+        const cashAddedToday = liveInvested - snapInvested;
+        let newShadowUnits = shadowNiftyUnits;
+        if (cashAddedToday !== 0) {
+            newShadowUnits += cashAddedToday / currentNifty;
+        }
         lastPoint.invested = parseFloat(liveInvested.toFixed(2));
-        // We assume cash additions today were already factored into shadowNiftyUnits during the loop if the cron ran today
-        // Actually if the cron ran today, invested is the same, so no change in shadow units.
-        lastPoint.benchmark = parseFloat((shadowNiftyUnits * (niftyMap[today] || lastNiftyPrice)).toFixed(2));
+        lastPoint.benchmark = parseFloat((newShadowUnits * currentNifty).toFixed(2));
       }
     } else if (liveInvested > 0) {
       const currentNifty = niftyMap[today] || lastNiftyPrice;
@@ -781,12 +857,48 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
         date: today,
         portfolio: parseFloat(liveValue.toFixed(2)),
         invested: parseFloat(liveInvested.toFixed(2)),
-        benchmark: parseFloat(liveInvested.toFixed(2)) 
+        benchmark: parseFloat(liveInvested.toFixed(2)),
+        isProjected: false
       });
     }
 
-    return data;
-  }, [portfolioHistory, batchStockData, stockHoldings, mfHoldings, totalValue]);
+    // PROJECTED PAST (Hybrid Chart)
+    const firstActual = data[0];
+    const inceptionDate = firstActual ? firstActual.date : today;
+    const inceptionPortfolio = firstActual ? firstActual.portfolio : liveValue;
+    const inceptionInvested = firstActual ? firstActual.invested : liveInvested;
+    
+    // Pass to outer scope for ReferenceArea
+    // Since we can't directly set state during render, we rely on the component using inceptionDate later, or we can just memoize the entire inceptionDate string. We'll use a hack to pass it out, or calculate it inline later. We'll just add a field to the data items!
+    
+    const allDates = Object.keys(dateReturns).sort();
+    const pastDates = allDates.filter(d => d <= inceptionDate).slice(-252);
+    
+    let projectedData: any[] = [];
+    if (pastDates.length > 1) {
+      let pCum = 1;
+      let nCum = 1;
+      const fwd = pastDates.map(d => {
+        pCum *= (1 + (dateReturns[d] || 0));
+        nCum *= (1 + (benchmarkReturns[d] || 0));
+        return { date: d, pCum, nCum };
+      });
+      
+      const lastFwd = fwd[fwd.length - 1];
+      const pScale = inceptionPortfolio / lastFwd.pCum;
+      const nScale = inceptionInvested / lastFwd.nCum;
+      
+      projectedData = fwd.slice(0, -1).map(pt => ({
+        date: pt.date,
+        portfolio: parseFloat((pt.pCum * pScale).toFixed(2)),
+        invested: parseFloat(inceptionInvested.toFixed(2)),
+        benchmark: parseFloat((pt.nCum * nScale).toFixed(2)),
+        isProjected: true
+      }));
+    }
+    
+    return [...projectedData, ...data];
+  }, [portfolioHistory, returnsData, stockHoldings, mfHoldings, totalValue]);
 
   // ═══ CARD 1: True Concentration X-Ray ═══
   const concentrationData = useMemo(() => {
@@ -859,27 +971,41 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
   const defenseMetrics = useMemo(() => {
     // Weighted portfolio beta
     let weightedBeta = 0;
-    let coveredWeight = 0;
+    let betaCoveredWeight = 0;
+    
+    // Weighted capture ratios
+    let upCapture = 0, downCapture = 0, captureCnt = 0;
+    let captureCoveredWeight = 0;
 
     stockHoldings.forEach(h => {
       const stock = allStocks?.find((s: any) => s.slug === h.slug);
       if (!stock) return;
       const val = h.units * getLivePrice(h.slug, 'STOCKS');
       const weight = totalValue > 0 ? val / totalValue : 0;
-      // Use rs_rating as beta proxy (higher RS = higher beta)
-      const betaProxy = stock.rs_rating != null ? Math.max(0.6, stock.rs_rating / 50) : 1.0;
-      weightedBeta += betaProxy * weight;
-      coveredWeight += weight;
+      
+      // Strict mathematical true Beta (calculated dynamically on the backend via covariance against Nifty points)
+      const detail = batchStockData?.[h.slug];
+      const trueBeta = detail?.absolute?.beta;
+      
+      if (trueBeta !== undefined && trueBeta !== null) {
+        weightedBeta += trueBeta * weight;
+        betaCoveredWeight += weight;
+      } else {
+        console.log(`Beta missing for ${h.slug}: detail=`, detail);
+      }
+      
+      // Add stock weights to capture ratios (defaulting to 100%)
+      upCapture += 100 * weight;
+      downCapture += 100 * weight;
+      captureCoveredWeight += weight;
+      captureCnt++;
     });
-
-    // MF beta from advanced_stats
-    let upCapture = 0, downCapture = 0, captureCnt = 0;
     mfHoldings.forEach(h => {
-      const mf = allMFs?.find((m: any) => (m.scheme_code || m.direct_search_id) === h.slug);
+      const mf = mfDetails[h.slug] || allMFs?.find((m: any) => (m.scheme_code || m.direct_search_id) === h.slug);
       if (!mf) return;
       const val = h.units * getLivePrice(h.slug, 'MUTUAL_FUNDS');
       const weight = totalValue > 0 ? val / totalValue : 0;
-      let beta = 1.0;
+      let beta: number | null = null;
       const detail = mfDetails[h.slug];
       if (detail?.advanced_stats) {
         const stats = typeof detail.advanced_stats === 'string' ? JSON.parse(detail.advanced_stats) : detail.advanced_stats;
@@ -887,32 +1013,43 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
         if (betaStat?.stat_1y) beta = parseFloat(betaStat.stat_1y);
       }
       if (mf.category?.toLowerCase()?.includes('debt') || mf.category?.toLowerCase()?.includes('liquid')) beta = 0.2;
-      weightedBeta += beta * weight;
-      coveredWeight += weight;
+      
+      if (beta !== null) {
+        weightedBeta += beta * weight;
+        betaCoveredWeight += weight;
+      }
 
       // Capture ratios from capture_ratios.parquet
       const cr = captureRatiosData?.find?.((c: any) => c.search_id === (mf.search_id || mf.scheme_code || mf.direct_search_id));
       if (cr) {
         upCapture += (cr.up_1Y || 100) * weight;
         downCapture += (cr.down_1Y || 100) * weight;
+        captureCoveredWeight += weight;
         captureCnt++;
       }
     });
 
-    const portfolioBeta = coveredWeight > 0 ? weightedBeta / coveredWeight : 1.0;
+    const portfolioBeta = betaCoveredWeight > 0 ? weightedBeta / betaCoveredWeight : null;
 
     // 95% Weekly VaR (parametric) = Portfolio Value × Beta × Weekly Market Sigma × Z(95%)
     // Using Nifty historical weekly sigma ≈ 2.5%, Z(95%) = 1.645
-    const weeklyVaR = totalValue * portfolioBeta * 0.025 * 1.645;
+    const weeklyVaR = portfolioBeta !== null ? totalValue * portfolioBeta * 0.025 * 1.645 : null;
+
+    let defensiveRating = 'Unknown';
+    if (portfolioBeta !== null) {
+      if (portfolioBeta < 0.8) defensiveRating = 'Strong';
+      else if (portfolioBeta <= 1.1) defensiveRating = 'Moderate';
+      else defensiveRating = 'Aggressive';
+    }
 
     return {
-      beta: parseFloat(portfolioBeta.toFixed(2)),
-      var95: Math.round(weeklyVaR),
-      upCapture: captureCnt > 0 ? parseFloat((upCapture / (captureCnt > 0 ? coveredWeight : 1)).toFixed(0)) : null,
-      downCapture: captureCnt > 0 ? parseFloat((downCapture / (captureCnt > 0 ? coveredWeight : 1)).toFixed(0)) : null,
-      defensiveRating: portfolioBeta < 0.8 ? 'Strong' : portfolioBeta < 1.1 ? 'Moderate' : 'Weak',
+      beta: portfolioBeta !== null ? parseFloat(portfolioBeta.toFixed(2)) : 'N/A',
+      var95: weeklyVaR !== null ? Math.round(weeklyVaR) : 'N/A',
+      upCapture: captureCnt > 0 && captureCoveredWeight > 0 ? parseFloat((upCapture / captureCoveredWeight).toFixed(0)) : null,
+      downCapture: captureCnt > 0 && captureCoveredWeight > 0 ? parseFloat((downCapture / captureCoveredWeight).toFixed(0)) : null,
+      defensiveRating,
     };
-  }, [stockHoldings, mfHoldings, allStocks, allMFs, mfDetails, captureRatiosData, totalValue]);
+  }, [stockHoldings, mfHoldings, allStocks, allMFs, mfDetails, captureRatiosData, totalValue, batchStockData]);
 
   // ═══ CARD 3: Yield & Valuation Profiler ═══
   const yieldValuation = useMemo(() => {
@@ -1074,13 +1211,23 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
             <h2 className="text-3xl font-bold text-text-primary">Portfolio Analyzer</h2>
             <p className="text-text-secondary mt-1">Dual-approach financial data aggregation powered by live prices & NAVs.</p>
           </div>
-          <button 
-            onClick={() => setIsAiModalOpen(true)}
-            className="px-6 py-2.5 bg-indigo-500 text-white font-bold rounded-lg hover:bg-indigo-600 transition-colors flex items-center gap-2 shadow-[0_0_15px_rgba(99,102,241,0.3)]"
-          >
-            <BrainCircuit size={18} />
-            CIO AI Analysis
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={handleSync}
+              disabled={isSyncing}
+              className="px-4 py-2 bg-canvas hover:bg-surface-hover border border-border rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+            >
+              <RefreshCw size={16} className={isSyncing ? "animate-spin" : ""} />
+              Sync
+            </button>
+            <button 
+              onClick={() => setIsAiModalOpen(true)}
+              className="px-6 py-2.5 bg-indigo-500 text-white font-bold rounded-lg hover:bg-indigo-600 transition-colors flex items-center gap-2 shadow-[0_0_15px_rgba(99,102,241,0.3)]"
+            >
+              <BrainCircuit size={18} />
+              CIO AI Analysis
+            </button>
+          </div>
         </div>
       )}
 
@@ -1108,6 +1255,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
               <label className="block text-[10px] text-text-secondary font-bold uppercase mb-1 tracking-widest">Search</label>
               <GlobalSearch 
                 className="w-full"
+                fixedFilter={activeTab === 'STOCKS' ? 'Stocks' : 'Mutual Funds'}
                 value={selectedAsset ? selectedAsset.title : query}
                 onChange={(val) => {
                   if (!val) setSelectedAsset(null);
@@ -1286,10 +1434,15 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                     dayAmt = change.amount;
                     dayPct = change.pct;
                   } else {
-                    const mf = allMFs?.find((m: any) => (m.scheme_code || m.direct_search_id) === h.slug);
+                    const mf = mfDetails[h.slug] || allMFs?.find((m: any) => (m.scheme_code || m.direct_search_id) === h.slug);
                     title = mf?.fund_name || mf?.scheme_name || h.slug;
                     tickerForLogo = h.slug;
                     logoUrlForMF = mf?.logo_url;
+                    if (!logoUrlForMF && title) {
+                      const firstWord = title.split(' ')[0].toLowerCase();
+                      if (firstWord === 'axis') logoUrlForMF = 'https://assets-netstorage.groww.in/mf-assets/logos/axis_groww.png';
+                      else if (firstWord === 'nippon' || firstWord === 'reliance') logoUrlForMF = 'https://assets-netstorage.groww.in/mf-assets/logos/reliance_groww.png';
+                    }
                     const change = getMfDayChange(h.slug);
                     dayAmt = change.amount;
                     dayPct = change.pct;
@@ -1303,29 +1456,86 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
 
                   return (
                     <div key={h.slug} className="flex flex-col p-2.5 rounded bg-canvas border border-border group hover:border-alpha/30 transition-colors relative">
-                      <button onClick={() => removeAsset(h.slug, activeTab)} className="absolute top-2 right-2 text-text-secondary hover:text-beta opacity-0 group-hover:opacity-100 transition-all z-10">
-                        <X size={12} />
-                      </button>
+                      {editingSlug !== h.slug && (
+                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-all z-10">
+                          <button 
+                            onClick={() => {
+                              setEditingSlug(h.slug);
+                              setEditHoldingVal((h.holding_value || val).toString());
+                              setEditInvestedVal(h.invested_amount.toString());
+                            }} 
+                            className="text-text-secondary hover:text-beta p-0.5 rounded hover:bg-surface"
+                          >
+                            <Edit3 size={12} />
+                          </button>
+                          <button onClick={() => removeAsset(h.slug, activeTab)} className="text-text-secondary hover:text-beta p-0.5 rounded hover:bg-surface">
+                            <X size={12} />
+                          </button>
+                        </div>
+                      )}
                       
-                      <div className="flex justify-between items-start">
-                        <div className="flex items-center gap-3">
-                          {logoUrlForMF 
-                            ? <img src={logoUrlForMF} alt="AMC Logo" className="w-8 h-8 rounded-full bg-white object-contain border border-border shrink-0" />
-                            : <StockLogo ticker={tickerForLogo} name={title} className="w-8 h-8 rounded-full shrink-0" />
-                          }
-                          <div className="flex flex-col gap-0.5">
-                             <span className="font-bold text-text-primary text-sm truncate max-w-[240px] pr-4">{title}</span>
-                             <span className="text-[10px] text-text-secondary">{activeTab === 'STOCKS' ? h.units : h.units.toFixed(2)} Units • ₹{price.toLocaleString(undefined, {maximumFractionDigits: 2})} • {weight}%</span>
+                      {editingSlug === h.slug ? (
+                        <div className="flex flex-col gap-2 pt-1 pb-1">
+                          <div className="flex items-center gap-3">
+                            {logoUrlForMF 
+                              ? <img src={logoUrlForMF} alt="AMC Logo" className="w-8 h-8 rounded-full bg-white object-contain border border-border shrink-0" />
+                              : <StockLogo ticker={tickerForLogo} name={title} className="w-8 h-8 rounded-full shrink-0" />
+                            }
+                            <span className="font-bold text-text-primary text-sm truncate">{title}</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 mt-1">
+                            <div className="flex flex-col gap-1">
+                              <label className="text-[10px] text-text-secondary font-bold uppercase">Current Value (₹)</label>
+                              <input 
+                                type="number" 
+                                value={editHoldingVal} 
+                                onChange={e => setEditHoldingVal(e.target.value)}
+                                className="w-full bg-surface border border-border rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-alpha"
+                              />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <label className="text-[10px] text-text-secondary font-bold uppercase">Invested Amount (₹)</label>
+                              <input 
+                                type="number" 
+                                value={editInvestedVal} 
+                                onChange={e => setEditInvestedVal(e.target.value)}
+                                className="w-full bg-surface border border-border rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-alpha"
+                              />
+                            </div>
+                          </div>
+                          <div className="flex justify-end gap-2 mt-2">
+                            <button onClick={() => setEditingSlug(null)} className="px-2 py-1 text-xs text-text-secondary hover:text-white transition-colors">
+                              Cancel
+                            </button>
+                            <button 
+                              onClick={() => updateAsset(h.slug, activeTab)}
+                              className="px-2 py-1 text-xs bg-alpha/20 text-alpha rounded hover:bg-alpha/30 transition-colors flex items-center gap-1"
+                            >
+                              <Check size={12} /> Save
+                            </button>
                           </div>
                         </div>
-                        
-                        <div className="flex flex-col items-end shrink-0 pr-4 group-hover:pr-6 transition-all">
-                           <span className="font-mono text-sm font-bold tabular-nums text-white">₹{val.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
-                           <span className={`text-[10px] font-bold ${isPositive ? 'text-alpha' : 'text-beta'}`}>
-                             {isPositive ? '+' : ''}{dayAmt.toFixed(2)} ({isPositive ? '+' : ''}{dayPct.toFixed(2)}%)
-                           </span>
+                      ) : (
+                        <div className="flex justify-between items-start">
+                          <div className="flex items-center gap-3">
+                            {logoUrlForMF 
+                              ? <img src={logoUrlForMF} alt="AMC Logo" className="w-8 h-8 rounded-full bg-white object-contain border border-border shrink-0" />
+                              : <StockLogo ticker={tickerForLogo} name={title} className="w-8 h-8 rounded-full shrink-0" />
+                            }
+                            <div className="flex flex-col gap-0.5">
+                               <span className="font-bold text-text-primary text-sm truncate max-w-[240px] pr-8">{title}</span>
+                               <span className="text-[10px] text-text-secondary">{activeTab === 'STOCKS' ? h.units : h.units.toFixed(2)} Units • {price > 0 ? `₹${price.toLocaleString(undefined, {maximumFractionDigits: 2})}` : <span className="text-beta">Price Unavailable</span>} • {weight}%</span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex flex-col items-end shrink-0 pr-4 group-hover:pr-10 transition-all">
+                             <span className="font-mono text-sm font-bold tabular-nums text-white">₹{val.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
+                             <span className={`text-[10px] font-bold ${isPositive ? 'text-alpha' : 'text-beta'}`}>
+                               {isPositive ? '+' : ''}{dayAmt.toFixed(2)} ({isPositive ? '+' : ''}{dayPct.toFixed(2)}%)
+                             </span>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   );
                 })}
@@ -1394,20 +1604,58 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                ) : chartMode === 'growth' ? (
                   /* Portfolio Growth */
                   growthData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={growthData} margin={{ top: 10, right: 20, bottom: 20, left: 10 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
-                        <XAxis dataKey="date" stroke="#64748b" tick={{ fontSize: 9 }} tickFormatter={(d: string) => { const parts = d.split('-'); return parts.length >= 2 ? `${parts[1]}/${parts[0]?.slice(2)}` : d; }} />
-                        <YAxis stroke="#64748b" tick={{ fontSize: 10 }} domain={['auto', 'auto']} tickFormatter={(val: number) => `₹${(val/1000).toFixed(0)}k`} />
-                        <RechartsTooltip
-                          contentStyle={{ backgroundColor: '#1e222d', borderColor: '#2a2e39', fontSize: 11 }}
-                          formatter={(val: any, name: any) => [`₹${Number(val).toLocaleString()}`, String(name).toLowerCase() === 'portfolio' ? 'Portfolio' : String(name).toLowerCase() === 'benchmark' ? 'Nifty 50 Shadow' : 'Total Invested']}
-                        />
-                        <Line type="monotone" dataKey="portfolio" stroke="#a855f7" strokeWidth={2} dot={false} activeDot={{ r: 4 }} name="Portfolio" />
-                        <Line type="monotone" dataKey="benchmark" stroke="#06b6d4" strokeWidth={1} dot={false} opacity={0.6} name="Benchmark" />
-                        <Line type="stepAfter" dataKey="invested" stroke="#64748b" strokeWidth={1} dot={false} opacity={0.5} strokeDasharray="5 5" name="Invested" />
-                      </LineChart>
-                    </ResponsiveContainer>
+                    <div className="flex flex-col h-full">
+                      <div className="flex-1 min-h-0">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={growthData} margin={{ top: 10, right: 20, bottom: 20, left: 10 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+                            <XAxis dataKey="date" stroke="#64748b" tick={{ fontSize: 9 }} tickFormatter={(d: string) => { const parts = d.split('-'); return parts.length >= 2 ? `${parts[1]}/${parts[0]?.slice(2)}` : d; }} />
+                            <YAxis stroke="#64748b" tick={{ fontSize: 10 }} domain={['auto', 'auto']} tickFormatter={(val: number) => `₹${(val/1000).toFixed(0)}k`} />
+                            
+                            {(() => {
+                              const firstActual = growthData.find(d => !d.isProjected);
+                              const inceptionDate = firstActual ? firstActual.date : null;
+                              return inceptionDate && growthData[0]?.date !== inceptionDate ? (
+                                <>
+                                  <ReferenceArea x1={growthData[0]?.date} x2={inceptionDate} fill="#eab308" fillOpacity={0.06} />
+                                  <ReferenceLine x={inceptionDate} stroke="#ffffff" strokeDasharray="3 3" opacity={0.5} />
+                                </>
+                              ) : null;
+                            })()}
+
+                            <RechartsTooltip
+                              contentStyle={{ backgroundColor: '#1e222d', borderColor: '#2a2e39', fontSize: 11 }}
+                              formatter={(val: any, name: any, props: any) => {
+                                const isProj = props?.payload?.isProjected;
+                                if (String(name).toLowerCase() === 'invested' && isProj) return [null, null];
+                                let label = String(name).toLowerCase() === 'portfolio' ? 'Portfolio' : String(name).toLowerCase() === 'benchmark' ? 'Nifty 50 Shadow' : 'Total Invested';
+                                if (isProj && label !== 'Total Invested') label += ' (projected)';
+                                return [`₹${Number(val).toLocaleString()}`, label];
+                              }}
+                            />
+                            <Line type="monotone" dataKey="portfolio" stroke="#a855f7" strokeWidth={2} dot={false} activeDot={{ r: 4 }} name="Portfolio" />
+                            <Line type="monotone" dataKey="benchmark" stroke="#06b6d4" strokeWidth={1} dot={false} opacity={0.6} name="Benchmark" />
+                            <Line type="stepAfter" dataKey="invested" stroke="#64748b" strokeWidth={1} dot={false} opacity={0.5} strokeDasharray="5 5" name="Invested" />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                      {(() => {
+                         if (!growthData.some(d => d.isProjected)) return null;
+                         const projCount = growthData.filter(d => d.isProjected).length;
+                         const totalCount = growthData.length;
+                         const projPercent = (projCount / totalCount) * 100;
+                         return (
+                            <div className="relative flex-none" style={{ marginLeft: '10px', marginRight: '20px' }}>
+                               <div style={{ width: `${projPercent}%` }} className="flex justify-center">
+                                  <p className="text-[#eab308] text-[10px] mt-2 font-medium bg-surface/50 py-1.5 px-3 rounded-md border border-[#eab308]/20 flex items-center gap-1.5 w-max max-w-full text-center leading-tight">
+                                    <Waves size={12} className="flex-shrink-0" />
+                                    Growth of your portfolio if this distribution was projected to the past
+                                  </p>
+                               </div>
+                            </div>
+                         );
+                      })()}
+                    </div>
                   ) : (
                     <div className="h-full flex flex-col items-center justify-center text-text-secondary/50 text-center px-6">
                        <TrendingUp size={48} className="mb-3 opacity-20" />
@@ -1615,14 +1863,18 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                    {/* VaR */}
                    <div className="p-2 bg-surface/50 rounded border border-border">
                      <span className="text-[8px] text-text-secondary uppercase font-bold tracking-wider block mb-0.5">95% Weekly VaR</span>
-                     <span className="text-lg font-bold font-mono text-beta">₹{defenseMetrics.var95.toLocaleString()}</span>
+                     <span className="text-lg font-bold font-mono text-beta">
+                       {defenseMetrics.var95 === 'N/A' ? 'N/A' : `₹${defenseMetrics.var95.toLocaleString()}`}
+                     </span>
                      <span className="text-[8px] text-text-secondary block mt-0.5">Max expected weekly loss (95% confidence)</span>
                    </div>
                    {/* Beta */}
                    <div className="flex gap-2">
                      <div className="flex-1 p-2 bg-surface/50 rounded border border-border">
-                       <span className="text-[8px] text-text-secondary uppercase font-bold tracking-wider block mb-0.5">Portfolio β</span>
-                       <span className={`text-base font-bold font-mono ${defenseMetrics.beta > 1.1 ? 'text-beta' : defenseMetrics.beta < 0.8 ? 'text-alpha' : 'text-text-primary'}`}>{defenseMetrics.beta}</span>
+                       <span className="text-[8px] text-text-secondary uppercase font-bold tracking-wider block mb-0.5">Portfolio Beta</span>
+                       <span className={`text-base font-bold font-mono ${defenseMetrics.beta !== 'N/A' && (defenseMetrics.beta as number) > 1.1 ? 'text-beta' : defenseMetrics.beta !== 'N/A' && (defenseMetrics.beta as number) < 0.8 ? 'text-alpha' : 'text-text-primary'}`}>
+                         {defenseMetrics.beta}
+                       </span>
                      </div>
                      <div className="flex-1 p-2 bg-surface/50 rounded border border-border">
                        <span className="text-[8px] text-text-secondary uppercase font-bold tracking-wider block mb-0.5">Rating</span>

@@ -59,7 +59,7 @@ def fetch_all_mutual_funds(target_dir, full_refresh=False, extra_slugs=None):
             page = 0
             while True:
                 try:
-                    url = f"{base_url}?available_for_investment=true&doc_type=scheme&index={idx_flag}&page={page}&plan_type=Direct&scheme_type=Growth&size={size}&sort_by=3"
+                    url = f"{base_url}?doc_type=scheme&index={idx_flag}&page={page}&plan_type=Direct&scheme_type=Growth&size={size}&sort_by=3"
                     response = requests.get(url, timeout=10)
                     response.raise_for_status()
                     data = response.json()

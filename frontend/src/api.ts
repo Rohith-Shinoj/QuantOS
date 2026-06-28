@@ -87,7 +87,8 @@ export const fetchMutualFunds = async (params?: {
   limit?: number,
   category?: string,
   sort_by?: string,
-  sort_order?: string
+  sort_order?: string,
+  minimal?: boolean
 }) => {
   const response = await axios.get(`${API_BASE_URL}/mutual_funds`, { params });
   return response.data;
