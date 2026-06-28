@@ -903,7 +903,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
   // ═══ CARD 1: True Concentration X-Ray ═══
   const concentrationData = useMemo(() => {
     // Map: slug -> { name, ticker, directPct, mfPct }
-    const exposureMap: Record<string, { name: string, ticker: string, directPct: number, mfPct: number }> = {};
+    const exposureMap: Record<string, { name: string, ticker: string, directPct: number, mfPct: number, mfSources: { name: string, pct: number }[] }> = {};
 
     // 1. Direct stock holdings
     stockHoldings.forEach(h => {
@@ -913,13 +913,14 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
       const pct = totalValue > 0 ? (val / totalValue) * 100 : 0;
       
       if (!exposureMap[h.slug]) {
-        exposureMap[h.slug] = { name: stock.name, ticker: stock.ticker, directPct: 0, mfPct: 0 };
+        exposureMap[h.slug] = { name: stock.name, ticker: stock.ticker, directPct: 0, mfPct: 0, mfSources: [] };
       }
       exposureMap[h.slug].directPct += pct;
     });
 
     // 2. MF look-through holdings
     mfHoldings.forEach(h => {
+      const mf = mfDetailsRaw?.[h.slug] || allMFs?.find((m: any) => (m.scheme_code || m.direct_search_id) === h.slug);
       const detail = mfDetails[h.slug];
       if (!detail?.detailed_holdings) return;
       
@@ -945,10 +946,20 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
             name: stock?.name || holding.company_name, 
             ticker: stock?.ticker || '', 
             directPct: 0, 
-            mfPct: 0 
+            mfPct: 0,
+            mfSources: []
           };
         }
-        exposureMap[slug].mfPct += corpusPct * mfWeight;
+        const pctContrib = corpusPct * mfWeight;
+        exposureMap[slug].mfPct += pctContrib;
+        
+        const fundName = mf?.scheme_name || detail.scheme_name || h.slug;
+        const existingSource = exposureMap[slug].mfSources.find(s => s.name === fundName);
+        if (existingSource) {
+          existingSource.pct += pctContrib;
+        } else {
+          exposureMap[slug].mfSources.push({ name: fundName, pct: pctContrib });
+        }
       });
     });
 
@@ -962,6 +973,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
           mfPct: parseFloat(data.mfPct.toFixed(2)),
           totalPct: parseFloat((data.directPct + data.mfPct).toFixed(2)),
           hasOverlap: data.directPct > 0 && data.mfPct > 0,
+          mfSources: data.mfSources.map(s => ({ ...s, pct: parseFloat(s.pct.toFixed(2)) })).sort((a, b) => b.pct - a.pct)
         };
       })
       .sort((a, b) => b.totalPct - a.totalPct);
@@ -1628,7 +1640,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                               formatter={(val: any, name: any, props: any) => {
                                 const isProj = props?.payload?.isProjected;
                                 if (String(name).toLowerCase() === 'invested' && isProj) return [null, null];
-                                let label = String(name).toLowerCase() === 'portfolio' ? 'Portfolio' : String(name).toLowerCase() === 'benchmark' ? 'Nifty 50 Shadow' : 'Total Invested';
+                                let label = String(name).toLowerCase() === 'portfolio' ? 'Portfolio' : String(name).toLowerCase() === 'benchmark' ? 'Nifty 50' : 'Total Invested';
                                 if (isProj && label !== 'Total Invested') label += ' (projected)';
                                 return [`₹${Number(val).toLocaleString()}`, label];
                               }}
@@ -1835,8 +1847,17 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                          {item.mfPct > 0 && <span className="text-[8px] text-[#06b6d4]">via Funds: {item.mfPct}%</span>}
                        </div>
                        {item.hasOverlap && (
-                         <span className="text-[8px] text-amber-400/80 flex items-center gap-0.5"><AlertTriangle size={8} /> Overlap detected</span>
-                       )}
+                          <div className="flex flex-col gap-1 mt-1">
+                            <span className="text-[8px] text-amber-400/80 flex items-center gap-0.5"><AlertTriangle size={8} /> Overlap detected</span>
+                            <div className="flex flex-col gap-0.5 ml-2">
+                              {item.mfSources?.map((src: any, idx: number) => (
+                                <span key={idx} className="text-[7px] text-text-secondary truncate">
+                                  • {src.name} (<span className="text-[#06b6d4]">{src.pct}%</span>)
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                        {/* Progress bar */}
                        <div className="h-0.5 w-full bg-border/50 rounded-full overflow-hidden mt-0.5">
                          <div className="h-full rounded-full flex">
