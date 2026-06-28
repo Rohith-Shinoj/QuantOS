@@ -12,6 +12,11 @@ export const savePortfolio = async (payload: any) => {
   return response.data;
 };
 
+export const fetchMatrixPrefetch = async (payload: any) => {
+  const response = await axios.post(`${API_BASE_URL}/portfolio/matrix-prefetch`, payload);
+  return response.data;
+};
+
 export const fetchStockData = async (slug: string) => {
   const response = await axios.get(`${API_BASE_URL}/stocks/${slug}`);
   return response.data;

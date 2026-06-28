@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchAllStocks, fetchMutualFunds, fetchPortfolioAIAnalysis, sendPortfolioChat, fetchBatchStockData, fetchMutualFundByCode, fetchCaptureRatios, fetchPortfolio, savePortfolio, fetchBatchLiveQuotes } from '../api';
+import { fetchAllStocks, fetchMutualFunds, fetchPortfolioAIAnalysis, sendPortfolioChat, fetchBatchStockData, fetchMutualFundByCode, fetchCaptureRatios, fetchPortfolio, savePortfolio, fetchBatchLiveQuotes, fetchMatrixPrefetch } from '../api';
 import { Search, X, PieChart as PieChartIcon, BrainCircuit, AlertTriangle, Send, Loader2, Globe, Zap, List, Activity, Maximize2, Minimize2, TrendingUp, TrendingDown, Shield, Eye, Wallet, Crosshair, Waves, BarChart3, Info, RefreshCw, Edit3, Check } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, BarChart, Bar, AreaChart, Area, ReferenceLine, ReferenceArea, LineChart, Line } from 'recharts';
 import ReactMarkdown from 'react-markdown';
 import { StockLogo } from '../components/StockLogo';
 import { GlobalSearch } from '../components/GlobalSearch';
+import { MatrixCards } from '../components/MatrixCards';
 import { useSearch } from '../hooks/useSearch';
 import type { SearchResult } from '../hooks/useSearch';
 
@@ -90,7 +91,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
   const allMFs = mfData?.data || [];
 
   // Chart mode toggle
-  const [chartMode, setChartMode] = useState<'growth' | 'allocation' | 'stress' | 'performance' | 'drawdown'>('growth');
+  const [chartMode, setChartMode] = useState<'growth' | 'allocation' | 'stress' | 'performance' | 'drawdown' | 'ai-outlook'>('growth');
 
   // Fetch detailed batch stock data (OHLCV, relative_data) for portfolio holdings
   const stockSlugs = useMemo(() => stockHoldings.map(h => h.slug), [stockHoldings]);
@@ -98,6 +99,13 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
     queryKey: ['batchStockData_v2', stockSlugs.join(',')],
     queryFn: () => fetchBatchStockData(stockSlugs),
     enabled: stockSlugs.length > 0,
+  });
+
+  const blendedHoldings = useMemo(() => [...stockHoldings, ...mfHoldings], [stockHoldings, mfHoldings]);
+  const { data: matrixData } = useQuery({
+    queryKey: ['matrixPrefetch', blendedHoldings.map(h => `${h.slug}-${h.invested_amount}`).join(',')],
+    queryFn: () => fetchMatrixPrefetch({ holdings: blendedHoldings }),
+    enabled: blendedHoldings.length > 0,
   });
 
   // Fetch detailed MF data for each holding (for detailed_holdings, advanced_stats)
@@ -1572,6 +1580,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                  {chartMode === 'allocation' && <><PieChartIcon size={12} className="text-indigo-400" /> Asset Allocation</>}
                  {chartMode === 'stress' && <><Waves size={12} className="text-amber-400" /> Empirical Backtest</>}
                  {chartMode === 'performance' && <><List size={12} className="text-emerald-400" /> Performance Matrix</>}
+                 {chartMode === 'ai-outlook' && <><BrainCircuit size={12} className="text-indigo-400" /> AI Outlook (QES & Alpha)</>}
                  {chartMode === 'drawdown' && (
                    <div className="flex items-center gap-1 group relative">
                      <TrendingDown size={12} className="text-red-400" /> 
@@ -1590,6 +1599,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                    { key: 'stress' as const, label: 'Backtest', color: 'amber' },
                    { key: 'performance' as const, label: 'Performance', color: 'emerald' },
                    { key: 'drawdown' as const, label: 'Drawdown', color: 'red' },
+                   { key: 'ai-outlook' as const, label: 'AI Outlook', color: 'indigo' },
                  ].map(m => (
                    <button
                      key={m.key}
@@ -1797,7 +1807,21 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                        <p className="text-xs">Add holdings to see historical performance.</p>
                     </div>
                   )
-               ) : (
+               ) : chartMode === 'ai-outlook' ? (
+                   <div className="h-full flex flex-col justify-center px-4">
+                     {matrixData?.ai_outlook_view?.ensemble_alpha !== "PENDING" ? (
+                       <div className="flex items-center justify-center text-indigo-400/50 text-xs">
+                         <BrainCircuit size={14} className="mr-2" />
+                         Deterministic ML Engine active. XGBoost/PyTorch outputs loaded.
+                       </div>
+                     ) : (
+                       <div className="flex items-center justify-center bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-bold uppercase tracking-widest px-4 py-2 mx-auto rounded w-fit">
+                         <BrainCircuit size={14} className="mr-2" />
+                         Inference Engine Pending: Run predictor.py to populate forward analytics
+                       </div>
+                     )}
+                   </div>
+                 ) : (
                  /* Drawdown Profile */
                  drawdownData.length > 0 ? (
                    <ResponsiveContainer width="100%" height="100%">
@@ -1824,152 +1848,15 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
              </div>
            </div>
            
-           {/* 3 Action Cards */}
+           {/* 15-Card Matrix Engine */}
            <div className="h-[220px] lg:h-[240px] flex gap-3 shrink-0">
-             {/* CARD 1: Concentration X-Ray */}
-             <div className="flex-1 bg-canvas rounded-lg border border-border p-3 flex flex-col overflow-hidden">
-               <div className="flex items-center gap-1.5 mb-2 shrink-0">
-                 <Eye size={12} className="text-amber-400" />
-                 <span className="text-[10px] font-bold text-text-secondary uppercase tracking-widest">True Concentration</span>
-               </div>
-               {concentrationData.length === 0 ? (
-                 <div className="flex-1 flex items-center justify-center text-text-secondary/50 text-[10px]">Add holdings to analyze</div>
-               ) : (
-                 <div className="flex-1 flex flex-col gap-1.5 overflow-y-auto hide-scrollbar">
-                   {concentrationData.map((item, i) => (
-                     <div key={i} className={`flex flex-col gap-0.5 p-1.5 rounded ${item.hasOverlap ? 'bg-amber-500/5 border border-amber-500/20' : 'bg-surface/50'}`}>
-                       <div className="flex justify-between items-center">
-                         <span className="text-[10px] font-bold text-text-primary truncate pr-2">{item.ticker || item.name}</span>
-                         <span className={`text-[10px] font-bold font-mono ${item.hasOverlap ? 'text-amber-400' : 'text-text-primary'}`}>{item.totalPct}%</span>
-                       </div>
-                       <div className="flex gap-2">
-                         {item.directPct > 0 && <span className="text-[8px] text-[#8b5cf6]">Direct: {item.directPct}%</span>}
-                         {item.mfPct > 0 && <span className="text-[8px] text-[#06b6d4]">via Funds: {item.mfPct}%</span>}
-                       </div>
-                       {item.hasOverlap && (
-                          <div className="flex flex-col gap-1 mt-1">
-                            <span className="text-[8px] text-amber-400/80 flex items-center gap-0.5"><AlertTriangle size={8} /> Overlap detected</span>
-                            <div className="flex flex-col gap-0.5 ml-2">
-                              {item.mfSources?.map((src: any, idx: number) => (
-                                <span key={idx} className="text-[7px] text-text-secondary truncate">
-                                  • {src.name} (<span className="text-[#06b6d4]">{src.pct}%</span>)
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                       {/* Progress bar */}
-                       <div className="h-0.5 w-full bg-border/50 rounded-full overflow-hidden mt-0.5">
-                         <div className="h-full rounded-full flex">
-                           <div className="bg-[#8b5cf6]" style={{ width: `${Math.min(item.directPct * 3, 100)}%` }}></div>
-                           <div className="bg-[#06b6d4]" style={{ width: `${Math.min(item.mfPct * 3, 100)}%` }}></div>
-                         </div>
-                       </div>
-                     </div>
-                   ))}
-                 </div>
-               )}
-             </div>
-
-             {/* CARD 2: Defense Engine */}
-             <div className="flex-1 bg-canvas rounded-lg border border-border p-3 flex flex-col overflow-hidden">
-               <div className="flex items-center gap-1.5 mb-2 shrink-0">
-                 <Shield size={12} className="text-blue-400" />
-                 <span className="text-[10px] font-bold text-text-secondary uppercase tracking-widest">Defense Engine</span>
-               </div>
-               {totalAssets === 0 ? (
-                 <div className="flex-1 flex items-center justify-center text-text-secondary/50 text-[10px]">Add holdings to analyze</div>
-               ) : (
-                 <div className="flex-1 flex flex-col gap-2">
-                   {/* VaR */}
-                   <div className="p-2 bg-surface/50 rounded border border-border">
-                     <span className="text-[8px] text-text-secondary uppercase font-bold tracking-wider block mb-0.5">95% Weekly VaR</span>
-                     <span className="text-lg font-bold font-mono text-beta">
-                       {defenseMetrics.var95 === 'N/A' ? 'N/A' : `₹${defenseMetrics.var95.toLocaleString()}`}
-                     </span>
-                     <span className="text-[8px] text-text-secondary block mt-0.5">Max expected weekly loss (95% confidence)</span>
-                   </div>
-                   {/* Beta */}
-                   <div className="flex gap-2">
-                     <div className="flex-1 p-2 bg-surface/50 rounded border border-border">
-                       <span className="text-[8px] text-text-secondary uppercase font-bold tracking-wider block mb-0.5">Portfolio Beta</span>
-                       <span className={`text-base font-bold font-mono ${defenseMetrics.beta !== 'N/A' && (defenseMetrics.beta as number) > 1.1 ? 'text-beta' : defenseMetrics.beta !== 'N/A' && (defenseMetrics.beta as number) < 0.8 ? 'text-alpha' : 'text-text-primary'}`}>
-                         {defenseMetrics.beta}
-                       </span>
-                     </div>
-                     <div className="flex-1 p-2 bg-surface/50 rounded border border-border">
-                       <span className="text-[8px] text-text-secondary uppercase font-bold tracking-wider block mb-0.5">Rating</span>
-                       <span className={`text-xs font-bold ${defenseMetrics.defensiveRating === 'Strong' ? 'text-alpha' : defenseMetrics.defensiveRating === 'Moderate' ? 'text-amber-400' : 'text-beta'}`}>
-                         {defenseMetrics.defensiveRating}
-                       </span>
-                     </div>
-                   </div>
-                   {/* Capture Ratios */}
-                   {defenseMetrics.upCapture !== null && (
-                     <div className="flex gap-2">
-                       <div className="flex-1 p-1.5 bg-surface/50 rounded border border-border text-center">
-                         <span className="text-[8px] text-text-secondary uppercase font-bold block">Up Capture</span>
-                         <span className="text-xs font-bold font-mono text-alpha">{defenseMetrics.upCapture}%</span>
-                       </div>
-                       <div className="flex-1 p-1.5 bg-surface/50 rounded border border-border text-center">
-                         <span className="text-[8px] text-text-secondary uppercase font-bold block">Down Capture</span>
-                         <span className="text-xs font-bold font-mono text-beta">{defenseMetrics.downCapture}%</span>
-                       </div>
-                     </div>
-                   )}
-                 </div>
-               )}
-             </div>
-
-             {/* CARD 3: Yield & Valuation */}
-             <div className="flex-1 bg-canvas rounded-lg border border-border p-3 flex flex-col overflow-hidden">
-               <div className="flex items-center gap-1.5 mb-2 shrink-0">
-                 <Wallet size={12} className="text-emerald-400" />
-                 <span className="text-[10px] font-bold text-text-secondary uppercase tracking-widest">Yield & Valuation</span>
-               </div>
-               {totalAssets === 0 ? (
-                 <div className="flex-1 flex items-center justify-center text-text-secondary/50 text-[10px]">Add holdings to analyze</div>
-               ) : (
-                 <div className="flex-1 flex flex-col gap-2">
-                   {/* Forward Yield */}
-                   <div className="p-2 bg-surface/50 rounded border border-border">
-                     <span className="text-[8px] text-text-secondary uppercase font-bold tracking-wider block mb-0.5">Forward Dividend Yield</span>
-                     <div className="flex items-baseline gap-2">
-                       <span className="text-lg font-bold font-mono text-alpha">₹{yieldValuation.projectedYield.toLocaleString()}<span className="text-[10px] text-text-secondary">/yr</span></span>
-                       <span className="text-xs font-bold text-text-secondary">({yieldValuation.aggYield}%)</span>
-                     </div>
-                   </div>
-                   {/* P/E */}
-                   {/* P/E */}
-                   <div className="p-2 bg-surface/50 rounded border border-border">
-                     <span className="text-[8px] text-text-secondary uppercase font-bold tracking-wider block mb-0.5">Aggregate P/E</span>
-                     <div className="flex items-baseline gap-2">
-                       <span className="text-base font-bold font-mono text-text-primary">{yieldValuation.aggPE}x</span>
-                       <span className={`text-[10px] font-bold ${yieldValuation.pePremium > 0 ? 'text-amber-400' : 'text-alpha'}`}>
-                         {yieldValuation.pePremium > 0 ? '+' : ''}{yieldValuation.pePremium}% vs Market
-                       </span>
-                     </div>
-                   </div>
-                   {/* Benchmark comparison */}
-                   <div className="flex gap-2">
-                     <div className="flex-1 p-1.5 bg-surface/50 rounded border border-border text-center group relative">
-                       <span className="text-[8px] text-text-secondary uppercase font-bold block">Portfolio P/E</span>
-                       <span className="text-xs font-bold font-mono text-text-primary">{yieldValuation.aggPE}x</span>
-                     </div>
-                     <div className="flex-1 p-1.5 bg-surface/50 rounded border border-border text-center group relative">
-                       <div className="flex items-center justify-center gap-1">
-                          <span className="text-[8px] text-text-secondary uppercase font-bold block">Sector Avg P/E</span>
-                          <Info size={8} className="text-text-secondary opacity-50" />
-                       </div>
-                       <span className="text-xs font-bold font-mono text-text-secondary">{yieldValuation.benchmarkPE}x</span>
-                       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 border border-gray-700 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                          The value-weighted average of the Industry P/E for every holding in your portfolio. This ensures accurate peer comparison based on your exact capital allocation.
-                       </div>
-                     </div>
-                   </div>
-                 </div>
-               )}
-             </div>
+             <MatrixCards 
+               mode={chartMode} 
+               data={matrixData} 
+               concentrationData={concentrationData} 
+               defenseMetrics={defenseMetrics} 
+               yieldValuation={yieldValuation} 
+             />
            </div>
         </div>
       </div>

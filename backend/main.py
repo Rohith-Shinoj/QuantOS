@@ -657,6 +657,20 @@ async def get_stock_news(slug: str):
 class PortfolioRequest(BaseModel):
     slugs: list[str]
 
+class MatrixPrefetchRequest(BaseModel):
+    holdings: list[dict]
+
+@app.post("/api/portfolio/matrix-prefetch")
+async def matrix_prefetch(request: MatrixPrefetchRequest):
+    try:
+        from matrix_engine import compute_15_card_matrix
+        con = get_db()
+        result = compute_15_card_matrix(con, request.holdings)
+        return result
+    except Exception as e:
+        print("Error in matrix prefetch:", str(e))
+        return {"error": str(e)}
+
 @app.post("/api/portfolio/analyze")
 async def analyze_portfolio(request: PortfolioRequest):
     try:

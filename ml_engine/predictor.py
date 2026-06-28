@@ -7,6 +7,8 @@ import joblib
 import shap
 import warnings
 import json
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from ml_engine.feature_extractor import calculate_macro_drawdown, calculate_liquidity_gates, winsorize_series, extract_forensics
 
 warnings.filterwarnings('ignore')
