@@ -101,9 +101,7 @@ export const TerminalLayout = () => {
         
         {/* Left Thin Toolbar */}
         <div className="w-12 border-r border-border bg-surface flex flex-col items-center py-4 gap-4 shrink-0">
-          <button className="text-text-secondary hover:text-white p-2 rounded hover:bg-surface-hover transition-colors" title="Macro Overview" onClick={() => navigate('/overview')}>
-            <ActivitySquare size={20} />
-          </button>
+
           <button className="text-text-secondary hover:text-white p-2 rounded hover:bg-surface-hover transition-colors" title="Stock Screener" onClick={() => navigate('/screener')}>
             <Target size={20} />
           </button>

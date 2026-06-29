@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { createChart, ColorType, CrosshairMode, LineStyle } from 'lightweight-charts';
-import { BrainCircuit, RefreshCw, HelpCircle } from 'lucide-react';
+import { BrainCircuit, RefreshCw, HelpCircle, Calendar } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchStockData } from '../../api';
 
@@ -729,9 +729,9 @@ export const MutualFundPriceChart = ({ fund }: { fund: any }) => {
                 <button
                   key={tf}
                   onClick={() => setTimeframe(tf)}
-                  className={`px-2.5 py-1 text-xs font-bold rounded transition-colors ${timeframe === tf ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 shadow-sm' : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'}`}
+                  className={`px-3 py-1 rounded text-xs font-bold transition-colors flex items-center justify-center min-w-[32px] ${timeframe === tf ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 shadow-sm' : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'}`}
                 >
-                  {tf}
+                  {tf === 'CUSTOM' ? <Calendar size={14} /> : tf}
                 </button>
               ))}
             </div>

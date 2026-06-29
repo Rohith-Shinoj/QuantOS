@@ -212,7 +212,7 @@ export const PriceChart = ({ data }: { data: any }) => {
       },
     },
     annotations: {
-      yAxis: activeOverlays.map(id => {
+      yaxis: activeOverlays.map(id => {
         const overlay = availableOverlays.find(o => o.id === id);
         if (!overlay) return null;
         return {

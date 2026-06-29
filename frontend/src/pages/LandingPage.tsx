@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, ChevronRight, BarChart2, Info, TrendingUp, TrendingDown, ArrowRight, Activity, ArrowUpRight, BrainCircuit, RefreshCw } from 'lucide-react';
+import { Search, ChevronRight, BarChart2, Info, TrendingUp, TrendingDown, ArrowRight, Activity, ArrowUpRight, BrainCircuit, RefreshCw, Calendar } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchAllStocks, fetchStockData, fetchMacroData, fetchBatchLiveQuotes, fetchBatchStockData, fetchMutualFunds } from '../api';
 import Chart from 'react-apexcharts';
@@ -85,9 +85,9 @@ const TimeframeSelector = ({
           <button
             key={t}
             onClick={(e) => { e.stopPropagation(); onSelect(t); }}
-            className={`${minimal ? 'text-[9px] px-1.5 py-0.5 rounded transition-colors' : 'text-[10px] font-bold px-2 py-1 rounded transition-colors'} ${selected === t ? (minimal ? 'text-alpha font-bold bg-alpha/10' : 'bg-surface text-alpha border border-border/50 shadow-sm') : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'}`}
+            className={`${minimal ? 'text-[9px] px-1.5 py-0.5 rounded transition-colors flex items-center justify-center' : 'text-[10px] font-bold px-2 py-1 rounded transition-colors flex items-center justify-center'} ${selected === t ? (minimal ? 'text-alpha font-bold bg-alpha/10' : 'bg-surface text-alpha border border-border/50 shadow-sm') : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'}`}
           >
-            {t}
+            {t === 'CUSTOM' ? <Calendar size={minimal ? 10 : 12} /> : t}
           </button>
         ))}
       </div>
@@ -246,7 +246,7 @@ const MarketSummaryChart = ({ slug }: { slug: string }) => {
   
   return (
     <div className="w-full h-full flex flex-col bg-surface border border-border rounded-xl p-6 relative">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col gap-3 mb-4">
         <div className="flex items-center gap-4">
           <StockLogo ticker={ticker || ''} className="w-12 h-12 shadow-lg" textClass="text-xl" fallbackClass="bg-canvas border border-border text-text-primary" />
           <div>
@@ -263,7 +263,9 @@ const MarketSummaryChart = ({ slug }: { slug: string }) => {
             </div>
           </div>
         </div>
-        <TimeframeSelector selected={timeframe} onSelect={setTimeframe} customRange={customRange} setCustomRange={setCustomRange} />
+        <div className="flex justify-end">
+          <TimeframeSelector selected={timeframe} onSelect={setTimeframe} customRange={customRange} setCustomRange={setCustomRange} />
+        </div>
       </div>
       <div className="flex-1 w-full min-h-[200px] relative overflow-hidden mt-2">
         {ticker && ticker.toLowerCase().includes('nifty') && (
@@ -442,7 +444,7 @@ const MiniSectorCard = ({ stock, stockData, isLoading }: { stock: any, stockData
         <StockLogo ticker={stock.ticker} className="w-6 h-6" textClass="text-[8px]" fallbackClass="bg-canvas border border-border text-alpha" />
         <div className="text-sm font-bold text-text-primary group-hover:text-alpha transition-colors truncate">{displayName}</div>
       </div>
-      <div className="flex justify-between items-center mb-2">
+      <div className="flex justify-between items-end mb-2">
         <div className="flex flex-col gap-1">
           <div className="text-lg font-bold text-text-primary">
             {latestPrice ? latestPrice.toFixed(2) : '---'}
@@ -452,7 +454,7 @@ const MiniSectorCard = ({ stock, stockData, isLoading }: { stock: any, stockData
           </div>
         </div>
       </div>
-      <div className="flex justify-end mb-2">
+      <div className="flex justify-start mb-2 overflow-x-auto hide-scrollbar -mx-1 px-1">
         <TimeframeSelector selected={timeframe} onSelect={setTimeframe} customRange={customRange} setCustomRange={setCustomRange} minimal={true} />
       </div>
       <div className="flex-1 w-full min-h-0 relative">
@@ -598,21 +600,23 @@ const IndexMarketCard = ({ stock, isActive, stockData, isLoading }: { stock: any
   return (
     <div className={`bg-surface border ${isActive ? 'border-alpha ring-1 ring-alpha shadow-lg shadow-alpha/10' : 'border-border'} rounded-xl flex flex-col h-[280px] overflow-hidden group cursor-pointer hover:border-alpha/50 transition-all`}>
       <div className="p-5 flex-1 flex flex-col transition-colors relative">
-        <div className="flex justify-between items-start mb-4">
-          <div className="flex items-center gap-3 overflow-hidden pr-2">
-            <StockLogo ticker={stock.ticker} className="w-8 h-8" textClass="text-[10px]" fallbackClass="bg-canvas border border-border text-text-primary" />
-            <div className="text-base font-bold text-text-primary group-hover:text-alpha transition-colors truncate">{stock.name}</div>
+        <div className="flex flex-col gap-3 mb-2 relative z-10">
+          <div className="flex justify-between items-start gap-4">
+            <div className="flex items-center gap-3 overflow-hidden">
+              <StockLogo ticker={stock.ticker} className="w-8 h-8 shrink-0" textClass="text-[10px]" fallbackClass="bg-canvas border border-border text-text-primary" />
+              <div className="text-base font-bold text-text-primary group-hover:text-alpha transition-colors truncate">{stock.name}</div>
+            </div>
+            <div className="flex flex-col items-end shrink-0">
+              <div className="text-xl font-bold text-text-primary tracking-tight">
+                {latestPrice ? latestPrice.toFixed(2) : '---'}
+              </div>
+              <div className={`text-xs font-bold mt-0.5 ${displayColor}`}>
+                {change.isPositive ? '+' : '-'}{change.abs} ({change.pct})
+              </div>
+            </div>
           </div>
-          <TimeframeSelector selected={timeframe} onSelect={setTimeframe} customRange={customRange} setCustomRange={setCustomRange} />
-        </div>
-        <div className="mt-2 flex justify-between items-end">
-          <div>
-            <div className="text-2xl font-bold text-text-primary tracking-tight">
-              {latestPrice ? latestPrice.toFixed(2) : '---'}
-            </div>
-            <div className={`text-sm font-bold mt-1 ${displayColor}`}>
-              {change.isPositive ? '+' : '-'}{change.abs} ({change.pct})
-            </div>
+          <div className="flex justify-end">
+            <TimeframeSelector selected={timeframe} onSelect={setTimeframe} customRange={customRange} setCustomRange={setCustomRange} />
           </div>
         </div>
         <div className="flex-1 w-full mt-4 min-h-0 relative">
@@ -675,7 +679,15 @@ const MarketSectors = ({ macro, stocks }: { macro: any, stocks: any[] }) => {
             <div className="flex justify-between items-end mt-2">
               <div>
                 <div className="text-[8px] text-text-secondary">Avg RS Rating</div>
-                <div className={`text-[12px] font-bold ${sec.momentum > 0 ? 'text-alpha' : 'text-beta'}`}>{(sec.momentum * 100).toFixed(1)}</div>
+                <div className={`text-[12px] font-bold ${sec.rs_rating > 50 ? 'text-alpha' : 'text-beta'}`}>
+                  {sec.rs_rating ? sec.rs_rating.toFixed(1) : '---'}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-[8px] text-text-secondary">Inst. Accum. QoQ</div>
+                <div className={`text-[12px] font-bold ${sec.inst_accum > 0 ? 'text-alpha' : 'text-beta'}`}>
+                  {sec.inst_accum > 0 ? '+' : ''}{(sec.inst_accum).toFixed(2)}%
+                </div>
               </div>
             </div>
           </div>
@@ -785,7 +797,7 @@ const StockListGrid = ({ stocks }: { stocks: any[] }) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-16 mb-16">
       <List 
-        title="Institutional favorites" 
+        title="Highest Institutional Accumulation" 
         tooltip="Ranks stocks by net institutional accumulation over the last quarter. A stock may have high accumulation but still experience short-term daily volatility."
         data={highestVolume} 
         metricColor="bg-alpha/10 text-alpha"
@@ -798,7 +810,7 @@ const StockListGrid = ({ stocks }: { stocks: any[] }) => {
         )}
       />
       <List 
-        title="Momentum leaders" 
+        title="Highest Momentum" 
         tooltip="Ranks stocks by Relative Score (RS) over a 52-week rolling basis. A stock scoring RS 99 is in the top 1% of structural momentum, regardless of today's price change."
         data={mostVolatile} 
         metricColor="bg-warning/10 text-warning"
@@ -813,7 +825,7 @@ const StockListGrid = ({ stocks }: { stocks: any[] }) => {
       <List 
         title={
           <span className="flex items-center gap-2">
-            The Institutional Compounder 
+            Steady Compounders
             <span className="bg-yellow-500/20 text-yellow-500 text-[10px] px-1.5 py-0.5 rounded-sm uppercase tracking-wider font-bold">AI</span>
           </span>
         }
@@ -835,7 +847,7 @@ const StockListGrid = ({ stocks }: { stocks: any[] }) => {
       <List 
         title={
           <span className="flex items-center gap-2">
-            The Hyper-Growth Moonshot 
+            Volatile yet High Growth 
             <span className="bg-yellow-500/20 text-yellow-500 text-[10px] px-1.5 py-0.5 rounded-sm uppercase tracking-wider font-bold">AI</span>
           </span>
         }
@@ -1075,7 +1087,6 @@ export const LandingPage = () => {
           <Link to="/ai-research" className="flex items-center gap-2 px-4 py-2 bg-indigo-500/10 text-indigo-400 font-bold rounded-lg border border-indigo-500/30 hover:bg-indigo-500/20 transition-all shadow-[0_0_15px_rgba(99,102,241,0.2)]">
             <BrainCircuit size={16} /> AI Research Desk
           </Link>
-          <Link to="/overview" className="text-sm font-bold text-text-secondary hover:text-white transition-colors">Market Overview</Link>
           <Link to="/heatmap" className="text-sm font-bold text-text-secondary hover:text-white transition-colors">Heatmap</Link>
           <Link to="/pairs" className="text-sm font-bold text-text-secondary hover:text-white transition-colors">Pair Trading</Link>
           <Link to="/watchlists" className="text-sm font-bold text-text-secondary hover:text-white transition-colors">Watchlists</Link>

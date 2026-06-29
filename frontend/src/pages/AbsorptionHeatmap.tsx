@@ -24,9 +24,9 @@ export const AbsorptionHeatmap = ({ data }: { data: any[] }) => {
               to={`/stock/${stock.slug}`}
               className="group relative p-4 rounded border border-border bg-canvas hover:border-alpha transition-all"
             >
-              <div className="flex justify-between items-start">
-                <span className="font-bold text-text-primary group-hover:text-alpha">{stock.ticker}</span>
-                <span className="text-[10px] bg-alpha/10 text-alpha px-1.5 py-0.5 rounded font-bold">
+              <div className="flex justify-between items-start gap-2">
+                <span className="font-bold text-text-primary group-hover:text-alpha truncate">{stock.ticker}</span>
+                <span className="text-[10px] bg-alpha/10 text-alpha px-1.5 py-0.5 rounded font-bold shrink-0">
                   {stock.inst_accum.toFixed(2)}%
                 </span>
               </div>

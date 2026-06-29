@@ -364,8 +364,9 @@ async def get_macro_data():
         sector_query = """
             SELECT 
                 industry,
-                AVG(inst_accum) as avg_inst_accum,
-                COUNT(*) as count
+                SUM(inst_accum * COALESCE(market_cap, 0)) / NULLIF(SUM(COALESCE(market_cap, 0)), 0) as avg_inst_accum,
+                COUNT(*) as count,
+                SUM(rs_rating * COALESCE(market_cap, 0)) / NULLIF(SUM(COALESCE(market_cap, 0)), 0) as avg_rs_rating
             FROM stocks
             WHERE industry IS NOT NULL AND industry != 'Unknown' AND industry != 'null'
             GROUP BY industry
@@ -399,7 +400,7 @@ async def get_macro_data():
                 "is_fear": result[3] == 1 if result and result[3] is not None else False,
                 "breadth_pct": result[4] if result and result[4] is not None else 0.5,
             },
-            "sectors": [{"name": s[0], "momentum": s[1], "count": s[2]} for s in sectors],
+            "sectors": [{"name": s[0], "inst_accum": s[1], "count": s[2], "rs_rating": s[3]} for s in sectors],
             "absorption": [{"slug": a[0], "ticker": a[1], "inst_accum": a[2], "retail_liq": a[3]} for a in absorption]
         }
     except Exception as e:
@@ -837,6 +838,7 @@ class PortfolioAIRequest(BaseModel):
     holdingPeriod: str
     history: list = []
     message: str = ""
+    initialAnalysis: dict | None = None
 
 @app.post("/api/portfolio/ai-analyze")
 async def ai_analyze_portfolio(req: PortfolioAIRequest):
@@ -1017,7 +1019,10 @@ Their Holding Period is: {req.holdingPeriod}.
 Their current unified portfolio:
 {json.dumps(portfolio_data, indent=2)}
 
-Answer the client's questions directly and concisely."""
+Initial Analysis provided to the client:
+{json.dumps(req.initialAnalysis, indent=2) if req.initialAnalysis else "None"}
+
+Answer the client's questions directly, concisely, and with high-quality formatting. Use markdown bullet points, bold text for emphasis, and structured markdown tables if comparing data. NEVER output raw JSON blocks to the client."""
 
         messages = [SystemMessage(content=system_prompt)]
         

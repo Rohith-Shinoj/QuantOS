@@ -1,9 +1,11 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchAllStocks, fetchMutualFunds, fetchPortfolioAIAnalysis, sendPortfolioChat, fetchBatchStockData, fetchMutualFundByCode, fetchCaptureRatios, fetchPortfolio, savePortfolio, fetchBatchLiveQuotes, fetchMatrixPrefetch } from '../api';
-import { Search, X, PieChart as PieChartIcon, BrainCircuit, AlertTriangle, Send, Loader2, Globe, Zap, List, Activity, Maximize2, Minimize2, TrendingUp, TrendingDown, Shield, Eye, Wallet, Crosshair, Waves, BarChart3, Info, RefreshCw, Edit3, Check } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, BarChart, Bar, AreaChart, Area, ReferenceLine, ReferenceArea, LineChart, Line } from 'recharts';
+import { Search, X, PieChart as PieChartIcon, BrainCircuit, AlertTriangle, Send, Loader2, Globe, Zap, List, Activity, Maximize2, Minimize2, TrendingUp, TrendingDown, Shield, Eye, Wallet, Crosshair, Waves, BarChart3, Info, RefreshCw, Edit3, Check, Plus, Bot } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, BarChart, Bar, AreaChart, Area, ReferenceLine, ReferenceArea, LineChart, Line, Text } from 'recharts';
+import { getMacroInsight } from '../utils/macroEngine';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { StockLogo } from '../components/StockLogo';
 import { GlobalSearch } from '../components/GlobalSearch';
 import { MatrixCards } from '../components/MatrixCards';
@@ -383,15 +385,17 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
       const name = (stock?.name || h.slug).substring(0, 20);
       
       let sector = stock?.industry || 'Unknown';
-      let mc = stock?.marketCapType || 'Unknown';
+      let mc = stock?.marketCapType || 'Unclassified';
       const isETF = /\betf\b/i.test(name) || /\betf\b/i.test(sector) || /\betf\b/i.test(h.slug);
       
       if (isETF) {
         sector = 'Index/ETF';
-        mc = 'Index/ETF';
       }
       
       if (!sectors[sector]) sectors[sector] = { value: 0, assets: [] };
+      sectors[sector].value += val;
+      sectors[sector].assets.push({ name, val });
+      
       if (!marketCaps[mc]) marketCaps[mc] = { value: 0, assets: [] };
       marketCaps[mc].value += val;
       marketCaps[mc].assets.push({ name, val });
@@ -400,20 +404,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
     });
 
     mfHoldings.forEach(h => {
-      const mf = mfDetails[h.slug] || allMFs?.find((m: any) => (m.scheme_code || m.direct_search_id) === h.slug);
       const val = h.units * getLivePrice(h.slug, 'MUTUAL_FUNDS');
-      const name = (mf?.fund_name || h.slug).substring(0, 20);
-      
-      const cat = mf?.category || 'Fund';
-      if (!sectors[cat]) sectors[cat] = { value: 0, assets: [] };
-      sectors[cat].value += val;
-      sectors[cat].assets.push({ name, val });
-      
-      const mc = 'Diversified (MF)';
-      if (!marketCaps[mc]) marketCaps[mc] = { value: 0, assets: [] };
-      marketCaps[mc].value += val;
-      marketCaps[mc].assets.push({ name, val });
-      
       assetTypes['Mutual Funds'] += val;
     });
 
@@ -514,32 +505,81 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
     const scenarios = [
       { 
         id: 'crude_spike', 
-        event: 'Brent Crude Spike ($70 → $100)', 
+        event: 'Brent Crude Spike (+15%)', 
         periods: [
-          { start: '2021-12-01', end: '2022-02-28' }
+          { start: '2026-02-22', end: '2026-05-17' },
+          { start: '2025-12-28', end: '2026-02-15' },
+          { start: '2025-05-18', end: '2025-06-15' },
+          { start: '2024-01-28', end: '2024-04-21' },
+          { start: '2023-07-16', end: '2023-09-24' }
         ]
       },
       { 
         id: 'crude_collapse', 
-        event: 'Brent Crude Collapse ($100 → $70)', 
+        event: 'Brent Crude Collapse (-15%)', 
         periods: [
-          { start: '2022-10-31', end: '2023-03-31' }
+          { start: '2026-05-31', end: '2026-06-28' },
+          { start: '2026-04-26', end: '2026-05-24' },
+          { start: '2026-03-15', end: '2026-04-12' },
+          { start: '2025-06-15', end: '2025-08-31' },
+          { start: '2025-02-09', end: '2025-05-04' }
+        ]
+      },
+      { 
+        id: 'gold_spike', 
+        event: 'Gold Breakout (+10%)', 
+        periods: [
+          { start: '2026-01-11', end: '2026-03-08' },
+          { start: '2025-11-16', end: '2026-01-04' },
+          { start: '2025-09-21', end: '2025-11-09' },
+          { start: '2025-07-06', end: '2025-09-14' },
+          { start: '2025-03-23', end: '2025-06-15' }
+        ]
+      },
+      { 
+        id: 'gold_collapse', 
+        event: 'Gold Correction (-10%)', 
+        periods: [
+          { start: '2026-05-24', end: '2026-06-28' },
+          { start: '2026-03-08', end: '2026-05-17' }
+        ]
+      },
+      { 
+        id: 'dxy_spike', 
+        event: 'DXY Spike (+5%)', 
+        periods: [
+          { start: '2024-10-27', end: '2025-01-05' },
+          { start: '2023-07-16', end: '2023-10-08' }
+        ]
+      },
+      { 
+        id: 'dxy_collapse', 
+        event: 'DXY Collapse (-5%)', 
+        periods: [
+          { start: '2025-03-30', end: '2025-06-22' },
+          { start: '2025-01-05', end: '2025-03-23' }
         ]
       },
       { 
         id: 'nifty_down', 
         event: 'Nifty -10% Correction', 
         periods: [
-          { start: '2024-09-27', end: '2024-11-14' },
-          { start: '2026-02-20', end: '2026-03-13' }
+          { start: '2026-02-23', end: '2026-04-07' },
+          { start: '2024-12-16', end: '2025-03-04' },
+          { start: '2024-09-27', end: '2024-11-21' },
+          { start: '2022-04-08', end: '2022-07-06' },
+          { start: '2022-01-17', end: '2022-03-09' }
         ]
       },
       { 
         id: 'nifty_up', 
         event: 'Nifty +10% Rally', 
         periods: [
-          { start: '2024-06-21', end: '2024-09-27' },
-          { start: '2025-02-28', end: '2025-05-02' }
+          { start: '2025-04-11', end: '2025-07-09' },
+          { start: '2024-06-06', end: '2024-09-03' },
+          { start: '2023-11-30', end: '2024-02-23' },
+          { start: '2023-04-27', end: '2023-07-21' },
+          { start: '2022-10-03', end: '2022-12-14' }
         ]
       }
     ];
@@ -1170,6 +1210,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
     if (totalAssets === 0) return;
     setIsAnalyzing(true);
     setAiError(null);
+    setChatHistory([]);
     try {
       const payload = getAPIHoldingsPayload();
       const result = await fetchPortfolioAIAnalysis({
@@ -1207,7 +1248,8 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
         mfRisk: mfRiskTolerance,
         holdingPeriod,
         message: userMsg,
-        history: chatHistory
+        history: chatHistory,
+        initialAnalysis: aiAnalysis
       });
       setChatHistory([...newHistory, { role: 'assistant', content: res.response }]);
     } catch (err) {
@@ -1260,7 +1302,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
         </div>
       )}
 
-      <div className={`grid grid-cols-1 lg:grid-cols-3 ${isPanel ? 'gap-4 h-full' : 'gap-6 flex-1'} min-h-0`}>
+      <div className={`grid grid-cols-1 xl:grid-cols-4 lg:grid-cols-3 ${isPanel ? 'gap-4 h-full' : 'gap-6 flex-1'} min-h-0`}>
         {/* Left: Allocations Window (1/3rd width) */}
         <div className={`lg:col-span-1 bg-surface rounded-lg border border-border flex flex-col min-h-0 ${isPanel ? 'p-4 gap-4' : 'p-4 gap-4'} overflow-y-auto hide-scrollbar`}>
           
@@ -1484,7 +1526,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                   const isPositive = dayAmt >= 0;
 
                   return (
-                    <div key={h.slug} className="flex flex-col p-2.5 rounded bg-canvas border border-border group hover:border-alpha/30 transition-colors relative">
+                    <div key={h.slug} className="flex flex-col p-1.5 rounded bg-canvas border border-border group hover:border-alpha/30 transition-colors relative">
                       {editingSlug !== h.slug && (
                         <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-all z-10">
                           <button 
@@ -1545,21 +1587,21 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                           </div>
                         </div>
                       ) : (
-                        <div className="flex justify-between items-start">
-                          <div className="flex items-center gap-3">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-2">
                             {logoUrlForMF 
-                              ? <img src={logoUrlForMF} alt="AMC Logo" className="w-8 h-8 rounded-full bg-white object-contain border border-border shrink-0" />
-                              : <StockLogo ticker={tickerForLogo} name={title} className="w-8 h-8 rounded-full shrink-0" />
+                              ? <img src={logoUrlForMF} alt="AMC Logo" className="w-6 h-6 rounded-full bg-white object-contain border border-border shrink-0" />
+                              : <StockLogo ticker={tickerForLogo} name={title} className="w-6 h-6 rounded-full shrink-0" />
                             }
-                            <div className="flex flex-col gap-0.5">
-                               <span className="font-bold text-text-primary text-sm truncate max-w-[240px] pr-8">{title}</span>
-                               <span className="text-[10px] text-text-secondary">{activeTab === 'STOCKS' ? h.units : h.units.toFixed(2)} Units • {price > 0 ? `₹${price.toLocaleString(undefined, {maximumFractionDigits: 2})}` : <span className="text-beta">Price Unavailable</span>} • {weight}%</span>
+                            <div className="flex flex-col gap-0">
+                               <span className="font-bold text-text-primary text-xs truncate max-w-[180px]">{title}</span>
+                               <span className="text-[9px] text-text-secondary">{activeTab === 'STOCKS' ? h.units : h.units.toFixed(2)} Units • {weight}%</span>
                             </div>
                           </div>
                           
-                          <div className="flex flex-col items-end shrink-0 pr-4 group-hover:pr-10 transition-all">
-                             <span className="font-mono text-sm font-bold tabular-nums text-white">₹{val.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
-                             <span className={`text-[10px] font-bold ${isPositive ? 'text-alpha' : 'text-beta'}`}>
+                          <div className="flex flex-col items-end shrink-0 pr-2 group-hover:pr-8 transition-all">
+                             <span className="font-mono text-xs font-bold tabular-nums text-white">₹{val.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
+                             <span className={`text-[9px] font-bold ${isPositive ? 'text-alpha' : 'text-beta'}`}>
                                {isPositive ? '+' : ''}{dayAmt.toFixed(2)} ({isPositive ? '+' : ''}{dayPct.toFixed(2)}%)
                              </span>
                           </div>
@@ -1579,7 +1621,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
         </div>
 
         {/* Right: Analytics Panel (2/3rds width) */}
-        <div className={`lg:col-span-2 bg-surface rounded-lg border border-border flex flex-col p-4 gap-4 min-h-0 relative`}>
+        <div className={`xl:col-span-3 lg:col-span-2 bg-surface rounded-lg border border-border flex flex-col p-4 gap-4 min-h-0 relative`}>
            {/* Multi-Mode Chart Container */}
            <div className="flex-1 flex flex-col min-h-0 bg-canvas rounded-lg border border-border overflow-hidden">
              {/* Chart Mode Toggles */}
@@ -1589,7 +1631,6 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                  {chartMode === 'allocation' && <><PieChartIcon size={12} className="text-indigo-400" /> Asset Allocation</>}
                  {chartMode === 'stress' && <><Waves size={12} className="text-amber-400" /> Empirical Backtest</>}
                  {chartMode === 'performance' && <><List size={12} className="text-emerald-400" /> Performance Matrix</>}
-                 {chartMode === 'ai-outlook' && <><BrainCircuit size={12} className="text-indigo-400" /> AI Outlook (QES & Alpha)</>}
                  {chartMode === 'drawdown' && (
                    <div className="flex items-center gap-1 group relative">
                      <TrendingDown size={12} className="text-red-400" /> 
@@ -1608,7 +1649,6 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                    { key: 'stress' as const, label: 'Backtest', color: 'amber' },
                    { key: 'performance' as const, label: 'Performance', color: 'emerald' },
                    { key: 'drawdown' as const, label: 'Drawdown', color: 'red' },
-                   { key: 'ai-outlook' as const, label: 'AI Outlook', color: 'indigo' },
                  ].map(m => (
                    <button
                      key={m.key}
@@ -1695,11 +1735,11 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                   )
                ) : chartMode === 'allocation' ? (
                   /* Asset Allocation */
-                  Object.keys(allocationData.sectors).length > 0 ? (
-                    <div className="flex flex-col md:flex-row gap-4 h-full overflow-y-auto px-2">
-                      <div className="flex-1 bg-surface/50 rounded-lg p-4 border border-border">
-                        <h4 className="text-xs font-bold text-text-secondary uppercase mb-4 tracking-wider flex items-center gap-1.5"><PieChartIcon size={12} className="text-indigo-400"/> Sector Weighting</h4>
-                        <div className="space-y-3">
+                  Object.keys(allocationData.sectors).length > 0 || Object.keys(allocationData.marketCaps).length > 0 ? (
+                    <div className="flex flex-col md:flex-row gap-4 h-full px-2 min-h-0">
+                      <div className="flex-1 bg-surface/50 rounded-lg p-4 border border-border flex flex-col min-h-0">
+                        <h4 className="text-xs font-bold text-text-secondary uppercase mb-4 tracking-wider flex items-center gap-1.5 shrink-0"><PieChartIcon size={12} className="text-indigo-400"/> Sector Weighting (Equity)</h4>
+                        <div className="flex-1 overflow-y-auto hide-scrollbar space-y-3 pr-2">
                           {Object.entries(allocationData.sectors)
                             .sort((a, b) => b[1].value - a[1].value)
                             .map(([sector, data], i) => (
@@ -1707,28 +1747,48 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                               key={sector}
                               label={sector}
                               value={data.value}
-                              max={totalValue}
+                              max={allocationData.assetTypes['Direct Equity'] || 1}
                               assets={data.assets}
                               color={i === 0 ? 'bg-indigo-500' : 'bg-indigo-500/60'}
                             />
                           ))}
                         </div>
                       </div>
-                      <div className="flex-1 bg-surface/50 rounded-lg p-4 border border-border">
-                        <h4 className="text-xs font-bold text-text-secondary uppercase mb-4 tracking-wider flex items-center gap-1.5"><Activity size={12} className="text-amber-400"/> Market Cap</h4>
-                        <div className="space-y-3">
-                          {Object.entries(allocationData.marketCaps)
-                            .sort((a, b) => b[1].value - a[1].value)
-                            .map(([mc, data], i) => (
-                            <ProgressBar 
-                              key={mc}
-                              label={mc}
-                              value={data.value}
-                              max={totalValue}
-                              assets={data.assets}
-                              color={i === 0 ? 'bg-amber-500' : 'bg-amber-500/60'}
-                            />
-                          ))}
+                      <div className="flex-1 bg-surface/50 rounded-lg p-4 border border-border flex flex-col min-h-0">
+                        <h4 className="text-xs font-bold text-text-secondary uppercase mb-4 tracking-wider flex items-center gap-1.5 shrink-0"><Eye size={12} className="text-indigo-400"/> True Concentration</h4>
+                        <div className="flex-1 overflow-y-auto hide-scrollbar space-y-2 pr-2">
+                          {concentrationData.length === 0 ? (
+                            <div className="flex h-full items-center justify-center text-xs text-text-secondary">Add holdings to analyze</div>
+                          ) : (
+                            concentrationData.map((item, i) => (
+                              <div key={i} className={`flex flex-col gap-1 p-2 rounded ${item.hasOverlap ? 'bg-amber-500/5 border border-amber-500/20' : 'bg-canvas'}`}>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-xs font-bold text-text-primary truncate pr-2">{item.ticker || item.name}</span>
+                                  <span className={`text-xs font-bold font-mono ${item.hasOverlap ? 'text-amber-400' : 'text-text-primary'}`}>{item.totalPct}%</span>
+                                </div>
+                                <div className="flex gap-3">
+                                  {item.directPct > 0 && <span className="text-[10px] text-[#8b5cf6]">Direct: {item.directPct}%</span>}
+                                  {item.mfPct > 0 && <span className="text-[10px] text-[#06b6d4]">via Funds: {item.mfPct}%</span>}
+                                </div>
+                                <div className="h-1 w-full bg-border/50 rounded-full overflow-hidden mt-1 flex">
+                                  <div className="bg-[#8b5cf6]" style={{ width: `${Math.min(item.directPct * 3, 100)}%` }}></div>
+                                  <div className="bg-[#06b6d4]" style={{ width: `${Math.min(item.mfPct * 3, 100)}%` }}></div>
+                                </div>
+                                {item.hasOverlap && item.mfSources && (
+                                  <div className="flex flex-col gap-1 mt-1.5">
+                                    <span className="text-[9px] text-amber-400/80 flex items-center gap-1"><AlertTriangle size={10} /> Overlap detected</span>
+                                    <div className="flex flex-col gap-0.5 ml-3 border-l border-border pl-2">
+                                      {item.mfSources.map((src: any, idx: number) => (
+                                        <span key={idx} className="text-[9px] text-text-secondary truncate">
+                                          • {src.name} (<span className="text-[#06b6d4]">{src.pct}%</span>)
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ))
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1740,11 +1800,50 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                   )
                ) : chartMode === 'stress' ? (
                  /* Macro Stress-Test */
-                 <ResponsiveContainer width="100%" height="100%">
+                 <div className="flex flex-col h-full gap-4">
+                   <div className="flex-1 min-h-0">
+                     <ResponsiveContainer width="100%" height="100%">
                    <BarChart data={stressTestData} margin={{ top: 10, right: 20, bottom: 20, left: 10 }} layout="vertical">
+                     {stressTestData.map(data => {
+                       const isWorse = data.combined < data.benchmark;
+                       const color = isWorse ? 'rgba(239, 68, 68, 0.08)' : 'rgba(16, 185, 129, 0.08)';
+                       return (
+                         <ReferenceArea 
+                           key={data.event}
+                           y1={data.event}
+                           y2={data.event}
+                           fill={color}
+                           strokeOpacity={0}
+                         />
+                       );
+                     })}
                      <CartesianGrid strokeDasharray="3 3" stroke="#27272a" horizontal={false} />
                      <XAxis type="number" stroke="#64748b" tick={{ fontSize: 10 }} label={{ value: 'Projected Impact (%)', position: 'bottom', offset: 5, style: { fontSize: 10, fill: '#64748b' } }} />
-                     <YAxis type="category" dataKey="event" stroke="#64748b" tick={{ fontSize: 10 }} width={90} />
+                     <YAxis 
+                       type="category" 
+                       dataKey="event" 
+                       stroke="#64748b" 
+                       width={90} 
+                       tick={(props: any) => {
+                         const { x, y, payload, width } = props;
+                         const val = payload.value;
+                         const isGreen = val.includes('Collapse') || val.includes('+10%') || val.includes('Breakout') || (val.includes('DXY') && val.includes('-5%'));
+                         const isRed = val.includes('Spike') || val.includes('-10%') || val.includes('Correction') || (val.includes('DXY') && val.includes('+5%'));
+                         return (
+                           <Text 
+                             x={x} 
+                             y={y} 
+                             width={width} 
+                             textAnchor="end" 
+                             verticalAnchor="middle"
+                             fill={isGreen ? '#10b981' : isRed ? '#ef4444' : '#64748b'} 
+                             fontSize={10}
+                           >
+                             {val}
+                           </Text>
+                         );
+                       }} 
+                     />
                      <RechartsTooltip
                        cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }}
                        content={({ active, payload }) => {
@@ -1764,13 +1863,15 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                              </div>
                            );
                          }
-                         return null;
-                       }}
-                     />
-                     <Bar dataKey="combined" fill="#06b6d4" fillOpacity={0.8} name="Portfolio" radius={[0, 4, 4, 0]} />
-                     <Bar dataKey="benchmark" fill="#64748b" fillOpacity={0.4} name="Benchmark" radius={[0, 4, 4, 0]} />
-                   </BarChart>
-                 </ResponsiveContainer>
+                             return null;
+                           }}
+                         />
+                         <Bar dataKey="combined" fill="#06b6d4" fillOpacity={0.8} name="Portfolio" radius={[0, 4, 4, 0]} />
+                         <Bar dataKey="benchmark" fill="#64748b" fillOpacity={0.4} name="Benchmark" radius={[0, 4, 4, 0]} />
+                       </BarChart>
+                     </ResponsiveContainer>
+                   </div>
+                 </div>
                ) : chartMode === 'performance' ? (
                   /* Performance Matrix */
                   performanceData.length > 0 ? (
@@ -1816,20 +1917,6 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                        <p className="text-xs">Add holdings to see historical performance.</p>
                     </div>
                   )
-               ) : chartMode === 'ai-outlook' ? (
-                   <div className="h-full flex flex-col justify-center px-4">
-                     {matrixData?.ai_outlook_view?.ensemble_alpha !== "PENDING" ? (
-                       <div className="flex items-center justify-center text-indigo-400/50 text-xs">
-                         <BrainCircuit size={14} className="mr-2" />
-                         Deterministic ML Engine active. XGBoost/PyTorch outputs loaded.
-                       </div>
-                     ) : (
-                       <div className="flex items-center justify-center bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-bold uppercase tracking-widest px-4 py-2 mx-auto rounded w-fit">
-                         <BrainCircuit size={14} className="mr-2" />
-                         Inference Engine Pending: Run predictor.py to populate forward analytics
-                       </div>
-                     )}
-                   </div>
                  ) : (
                  /* Drawdown Profile */
                  drawdownData.length > 0 ? (
@@ -1860,12 +1947,14 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
            {/* 15-Card Matrix Engine */}
            <div className="h-[220px] lg:h-[240px] flex gap-3 shrink-0">
              <MatrixCards 
-               mode={chartMode} 
-               data={matrixData} 
-               concentrationData={concentrationData} 
-               defenseMetrics={defenseMetrics} 
-               yieldValuation={yieldValuation} 
-             />
+                mode={chartMode} 
+                data={matrixData} 
+                defenseMetrics={defenseMetrics} 
+                yieldValuation={yieldValuation} 
+                macroInsight={getMacroInsight(stressTestData.map(d => d.combined >= d.benchmark))}
+                marketCapData={allocationData?.marketCaps}
+                totalEquity={allocationData?.assetTypes?.['Direct Equity']}
+              />
            </div>
         </div>
       </div>
@@ -2037,7 +2126,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                           : 'bg-canvas border border-border text-text-secondary rounded-tl-sm'
                       }`}>
                         <div className="prose prose-invert prose-sm max-w-none [&>p]:mb-2 last:[&>p]:mb-0 [&>ul]:list-disc [&>ul]:ml-4 [&>ol]:list-decimal [&>ol]:ml-4 [&>li]:mb-1">
-                          <ReactMarkdown>
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
                             {msg.content}
                           </ReactMarkdown>
                         </div>
@@ -2060,25 +2149,35 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
 
             {/* Persistent Chat Input */}
             <div className="p-4 border-t border-border bg-surface shrink-0">
-              <div className="relative">
-                <input 
-                  type="text"
-                  value={chatInput}
-                  onChange={e => setChatInput(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') handleSendChat();
-                  }}
-                  disabled={!aiAnalysis || isChatting}
-                  placeholder={aiAnalysis ? "Ask follow-up questions..." : "Analyze portfolio to start chatting..."}
-                  className="w-full pl-4 pr-12 py-3 bg-canvas border border-border rounded-xl text-sm text-text-primary focus:outline-none focus:border-indigo-500 transition-colors disabled:opacity-50 shadow-inner"
-                />
+              <div className="flex items-center gap-2 relative">
                 <button 
-                  onClick={handleSendChat}
-                  disabled={!aiAnalysis || isChatting || !chatInput.trim()}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-indigo-400 hover:text-indigo-300 disabled:opacity-50 transition-colors bg-surface rounded-lg border border-border/50"
+                  onClick={() => setChatHistory([])}
+                  disabled={!aiAnalysis || chatHistory.length === 0}
+                  className="p-3 bg-canvas border border-border rounded-xl text-text-secondary hover:text-white disabled:opacity-50 transition-colors"
+                  title="New Chat (Clears Follow-ups)"
                 >
-                  <Send size={16} />
+                  <Plus size={16} />
                 </button>
+                <div className="relative flex-1">
+                  <input 
+                    type="text"
+                    value={chatInput}
+                    onChange={e => setChatInput(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') handleSendChat();
+                    }}
+                    disabled={!aiAnalysis || isChatting}
+                    placeholder={aiAnalysis ? "Ask follow-up questions..." : "Analyze portfolio to start chatting..."}
+                    className="w-full pl-4 pr-12 py-3 bg-canvas border border-border rounded-xl text-sm text-text-primary focus:outline-none focus:border-indigo-500 transition-colors disabled:opacity-50 shadow-inner"
+                  />
+                  <button 
+                    onClick={handleSendChat}
+                    disabled={!aiAnalysis || isChatting || !chatInput.trim()}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-indigo-400 hover:text-indigo-300 disabled:opacity-50 transition-colors bg-surface rounded-lg border border-border/50"
+                  >
+                    <Send size={16} />
+                  </button>
+                </div>
               </div>
             </div>
 

@@ -81,7 +81,8 @@ export const sendPortfolioChat = async (payload: {
   mfRisk: string,
   holdingPeriod: string,
   message: string,
-  history: any[]
+  history: any[],
+  initialAnalysis?: any
 }) => {
   const response = await axios.post(`${API_BASE_URL}/portfolio/chat`, payload);
   return response.data;

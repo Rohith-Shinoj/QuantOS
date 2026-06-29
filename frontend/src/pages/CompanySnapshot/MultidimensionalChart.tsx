@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { createChart, ColorType, CrosshairMode, LineStyle } from 'lightweight-charts';
 import type { IChartApi, ISeriesApi } from 'lightweight-charts';
-import { HelpCircle, RefreshCw } from 'lucide-react';
+import { HelpCircle, RefreshCw, Calendar } from 'lucide-react';
 import { StockLogo } from '../../components/StockLogo';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { fetchLiveQuote, fetchStockData } from '../../api';
@@ -1031,9 +1031,9 @@ export const MultidimensionalChart = ({ data }: { data: any }) => {
                 <button 
                   key={t}
                   onClick={() => setTimeframe(t)}
-                  className={`px-3 py-1 rounded text-xs font-bold transition-all ${timeframe === t ? 'bg-alpha text-canvas shadow-sm' : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'}`}
+                  className={`px-3 py-1 rounded text-xs font-bold transition-all flex items-center justify-center min-w-[32px] ${timeframe === t ? 'bg-alpha text-canvas shadow-sm' : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'}`}
                 >
-                  {t}
+                  {t === 'CUSTOM' ? <Calendar size={14} /> : t}
                 </button>
               ))}
             </div>

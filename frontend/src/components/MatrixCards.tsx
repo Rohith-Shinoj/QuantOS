@@ -1,7 +1,7 @@
 import React from 'react';
 import { Eye, Shield, Wallet, BrainCircuit, AlertTriangle, TrendingUp, TrendingDown, Activity, List, Waves, Globe, Zap, Crosshair, PieChart as PieChartIcon } from 'lucide-react';
 
-export const MatrixCards = ({ mode, data, concentrationData = [], defenseMetrics = {}, yieldValuation = {} }: { mode: string, data: any, concentrationData?: any[], defenseMetrics?: any, yieldValuation?: any }) => {
+export const MatrixCards = ({ mode, data, defenseMetrics = {}, yieldValuation = {}, macroInsight = '', marketCapData = {}, totalEquity = 1 }: { mode: string, data: any, defenseMetrics?: any, yieldValuation?: any, macroInsight?: string, marketCapData?: any, totalEquity?: number }) => {
   if (!data) {
     return (
       <div className="flex-1 flex items-center justify-center text-text-secondary/50 text-xs col-span-3">
@@ -18,7 +18,7 @@ export const MatrixCards = ({ mode, data, concentrationData = [], defenseMetrics
           <span className="text-[9px] font-bold text-text-secondary uppercase tracking-widest">{title}</span>
         </div>
       </div>
-      <div className="flex-1 flex flex-col justify-center">
+      <div className="flex-1 flex flex-col justify-center min-h-0">
         {content}
       </div>
     </div>
@@ -126,39 +126,28 @@ export const MatrixCards = ({ mode, data, concentrationData = [], defenseMetrics
               </div>
             </div>
           ))}
-          {renderCard("True Concentration", <Eye size={12} className="text-indigo-400" />, (
-             <div className="flex-1 flex flex-col gap-1.5 overflow-y-auto hide-scrollbar">
-               {concentrationData.length === 0 ? (
+          {renderCard("Market Cap (Equity)", <Activity size={12} className="text-amber-400" />, (
+             <div className="flex-1 flex flex-col gap-3 overflow-y-auto hide-scrollbar pr-1">
+               {Object.keys(marketCapData).length === 0 ? (
                  <div className="flex h-full items-center justify-center text-[10px] text-text-secondary">Add holdings to analyze</div>
                ) : (
-                 concentrationData.map((item, i) => (
-                   <div key={i} className={`flex flex-col gap-0.5 p-1.5 rounded ${item.hasOverlap ? 'bg-amber-500/5 border border-amber-500/20' : 'bg-surface/50'}`}>
-                     <div className="flex justify-between items-center">
-                       <span className="text-[10px] font-bold text-text-primary truncate pr-2">{item.ticker || item.name}</span>
-                       <span className={`text-[10px] font-bold font-mono ${item.hasOverlap ? 'text-amber-400' : 'text-text-primary'}`}>{item.totalPct}%</span>
-                     </div>
-                     <div className="flex gap-2">
-                       {item.directPct > 0 && <span className="text-[8px] text-[#8b5cf6]">Direct: {item.directPct}%</span>}
-                       {item.mfPct > 0 && <span className="text-[8px] text-[#06b6d4]">via Funds: {item.mfPct}%</span>}
-                     </div>
-                     <div className="h-0.5 w-full bg-border/50 rounded-full overflow-hidden mt-0.5 flex">
-                       <div className="bg-[#8b5cf6]" style={{ width: `${Math.min(item.directPct * 3, 100)}%` }}></div>
-                       <div className="bg-[#06b6d4]" style={{ width: `${Math.min(item.mfPct * 3, 100)}%` }}></div>
-                     </div>
-                     {item.hasOverlap && item.mfSources && (
-                       <div className="flex flex-col gap-1 mt-1">
-                         <span className="text-[8px] text-amber-400/80 flex items-center gap-0.5"><AlertTriangle size={8} /> Overlap detected</span>
-                         <div className="flex flex-col gap-0.5 ml-2">
-                           {item.mfSources.map((src: any, idx: number) => (
-                             <span key={idx} className="text-[7px] text-text-secondary truncate">
-                               • {src.name} (<span className="text-[#06b6d4]">{src.pct}%</span>)
-                             </span>
-                           ))}
+                 Object.entries(marketCapData)
+                   .sort((a: any, b: any) => b[1].value - a[1].value)
+                   .map(([mc, mcData]: [string, any], i) => {
+                     const perc = ((mcData.value / Math.max(totalEquity, 1)) * 100).toFixed(1);
+                     const color = i === 0 ? 'bg-amber-500' : 'bg-amber-500/60';
+                     return (
+                       <div key={mc} className="flex flex-col gap-1">
+                         <div className="flex justify-between text-[10px] items-center">
+                           <span className="text-text-primary font-bold">{mc}</span>
+                           <span className="text-text-secondary font-mono">{perc}%</span>
+                         </div>
+                         <div className="h-1 w-full bg-border rounded-full overflow-hidden">
+                           <div className={`h-full ${color} rounded-full`} style={{ width: `${perc}%` }} />
                          </div>
                        </div>
-                     )}
-                   </div>
-                 ))
+                     );
+                   })
                )}
              </div>
           ))}
@@ -192,22 +181,25 @@ export const MatrixCards = ({ mode, data, concentrationData = [], defenseMetrics
           ))}
           {renderCard("Historical Horizons", <Waves size={12} className="text-amber-400" />, (
             <div className="flex gap-2">
-               <div className="flex-1 p-2 bg-surface/50 rounded border border-border text-center">
+               <div className="flex-1 p-1 bg-surface/50 rounded border border-border text-center flex flex-col justify-center">
                  <span className="text-[8px] text-text-secondary uppercase font-bold tracking-wider block mb-0.5">Best 1Y</span>
-                 <span className="text-base font-bold font-mono text-alpha">+{horizons?.best_1y || 0}%</span>
+                 <span className="text-sm font-bold font-mono text-alpha">+{horizons?.best_1y || 0}%</span>
                </div>
-               <div className="flex-1 p-2 bg-surface/50 rounded border border-border text-center">
+               <div className="flex-1 p-1 bg-surface/50 rounded border border-border text-center flex flex-col justify-center">
                  <span className="text-[8px] text-text-secondary uppercase font-bold tracking-wider block mb-0.5">Worst 1Y</span>
-                 <span className="text-base font-bold font-mono text-beta">{horizons?.worst_1y || 0}%</span>
+                 <span className="text-sm font-bold font-mono text-beta">{horizons?.worst_1y || 0}%</span>
+               </div>
+               <div className="flex-1 p-1 bg-surface/50 rounded border border-border text-center flex flex-col justify-center">
+                 <span className="text-[8px] text-text-secondary uppercase font-bold tracking-wider block mb-0.5">Nifty Correl</span>
+                 <span className="text-sm font-bold font-mono text-amber-400">{stress_overlays?.nifty_correlation || 0}</span>
                </div>
             </div>
           ))}
-          {renderCard("Stress Overlays", <AlertTriangle size={12} className="text-amber-400" />, (
-             <div className="flex flex-col h-full justify-center">
-               <div className="p-2 bg-surface/50 rounded border border-border text-center">
-                 <span className="text-[8px] text-text-secondary uppercase font-bold tracking-wider block mb-0.5">Nifty Correlation</span>
-                 <span className="text-xl font-bold font-mono text-amber-400">{stress_overlays?.nifty_correlation || 0}</span>
-               </div>
+          {renderCard("Deterministic Analysis", <BrainCircuit size={12} className="text-beta" />, (
+             <div className="flex flex-col h-full justify-start overflow-y-auto hide-scrollbar pr-2 mt-1">
+               <p className="text-[12px] text-text-secondary leading-relaxed text-left">
+                 {macroInsight || 'No insight available for this portfolio configuration.'}
+               </p>
              </div>
           ))}
         </div>

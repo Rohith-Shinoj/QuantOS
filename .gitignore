@@ -3,3 +3,4 @@ datasets/
 *.md
 test_*
 check_*
+*.json
