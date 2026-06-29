@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { createChart, ColorType, CrosshairMode, LineStyle } from 'lightweight-charts';
 import type { IChartApi, ISeriesApi } from 'lightweight-charts';
-import { HelpCircle, RefreshCw, Calendar } from 'lucide-react';
+import { HelpCircle, RefreshCw, Calendar, BrainCircuit } from 'lucide-react';
 import { StockLogo } from '../../components/StockLogo';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { fetchLiveQuote, fetchStockData } from '../../api';
@@ -132,7 +132,17 @@ function calculateBollingerBands(data: any[], period: number, multiplier: number
   return { sma, upper, lower };
 }
 
-export const MultidimensionalChart = ({ data }: { data: any }) => {
+export const MultidimensionalChart = ({ 
+  data, 
+  centralMode = 'PRICE', 
+  setCentralMode, 
+  setIsAIOverlayOpen 
+}: { 
+  data: any, 
+  centralMode?: 'PRICE' | 'PAIRS', 
+  setCentralMode?: (m: 'PRICE' | 'PAIRS') => void, 
+  setIsAIOverlayOpen?: (o: boolean) => void 
+}) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   
@@ -900,7 +910,35 @@ export const MultidimensionalChart = ({ data }: { data: any }) => {
         <div className="flex flex-col items-end gap-2">
           {/* Toggles */}
           <div className="flex items-center gap-2 text-xs font-medium relative">
-            <span className="text-text-secondary mr-1 group flex items-center gap-1 cursor-help relative z-50">
+            {setCentralMode && (
+              <>
+                <button 
+                  onClick={() => setCentralMode('PRICE')}
+                  className={`px-3 py-1.5 rounded transition-all border ${centralMode === 'PRICE' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-surface text-text-secondary border-border hover:text-text-primary hover:bg-surface-hover'}`}
+                >
+                  Price Action
+                </button>
+                <button 
+                  onClick={() => setCentralMode('PAIRS')}
+                  className={`px-3 py-1.5 rounded transition-all border ${centralMode === 'PAIRS' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-surface text-text-secondary border-border hover:text-text-primary hover:bg-surface-hover'}`}
+                >
+                  Pair Trading
+                </button>
+                <div className="w-px h-4 bg-border mx-1"></div>
+              </>
+            )}
+            {setIsAIOverlayOpen && (
+              <>
+                <button 
+                  onClick={() => setIsAIOverlayOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded transition-all border bg-indigo-500/10 text-indigo-400 border-indigo-500/30 hover:bg-indigo-500/20 shadow-[0_0_10px_rgba(99,102,241,0.15)]"
+                >
+                  <BrainCircuit size={14} /> AI Analysis
+                </button>
+                <div className="w-px h-4 bg-border mx-1"></div>
+              </>
+            )}
+            <span className="text-text-secondary mx-1 group flex items-center gap-1 cursor-help relative z-50">
               VIEW:
               <HelpCircle size={12} className="text-text-secondary opacity-50 group-hover:opacity-100 transition-opacity" />
               <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 bg-surface/95 backdrop-blur-md border border-border rounded-lg p-2 text-[10px] text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl whitespace-normal text-left">

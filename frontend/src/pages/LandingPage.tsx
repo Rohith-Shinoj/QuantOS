@@ -847,7 +847,7 @@ const StockListGrid = ({ stocks }: { stocks: any[] }) => {
       <List 
         title={
           <span className="flex items-center gap-2">
-            Volatile yet High Growth 
+            High Growth Fundamentals
             <span className="bg-yellow-500/20 text-yellow-500 text-[10px] px-1.5 py-0.5 rounded-sm uppercase tracking-wider font-bold">AI</span>
           </span>
         }
@@ -901,13 +901,13 @@ const TickerTapeItem = ({ asset }: { asset: any }) => {
     ? livePrice.replace('₹', '') 
     : Number(livePrice || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
   
-  const priceDisplay = asset.is_mf ? `₹${cleanPrice} Cr` : (isIndex ? cleanPrice : `₹${cleanPrice}`);
+  const priceDisplay = asset.is_mf ? `₹${cleanPrice}` : (isIndex ? cleanPrice : `₹${cleanPrice}`);
 
   const displayName = asset.ticker === '1' ? 'SENSEX' : asset.ticker;
 
   return (
     <div 
-      className="inline-flex items-center justify-between w-[22rem] px-8 border-r border-white/10 cursor-pointer hover:bg-surface-hover transition-colors h-10 shrink-0"
+      className="inline-flex items-center justify-between w-[22rem] px-8 border-r border-white/10 cursor-pointer hover:bg-surface-hover transition-colors h-8 shrink-0"
       onClick={() => navigate(asset.is_mf ? `/mutual-funds/${asset.slug}` : `/terminal/${asset.slug}`)}
     >
       <div className="flex items-center gap-3">
@@ -988,7 +988,7 @@ export const LandingPage = () => {
   const topFunds = ((mfsResp as any)?.data || []).slice(0, 10).map((mf: any) => ({
     slug: mf.scheme_code || mf.direct_search_id,
     ticker: mf.fund_name || mf.scheme_name,
-    livePrice: mf.aum ? (mf.aum >= 1000 ? `${(mf.aum / 1000).toFixed(0)}k` : String(mf.aum.toFixed(1))) : '0',
+    livePrice: mf.nav ? String(mf.nav) : '0',
     day_change: `${mf.return1y || 0}%`,
     logo_url: mf.logo_url,
     is_mf: true
@@ -1074,51 +1074,25 @@ export const LandingPage = () => {
   }, [activeTickerItems, tickerMode]);
 
   return (
-    <div className="min-h-full bg-canvas flex flex-col overflow-y-auto">
-      {/* Navbar */}
-      <div className="w-full px-6 lg:px-12 py-4 flex justify-between items-center border-b border-border bg-surface z-50 sticky top-0">
-        <div className="flex items-center gap-8">
-          <div className="flex items-center">
-            <img src="/logo-nobg.png" alt="Finugreek" className="h-10 w-auto object-contain" />
-          </div>
-          <GlobalSearch className="hidden md:block w-96 lg:w-[400px] xl:w-[480px]" />
-        </div>
-        <div className="flex gap-6 items-center">
-          <Link to="/ai-research" className="flex items-center gap-2 px-4 py-2 bg-indigo-500/10 text-indigo-400 font-bold rounded-lg border border-indigo-500/30 hover:bg-indigo-500/20 transition-all shadow-[0_0_15px_rgba(99,102,241,0.2)]">
-            <BrainCircuit size={16} /> AI Research Desk
-          </Link>
-          <Link to="/heatmap" className="text-sm font-bold text-text-secondary hover:text-white transition-colors">Heatmap</Link>
-          <Link to="/pairs" className="text-sm font-bold text-text-secondary hover:text-white transition-colors">Pair Trading</Link>
-          <Link to="/watchlists" className="text-sm font-bold text-text-secondary hover:text-white transition-colors">Watchlists</Link>
-          <Link to="/portfolio" className="text-sm font-bold text-text-secondary hover:text-white transition-colors">Portfolio Analyzer</Link>
-          <button 
-            onClick={handleSyncMarket} 
-            disabled={isSyncing} 
-            className="flex items-center gap-1.5 px-3 py-1.5 ml-2 bg-surface-hover hover:bg-border border border-border rounded-lg text-xs font-bold text-text-primary transition-all disabled:opacity-50"
-          >
-            <RefreshCw size={14} className={isSyncing ? "animate-spin" : ""} /> Sync Market
-          </button>
-        </div>
-      </div>
-
+    <div className="bg-canvas flex flex-col">
       {/* Ticker Tape Controls */}
-      <div className="w-full flex justify-center bg-surface border-b border-border py-1.5 relative z-10">
-        <div className="flex items-center gap-1 bg-canvas rounded-lg p-0.5 shadow-inner border border-border/50">
+      <div className="w-full flex justify-center bg-surface border-b border-border py-1 relative z-10">
+        <div className="flex items-center gap-1 bg-canvas rounded-md p-0.5 shadow-inner border border-border/50">
            <button 
              onClick={() => setTickerMode('stocks')}
-             className={`text-[9px] font-bold px-5 py-1 rounded-md transition-all tracking-widest ${tickerMode === 'stocks' ? 'text-white bg-surface-hover shadow-sm border border-border' : 'text-text-secondary hover:text-white border border-transparent'}`}
+             className={`text-[8px] font-bold px-4 py-0.5 rounded transition-all tracking-widest ${tickerMode === 'stocks' ? 'text-white bg-surface-hover shadow-sm border border-border' : 'text-text-secondary hover:text-white border border-transparent'}`}
            >
              STOCKS
            </button>
            <button 
              onClick={() => setTickerMode('indices')}
-             className={`text-[9px] font-bold px-5 py-1 rounded-md transition-all tracking-widest ${tickerMode === 'indices' ? 'text-white bg-surface-hover shadow-sm border border-border' : 'text-text-secondary hover:text-white border border-transparent'}`}
+             className={`text-[8px] font-bold px-4 py-0.5 rounded transition-all tracking-widest ${tickerMode === 'indices' ? 'text-white bg-surface-hover shadow-sm border border-border' : 'text-text-secondary hover:text-white border border-transparent'}`}
            >
              INDICES
            </button>
            <button 
              onClick={() => setTickerMode('funds')}
-             className={`text-[9px] font-bold px-5 py-1 rounded-md transition-all tracking-widest ${tickerMode === 'funds' ? 'text-white bg-surface-hover shadow-sm border border-border' : 'text-text-secondary hover:text-white border border-transparent'}`}
+             className={`text-[8px] font-bold px-4 py-0.5 rounded transition-all tracking-widest ${tickerMode === 'funds' ? 'text-white bg-surface-hover shadow-sm border border-border' : 'text-text-secondary hover:text-white border border-transparent'}`}
            >
              MUTUAL FUNDS
            </button>
@@ -1126,15 +1100,19 @@ export const LandingPage = () => {
       </div>
 
       {/* Ticker Tape */}
-      <div className="w-full overflow-hidden bg-surface border-b border-border flex items-center h-10 select-none">
-        <div 
-          className="flex whitespace-nowrap animate-ticker w-max"
-          style={{ animationDuration: `${activeTickerItems.length * 4}s` }}
-        >
-          {[...activeTickerItems, ...activeTickerItems].map((s: any, idx: number) => (
-            <TickerTapeItem key={`${s.slug}-${idx}`} asset={s} />
-          ))}
-        </div>
+      <div className="w-full overflow-hidden bg-surface border-b border-border flex items-center h-8 select-none">
+        {!activeTickerItems || activeTickerItems.length === 0 ? (
+          <div className="w-full text-center text-xs text-text-secondary">Loading market data...</div>
+        ) : (
+          <div 
+            className="flex whitespace-nowrap animate-ticker w-max"
+            style={{ animationDuration: `${activeTickerItems.length * 4}s` }}
+          >
+            {[...activeTickerItems, ...activeTickerItems].map((s: any, idx: number) => (
+              <TickerTapeItem key={`${s.slug}-${idx}`} asset={s} />
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="max-w-[1400px] mx-auto w-full px-6 lg:px-12 py-8">

@@ -52,60 +52,10 @@ export const TerminalLayout = () => {
 
   return (
     <div className="flex flex-col h-screen w-full bg-canvas text-text-primary overflow-hidden text-sm">
-      
-      {/* Top Navbar */}
-      <header className="h-12 border-b border-border bg-surface flex items-center px-4 justify-between shrink-0 select-none">
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <Hexagon size={20} className="text-alpha" />
-            <span className="font-bold text-white tracking-tight">Q<span className="text-alpha">OS</span></span>
-          </div>
-          
-          <GlobalSearch />
-        </div>
-
-        <div className="flex flex-1 justify-center gap-1">
-          <button 
-            onClick={() => setCentralMode('PRICE')}
-            className={`px-3 py-1 rounded text-xs font-bold transition-colors ${centralMode === 'PRICE' ? 'bg-alpha/20 text-alpha' : 'text-text-secondary hover:text-white hover:bg-surface-hover'}`}
-          >
-            Price Action
-          </button>
-          <button 
-            onClick={() => setCentralMode('PAIRS')}
-            className={`px-3 py-1 rounded text-xs font-bold transition-colors ${centralMode === 'PAIRS' ? 'bg-alpha/20 text-alpha' : 'text-text-secondary hover:text-white hover:bg-surface-hover'}`}
-          >
-            Pair Trading
-          </button>
-          
-          <div className="h-6 w-[1px] bg-border mx-2 self-center"></div>
-          
-          <button 
-            onClick={() => setIsAIOverlayOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-500/20 transition-all shadow-[0_0_10px_rgba(99,102,241,0.15)]"
-          >
-            <BrainCircuit size={14} /> AI Analysis
-          </button>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <button className="text-text-secondary hover:text-white transition-colors" title="Settings"><Settings size={18} /></button>
-          <div className="w-8 h-8 rounded-full bg-surface-hover border border-border flex items-center justify-center font-bold text-xs text-alpha">
-            USR
-          </div>
-        </div>
-      </header>
-
       {/* Main Workspace (Panel Group) */}
       <div className="flex-1 min-h-0 flex">
         
-        {/* Left Thin Toolbar */}
-        <div className="w-12 border-r border-border bg-surface flex flex-col items-center py-4 gap-4 shrink-0">
 
-          <button className="text-text-secondary hover:text-white p-2 rounded hover:bg-surface-hover transition-colors" title="Stock Screener" onClick={() => navigate('/screener')}>
-            <Target size={20} />
-          </button>
-        </div>
 
         {/* Resizable Grid */}
         <div className="flex-1 w-full h-full relative">

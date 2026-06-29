@@ -5,7 +5,7 @@ export const MatrixCards = ({ mode, data, defenseMetrics = {}, yieldValuation = 
   if (!data) {
     return (
       <div className="flex-1 flex items-center justify-center text-text-secondary/50 text-xs col-span-3">
-         <div className="animate-pulse">Loading Matrix Compute Engine...</div>
+         <div className="animate-pulse">Loading Analytics Cards...</div>
       </div>
     );
   }

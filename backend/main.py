@@ -209,7 +209,8 @@ async def list_stocks():
                 volatility_squeeze, qes_flag, rs_rating,
                 alpha_score_conservative, alpha_score_moonshot, shap_reason_1, shap_reason_2, shap_reason_3,
                 absolute_data->>'$."live price"',
-                absolute_data->>'$.roe'
+                absolute_data->>'$.roe',
+                absolute_data->>'$.OHLCV'
             FROM stocks
         """
         result = con.execute(query).fetchall()
@@ -234,7 +235,8 @@ async def list_stocks():
                 "shap_reason_2": r[15],
                 "shap_reason_3": r[16],
                 "livePrice": r[17],
-                "roe": r[18] if r[18] is not None else 0.0
+                "roe": r[18] if r[18] is not None else 0.0,
+                "volume": float(__import__('json').loads(r[19])[-1].get("Volume", 0)) if r[19] and len(__import__('json').loads(r[19])) > 0 else 0.0
             } for r in result
         ]
         return _search_cache

@@ -2,12 +2,11 @@ import React, { useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { fetchMutualFundByCode } from '../../api';
-import { ChevronLeft, HelpCircle, TrendingDown, Target, Shield, Activity, BarChart2, Briefcase, BrainCircuit, Hexagon, Settings } from 'lucide-react';
+import { ChevronLeft, HelpCircle, TrendingDown, Target, Shield, Activity, BarChart2, Briefcase, BrainCircuit } from 'lucide-react';
 import { MutualFundPriceChart } from './MutualFundPriceChart';
 import { RollingReturnsChart } from './RollingReturnsChart';
 import { AIAssistantOverlay } from '../../components/AIAssistantOverlay';
-import { TerminalLayout } from '../../layouts/TerminalLayout';
-import { GlobalSearch } from '../../components/GlobalSearch';
+
 import { SipSimulatorCard } from './SipSimulatorCard';
 import { AlphaDeviationCard } from './AlphaDeviationCard';
 import { OperationalProfileCard } from './OperationalProfileCard';
@@ -140,35 +139,9 @@ export const MutualFundSnapshot = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen w-full bg-[#0a0a0b] text-text-primary overflow-hidden text-sm">
-      {/* Top Navbar */}
-      <header className="h-12 border-b border-border bg-surface flex items-center px-4 justify-between shrink-0 select-none z-50">
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <Hexagon size={20} className="text-alpha" />
-            <span className="font-bold text-white tracking-tight">Q<span className="text-alpha">OS</span></span>
-          </div>
-          <GlobalSearch />
-        </div>
+    <div className="flex flex-col w-full bg-[#0a0a0b] text-text-primary text-sm">
 
-        <div className="flex flex-1 justify-center gap-1">
-          <button 
-            onClick={() => setIsAIOverlayOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-500/20 transition-all shadow-[0_0_10px_rgba(99,102,241,0.15)]"
-          >
-            <BrainCircuit size={14} /> AI Analysis
-          </button>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <button className="text-text-secondary hover:text-white transition-colors" title="Settings"><Settings size={18} /></button>
-          <div className="w-8 h-8 rounded-full bg-surface-hover border border-border flex items-center justify-center font-bold text-xs text-alpha">
-            USR
-          </div>
-        </div>
-      </header>
-
-      <div className="p-6 flex flex-col gap-6 w-full h-full pb-24 overflow-y-auto custom-scrollbar">
+      <div className="p-6 flex flex-col gap-6 w-full pb-24 overflow-y-auto custom-scrollbar">
 
         {/* Hero Chart */}
         <div className="h-[600px] w-full bg-[#111114] border border-white/5 rounded-xl overflow-hidden shrink-0">
