@@ -620,6 +620,8 @@ def process_stock_unified(slug, fetcher, index_map, market_breadth_map, args):
         for k, v in stats.items():
             if k not in abs_data: abs_data[k] = v
             
+        abs_data["technicals"] = page_props.get("stocksTechnicalsData", {})
+            
         # Format OHLCV for Absolute
         ohlcv_converted = []
         for c in (candles or []):

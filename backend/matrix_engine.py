@@ -54,11 +54,22 @@ def compute_15_card_matrix(con, holdings: List[Dict]) -> Dict:
             
     if stock_series:
         port_df = pd.concat(stock_series.values(), axis=1).sort_index().ffill()
-        returns_df = port_df.pct_change().dropna()
-        port_returns = pd.Series(0.0, index=returns_df.index)
-        for slug, w in weights.items():
-            if slug in returns_df.columns:
-                port_returns += returns_df[slug] * w
+        
+        # True backward projection based on absolute monetary values (eliminates look-ahead bias)
+        current_values = pd.Series({h['slug']: get_val(h) for h in holdings})
+        total_portfolio_value_t = pd.Series(0.0, index=port_df.index)
+        
+        # Backfill prices for pre-IPO periods so they act as cash (0% return)
+        port_df_filled = port_df.bfill()
+        
+        for slug in current_values.index:
+            if slug in port_df_filled.columns:
+                last_valid_price = port_df_filled[slug].dropna().iloc[-1] if not port_df_filled[slug].dropna().empty else 1.0
+                units = current_values[slug] / last_valid_price if last_valid_price > 0 else 0
+                total_portfolio_value_t += port_df_filled[slug] * units
+
+        port_returns = total_portfolio_value_t.pct_change().dropna()
+        returns_df = port_df.pct_change().dropna(how='all')
     else:
         port_returns = pd.Series(dtype=float)
         returns_df = pd.DataFrame()
@@ -117,7 +128,7 @@ def compute_growth_view(stocks_df, weights, returns_df):
             
             # ONLY sum returns of the exact same direct equities
             if row['slug'] in returns_df.columns:
-                stock_series = returns_df[row['slug']]
+                stock_series = returns_df[row['slug']].dropna()
                 last_252 = stock_series.tail(252)
                 if not last_252.empty:
                     ret_1y = (1 + last_252).prod() - 1
@@ -190,7 +201,7 @@ def compute_allocation_view(stocks_df, weights, master_df):
         if profit_yoy is not None:
             gro_w += float(profit_yoy) * w
             valid_gro += w
-        if rs is not None:
+        if rs is not None and float(rs) != 0.0:
             mom_w += float(rs) * w
             valid_mom += w
             
@@ -222,9 +233,15 @@ def compute_backtest_view(master_df):
     if master_df.empty: return {}
     
     ret = master_df['portfolio']
-    sharpe = (ret.mean() / ret.std()) * np.sqrt(252) if ret.std() > 0 else 0
-    neg_ret = ret[ret < 0]
-    sortino = (ret.mean() / neg_ret.std()) * np.sqrt(252) if not neg_ret.empty and neg_ret.std() > 0 else 0
+    
+    # Inject 7% annualized risk-free rate for Indian market accuracy
+    rf = 0.07 
+    daily_rf = rf / 252
+    excess_ret = ret - daily_rf
+    
+    sharpe = (excess_ret.mean() / ret.std()) * np.sqrt(252) if ret.std() > 0 else 0
+    neg_excess_ret = excess_ret[excess_ret < 0]
+    sortino = (excess_ret.mean() / neg_excess_ret.std()) * np.sqrt(252) if not neg_excess_ret.empty and neg_excess_ret.std() > 0 else 0
     
     port_cum = (1 + ret).cumprod()
     rolling_1y = port_cum.pct_change(252).dropna()
@@ -335,11 +352,11 @@ def compute_ai_outlook_view(stocks_df, weights):
     for _, row in stocks_df.iterrows():
         w = weights.get(row['slug'], 0)
         
-        if pd.notna(row.get('alpha_score_conservative')):
+        if pd.notna(row.get('alpha_score_conservative')) and float(row.get('alpha_score_conservative')) != 0.0:
             agg_alpha += float(row['alpha_score_conservative']) * w
             valid_alpha += w
             
-        if pd.notna(row.get('qes_flag')):
+        if pd.notna(row.get('qes_flag')) and float(row.get('qes_flag')) != 0.0:
             agg_qes += float(row['qes_flag']) * w
             valid_qes += w
             
@@ -351,12 +368,12 @@ def compute_ai_outlook_view(stocks_df, weights):
             shap_counts[r2] = shap_counts.get(r2, 0) + w
             
     if valid_alpha > 0: 
-        agg_alpha = round(agg_alpha * 100, 1)
+        agg_alpha = round((agg_alpha / valid_alpha) * 100, 1)
     else: 
         agg_alpha = "PENDING"
         
     if valid_qes > 0: 
-        agg_qes = round(agg_qes * 100, 1)
+        agg_qes = round((agg_qes / valid_qes) * 100, 1)
     else: 
         agg_qes = "PENDING"
     

@@ -690,6 +690,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
 
   const returnsData = useMemo(() => {
     const dateReturns: Record<string, number> = {};
+    const dateWeights: Record<string, number> = {};
     const benchmarkReturns: Record<string, number> = {};
     let benchmarkOhlcv: any[] = [];
 
@@ -720,6 +721,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
         const date = parseDateKey(dateRaw);
         const ret = (close - prevClose) / prevClose;
         dateReturns[date] = (dateReturns[date] || 0) + ret * weight;
+        dateWeights[date] = (dateWeights[date] || 0) + weight;
       }
     });
 
@@ -733,6 +735,13 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
         const date = parseDateKey(navs[i][0]);
         const ret = (navs[i][1] - navs[i - 1][1]) / navs[i - 1][1];
         dateReturns[date] = (dateReturns[date] || 0) + ret * weight;
+        dateWeights[date] = (dateWeights[date] || 0) + weight;
+      }
+    });
+    
+    Object.keys(dateReturns).forEach(date => {
+      if (dateWeights[date] && dateWeights[date] > 0) {
+        dateReturns[date] /= dateWeights[date];
       }
     });
 

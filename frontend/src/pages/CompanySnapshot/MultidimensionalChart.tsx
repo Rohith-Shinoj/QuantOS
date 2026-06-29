@@ -8,6 +8,89 @@ import { fetchLiveQuote, fetchStockData } from '../../api';
 
 const TIMEFRAMES = ['1M', '3M', '6M', '1Y', '5Y', 'ALL', 'CUSTOM'];
 
+function calculatePivots(data: any[], timeframe: '1D' | '1W' | '1M' | '1Y') {
+  if (!data || data.length < 2) return null;
+
+  const latestDate = new Date(data[data.length - 1].time);
+  let targetData = [];
+
+  if (timeframe === '1M') {
+    const latestMonth = latestDate.getMonth();
+    const latestYear = latestDate.getFullYear();
+    for (let i = data.length - 1; i >= 0; i--) {
+      const d = new Date(data[i].time);
+      if (d.getMonth() !== latestMonth || d.getFullYear() !== latestYear) {
+        const prevMonth = d.getMonth();
+        const prevYear = d.getFullYear();
+        for (let j = i; j >= 0; j--) {
+          const pd = new Date(data[j].time);
+          if (pd.getMonth() === prevMonth && pd.getFullYear() === prevYear) {
+            targetData.push(data[j]);
+          } else {
+            break;
+          }
+        }
+        break;
+      }
+    }
+  } else if (timeframe === '1Y') {
+    const latestYear = latestDate.getFullYear();
+    for (let i = data.length - 1; i >= 0; i--) {
+      const d = new Date(data[i].time);
+      if (d.getFullYear() !== latestYear) {
+        const prevYear = d.getFullYear();
+        for (let j = i; j >= 0; j--) {
+          const pd = new Date(data[j].time);
+          if (pd.getFullYear() === prevYear) {
+            targetData.push(data[j]);
+          } else {
+            break;
+          }
+        }
+        break;
+      }
+    }
+  } else if (timeframe === '1W') {
+    const day = latestDate.getDay();
+    const diff = latestDate.getDate() - day + (day === 0 ? -6 : 1);
+    const currentMonday = new Date(latestDate.getFullYear(), latestDate.getMonth(), diff);
+    
+    const prevMonday = new Date(currentMonday);
+    prevMonday.setDate(prevMonday.getDate() - 7);
+
+    for (let i = data.length - 1; i >= 0; i--) {
+      const d = new Date(data[i].time);
+      if (d < currentMonday && d >= prevMonday) {
+        targetData.push(data[i]);
+      } else if (d < prevMonday) {
+        break;
+      }
+    }
+  }
+
+  if (targetData.length === 0) return null;
+
+  let high = -Infinity;
+  let low = Infinity;
+  let close = targetData[0].close; 
+
+  targetData.forEach(d => {
+    if (d.high > high) high = d.high;
+    if (d.low < low) low = d.low;
+  });
+
+  const p = (high + low + close) / 3;
+  return {
+    pivotPoint: p,
+    r1: (p * 2) - low,
+    s1: (p * 2) - high,
+    r2: p + (high - low),
+    s2: p - (high - low),
+    r3: high + 2 * (p - low),
+    s3: low - 2 * (high - p)
+  };
+}
+
 // Simple SMA calculator
 function calculateSMA(data: any[], period: number) {
   const result = [];
@@ -95,22 +178,22 @@ export const MultidimensionalChart = ({ data }: { data: any }) => {
   const [showNifty, setShowNifty] = useState(false);
   const [showSector, setShowSector] = useState(false);
   const [showBands, setShowBands] = useState(false);
+  const [showTechnicalLevels, setShowTechnicalLevels] = useState(false);
+  const [pivotTimeframe, setPivotTimeframe] = useState<'1D' | '1W' | '1M' | '1Y'>('1D');
+  const priceLinesRef = useRef<any[]>([]);
   const [timeframe, setTimeframe] = useState('ALL');
   const [customRange, setCustomRange] = useState({ start: '', end: '' });
   const [periodStats, setPeriodStats] = useState({ change: 0, percentChange: 0, cagr: 0 });
 
   const getSectorSlug = (industry: string) => {
-    const ind = (industry || '').toLowerCase();
-    
-    if (ind.includes('financial')) return 'nifty-financial-services';
-    if (ind.includes('bank')) return 'nifty-bank';
-    if (ind.includes('information technology') || ind.includes('software') || ind.includes('tech')) return 'nifty-it';
-    if (ind.includes('real estate') || ind.includes('realty')) return 'nifty-realty';
+    const ind = industry.toLowerCase();
+    if (ind.includes('bank') || ind.includes('finance')) return 'nifty-financial-services';
+    if (ind.includes('it ') || ind.includes('software')) return 'nifty-it';
+    if (ind.includes('pharma') || ind.includes('healthcare')) return 'nifty-pharma';
     if (ind.includes('metal')) return 'nifty-metal';
-    if (ind.includes('pharma') || ind.includes('health')) return 'nifty-pharma';
     if (ind.includes('auto')) return 'nifty-auto';
-    if (ind.includes('food') || ind.includes('beverage') || ind.includes('fmcg') || ind.includes('consumption')) return 'nifty-fmcg';
-    
+    if (ind.includes('realty') || ind.includes('construction')) return 'nifty-realty';
+    if (ind.includes('fmcg') || ind.includes('consumer')) return 'nifty-fmcg';
     return 'nifty-total-market-index';
   };
 
@@ -607,6 +690,57 @@ export const MultidimensionalChart = ({ data }: { data: any }) => {
 
   }, [viewMode, showNifty, showSector, showBands]);
 
+  // Technical Overlays Update
+  useEffect(() => {
+    const refs = seriesRefs.current;
+    if (!refs.candle || !refs.baseline) return;
+
+    // Clear existing
+    priceLinesRef.current.forEach(line => {
+      try { refs.candle.removePriceLine(line); } catch(e){}
+      try { refs.baseline.removePriceLine(line); } catch(e){}
+    });
+    priceLinesRef.current = [];
+
+    let tech: any = {};
+    if (pivotTimeframe === '1D') {
+      tech = data?.absolute?.technicals || {};
+    } else {
+      const computed = calculatePivots(parsedData, pivotTimeframe);
+      if (computed) tech = computed;
+    }
+
+    const availableOverlays = [
+      { id: 'R3', label: 'R3', value: tech.r3, color: '#ef4444' },
+      { id: 'R2', label: 'R2', value: tech.r2, color: '#ef4444' },
+      { id: 'R1', label: 'R1', value: tech.r1, color: '#ef4444' },
+      { id: 'Pivot', label: 'Pivot', value: tech.pivotPoint, color: '#eab308' },
+      { id: 'S1', label: 'S1', value: tech.s1, color: '#10b981' },
+      { id: 'S2', label: 'S2', value: tech.s2, color: '#10b981' },
+      { id: 'S3', label: 'S3', value: tech.s3, color: '#10b981' }
+    ].filter(o => o.value !== undefined && o.value !== null && !isNaN(o.value) && o.value !== 0);
+
+    if (showTechnicalLevels) {
+      availableOverlays.forEach(overlay => {
+        const pl = {
+          price: overlay.value,
+          color: overlay.color,
+          lineWidth: 1,
+          lineStyle: LineStyle.Dotted,
+          axisLabelVisible: true,
+          axisLabelColor: overlay.color,
+          axisLabelTextColor: '#000',
+          title: overlay.label,
+        };
+        const activeSeries = viewMode === 'candles' ? refs.candle : refs.baseline;
+        if (activeSeries) {
+          const line = activeSeries.createPriceLine(pl);
+          priceLinesRef.current.push(line);
+        }
+      });
+    }
+  }, [viewMode, showTechnicalLevels, pivotTimeframe, data, parsedData]);
+
   // Handle Timeframe changes
   useEffect(() => {
     if (!chartRef.current || parsedData.length === 0) return;
@@ -797,7 +931,8 @@ export const MultidimensionalChart = ({ data }: { data: any }) => {
                 <div className="font-bold text-text-primary mb-1 text-[11px]">Overlays</div>
                 <div className="mb-0.5 leading-tight"><strong className="text-yellow-400">vs Nifty 50:</strong> Market context (relative strength).</div>
                 <div className="mb-0.5 leading-tight"><strong className="text-purple-400">vs Sector:</strong> Industry-specific benchmark.</div>
-                <div className="leading-tight"><strong className="text-purple-400">Volatility Bands:</strong> Risk/Entry (Top=Overbought).</div>
+                <div className="mb-0.5 leading-tight"><strong className="text-purple-400">Volatility Bands:</strong> Risk/Entry (Top=Overbought).</div>
+                <div className="mb-0.5 leading-tight"><strong className="text-blue-400">Technical Levels:</strong> Pivot points and Current Price.</div>
               </div>
             </span>
             <button 
@@ -830,6 +965,34 @@ export const MultidimensionalChart = ({ data }: { data: any }) => {
             >
               Volatility Bands
             </button>
+            
+            <div className="w-px h-4 bg-border mx-1"></div>
+
+            {/* Technical Overlays Toggle */}
+            <div className="flex items-center">
+              <button
+                onClick={() => setShowTechnicalLevels(prev => !prev)}
+                className={`px-3 py-1.5 rounded transition-all border ${
+                  showTechnicalLevels 
+                    ? 'bg-blue-500/20 text-blue-400 border-blue-500/30 rounded-r-none border-r-0' 
+                    : 'bg-surface text-text-secondary border-border hover:text-text-primary hover:bg-surface-hover'
+                }`}
+              >
+                Technical Levels
+              </button>
+              {showTechnicalLevels && (
+                <select
+                  value={pivotTimeframe}
+                  onChange={(e) => setPivotTimeframe(e.target.value as '1D'|'1W'|'1M'|'1Y')}
+                  className="px-2 py-1.5 rounded rounded-l-none bg-blue-500/10 text-blue-400 border border-blue-500/30 focus:outline-none cursor-pointer text-sm"
+                >
+                  <option value="1D" className="bg-surface text-text-primary">1D</option>
+                  <option value="1W" className="bg-surface text-text-primary">1W</option>
+                  <option value="1M" className="bg-surface text-text-primary">1M</option>
+                  <option value="1Y" className="bg-surface text-text-primary">1Y</option>
+                </select>
+              )}
+            </div>
           </div>
 
           {/* Timeframes & Stats */}

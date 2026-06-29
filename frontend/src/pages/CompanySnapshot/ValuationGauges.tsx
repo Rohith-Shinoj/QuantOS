@@ -17,25 +17,30 @@ export const ValuationGauges = ({ data }: { data: any }) => {
       value: abs.pbRatio,
       sectorValue: abs.sectorPb,
       invert: false,
-    },
-    {
-      name: "Dividend Yield",
-      value: abs.dividendYieldInPercent || abs.divYield,
-      sectorValue: abs.sectorDivYield,
-      invert: true,
-      suffix: '%'
     }
   ].filter(m => m.value && m.sectorValue);
+
+  const tech = abs.technicals || {};
+
+  const getRsiVerdict = (e: number) => e > 70 ? ["Overbought", "text-red-500"] : e > 65 && e <= 70 ? ["Near overbought", "text-red-500"] : e > 35 && e <= 65 ? ["Neutral", "text-gray-400"] : e > 30 && e <= 35 ? ["Near oversold", "text-green-500"] : ["Oversold", "text-green-500"];
+  const getMacdVerdict = (e: number) => e > 0 ? ["Bullish", "text-green-500"] : e < 0 ? ["Bearish", "text-red-500"] : ["At signal", "text-green-500"];
+  const getBetaVerdict = (e: number) => e > 1.2 ? ["Highly volatile", "text-gray-400"] : e >= .8 && e <= 1.2 ? ["Volatile like mkt", "text-gray-400"] : ["Less volatile", "text-gray-400"];
+
+  const techMetrics = [
+    { name: "RSI (14)", value: tech.rsi14, verdict: tech.rsi14 !== undefined ? getRsiVerdict(tech.rsi14) : null },
+    { name: "MACD", value: tech.macd, verdict: tech.macd !== undefined ? getMacdVerdict(tech.macd) : null },
+    { name: "Beta", value: tech.beta, verdict: tech.beta !== undefined ? getBetaVerdict(tech.beta) : null }
+  ].filter(m => m.value !== undefined && m.value !== null);
 
   return (
     <div className="bg-[#121214] p-5 rounded-xl border border-white/5 h-full flex flex-col group hover:border-white/10 transition-colors">
       <div className="flex justify-between items-start mb-2">
         <div>
           <h3 className="text-lg font-medium text-text-primary flex items-center tracking-tight">
-            Valuation Percentile Spectrum
-            <InfoTooltip text="Visualizes the stock's current multiples against the sector averages." />
+            Valuation & Technicals
+            <InfoTooltip text="Visualizes the stock's current multiples against the sector averages and displays basic technical indicators." />
           </h3>
-          <p className="text-sm text-text-secondary mt-1">Relative fundamental gauges</p>
+          <p className="text-sm text-text-secondary mt-1">Relative fundamental and technical gauges</p>
         </div>
       </div>
       
@@ -53,7 +58,7 @@ export const ValuationGauges = ({ data }: { data: any }) => {
             <div className="mb-6 relative group/gauge" key={metric.name}>
               <div className="flex justify-between items-end mb-2">
                 <span className="text-[11px] font-bold text-text-secondary uppercase tracking-wider">{metric.name}</span>
-                <span className="text-sm font-bold text-text-primary">{metric.value.toFixed(2)}{metric.suffix || 'x'}</span>
+                <span className="text-sm font-bold text-text-primary">{metric.value.toFixed(2)}x</span>
               </div>
               
               {/* Spectrum Bar Container */}
@@ -75,7 +80,7 @@ export const ValuationGauges = ({ data }: { data: any }) => {
                 >
                   {/* Tooltip for Sector */}
                   <div className="absolute -top-7 left-1/2 -translate-x-1/2 opacity-0 group-hover/gauge:opacity-100 transition-opacity bg-[#27272a] text-white text-[10px] px-2 py-1 rounded shadow-lg pointer-events-none whitespace-nowrap z-30">
-                    Sector Avg: {metric.sectorValue.toFixed(2)}{metric.suffix || 'x'}
+                    Sector Avg: {metric.sectorValue.toFixed(2)}x
                   </div>
                 </div>
 
@@ -86,7 +91,7 @@ export const ValuationGauges = ({ data }: { data: any }) => {
                 >
                    {/* Tooltip for Stock */}
                    <div className="absolute -bottom-7 left-1/2 -translate-x-1/2 opacity-0 group-hover/gauge:opacity-100 transition-opacity bg-alpha text-white text-[10px] px-2 py-1 rounded shadow-lg pointer-events-none whitespace-nowrap font-bold">
-                    {metric.value.toFixed(2)}{metric.suffix || 'x'}
+                    {metric.value.toFixed(2)}x
                   </div>
                 </div>
               </div>
@@ -101,6 +106,28 @@ export const ValuationGauges = ({ data }: { data: any }) => {
            <div className="h-full flex flex-col items-center justify-center text-text-secondary text-xs italic opacity-50">
              <span>Valuation data unavailable for this asset.</span>
            </div>
+        )}
+
+        {/* Technical Indicators */}
+        {techMetrics.length > 0 && (
+          <div className="mt-2 pt-4 border-t border-white/5">
+            <h4 className="text-[10px] font-bold text-text-secondary uppercase tracking-wider mb-3">Technical Indicators</h4>
+            <div className="grid grid-cols-3 gap-3">
+              {techMetrics.map(m => (
+                <div key={m.name} className="bg-white/5 rounded-lg p-2.5 flex flex-col justify-between border border-white/5 hover:border-white/10 transition-colors">
+                  <span className="text-[10px] text-text-secondary font-semibold">{m.name}</span>
+                  <div className="mt-1">
+                    <div className="text-[13px] font-bold text-text-primary">{m.value.toFixed(2)}</div>
+                    {m.verdict && (
+                      <div className={`text-[9px] font-bold mt-1 uppercase tracking-wider ${m.verdict[1]}`}>
+                        {m.verdict[0]}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </div>
     </div>

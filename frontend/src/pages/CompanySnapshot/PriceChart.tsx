@@ -86,6 +86,7 @@ const TIMEFRAMES = ['5D', '1M', '3M', '6M', '1Y', '5Y', 'ALL'];
 
 export const PriceChart = ({ data }: { data: any }) => {
   const [timeframe, setTimeframe] = useState('ALL');
+  const [activeOverlays, setActiveOverlays] = useState<string[]>([]);
 
   const { series, yMin, yMax } = useMemo(() => {
     const ohlcv = data?.absolute?.OHLCV || [];
@@ -159,6 +160,22 @@ export const PriceChart = ({ data }: { data: any }) => {
   
   const isPositive = priceDiff >= 0;
 
+  const tech = data?.absolute?.technicals || {};
+  const availableOverlays = [
+    { id: 'R3', label: 'R3', value: tech.r3, color: '#ef4444' },
+    { id: 'R2', label: 'R2', value: tech.r2, color: '#ef4444' },
+    { id: 'R1', label: 'R1', value: tech.r1, color: '#ef4444' },
+    { id: 'Pivot', label: 'Pivot', value: tech.pivot, color: '#eab308' },
+    { id: 'S1', label: 'S1', value: tech.s1, color: '#10b981' },
+    { id: 'S2', label: 'S2', value: tech.s2, color: '#10b981' },
+    { id: 'S3', label: 'S3', value: tech.s3, color: '#10b981' },
+    { id: 'Current', label: 'Current Price', value: currentPrice, color: '#3b82f6' }
+  ].filter(o => o.value !== undefined && o.value !== null);
+
+  const toggleOverlay = (id: string) => {
+    setActiveOverlays(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
   const options: ApexOptions = {
     chart: {
       type: 'candlestick',
@@ -193,6 +210,23 @@ export const PriceChart = ({ data }: { data: any }) => {
           useFillColor: true,
         },
       },
+    },
+    annotations: {
+      yAxis: activeOverlays.map(id => {
+        const overlay = availableOverlays.find(o => o.id === id);
+        if (!overlay) return null;
+        return {
+          y: overlay.value,
+          borderColor: overlay.color,
+          strokeDashArray: 4,
+          label: {
+            text: overlay.label,
+            style: { color: '#fff', background: overlay.color, fontSize: '10px', padding: { left: 4, right: 4, top: 2, bottom: 2 } },
+            position: 'left',
+            textAnchor: 'start'
+          }
+        };
+      }).filter(Boolean) as any
     },
     grid: {
       borderColor: '#27272a',
@@ -258,25 +292,45 @@ export const PriceChart = ({ data }: { data: any }) => {
             </div>
           </div>
         </div>
-        <div className="flex bg-surface-hover p-1 rounded-md border border-border gap-1">
-          {TIMEFRAMES.map(t => (
-            <button 
-              key={t}
-              onClick={() => setTimeframe(t)}
-              className={`px-3 py-1 rounded text-xs font-bold transition-all ${timeframe === t ? 'bg-alpha text-canvas shadow-sm' : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'}`}
+      </div>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-4 py-2 border-b border-border gap-4 shrink-0 bg-surface/50">
+        <div className="flex gap-2 flex-wrap items-center">
+          <span className="text-xs text-text-secondary mr-2">Overlays:</span>
+          {availableOverlays.map(overlay => {
+            const isActive = activeOverlays.includes(overlay.id);
+            return (
+              <button
+                key={overlay.id}
+                onClick={() => toggleOverlay(overlay.id)}
+                className={`text-[10px] px-2 py-1 rounded border transition-colors ${
+                  isActive 
+                    ? 'bg-white/10 text-white border-white/20 font-bold' 
+                    : 'bg-transparent text-text-secondary border-border hover:bg-white/5'
+                }`}
+              >
+                {overlay.label}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex bg-surface rounded-lg p-1 border border-border">
+          {TIMEFRAMES.map((tf) => (
+            <button
+              key={tf}
+              onClick={() => setTimeframe(tf)}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
+                timeframe === tf
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-white/5'
+              }`}
             >
-              {t}
+              {tf}
             </button>
           ))}
         </div>
       </div>
-      <div className="flex-1 w-full min-h-0">
-        <Chart 
-          options={options} 
-          series={series} 
-          type="candlestick" 
-          height="100%" 
-        />
+      <div className="flex-1 w-full min-h-0 relative">
+        <Chart options={options} series={series} type="candlestick" height="100%" width="100%" />
       </div>
     </div>
   );
