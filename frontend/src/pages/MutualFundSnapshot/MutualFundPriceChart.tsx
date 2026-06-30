@@ -138,7 +138,6 @@ export const MutualFundPriceChart = ({ fund }: { fund: any }) => {
     if (!fund?.historical_navs || !Array.isArray(fund.historical_navs)) return [];
     
     const data = fund.historical_navs.map((point: any) => {
-      // The Groww API returns [timestamp, nav]
       const timestamp = point.date || point[0];
       const nav = point.nav || point[1] || point.value;
       

@@ -125,7 +125,6 @@ def fetch_live_quote(slug: str, session: requests.Session):
             live_price = props.get("livePriceData", {})
             header = stock_data.get("header", {})
             
-            # Groww moved symbols from stockData root to stockData.header
             nse = header.get("nseScriptCode") or stock_data.get("nseSymbol")
             bse = str(header.get("bseScriptCode", "")) or stock_data.get("bseSymbol")
             

@@ -195,6 +195,10 @@ MF_METRICS: dict[str, tuple] = {
 # ────────────────────────────────────────────────────────────────────────────
 #  PYDANTIC MODELS
 # ────────────────────────────────────────────────────────────────────────────
+class QueryToken(BaseModel):
+    type: str
+    value: Any
+
 class FilterClause(BaseModel):
     field: str
     op: str        # >, <, >=, <=, =, !=
@@ -205,7 +209,8 @@ class FilterClause(BaseModel):
     outerLogic: str = None # "AND" or "OR"
 
 class ScreenerRequest(BaseModel):
-    filters:    List[FilterClause] = []
+    filters:      List[FilterClause] = []
+    query_tokens: List[QueryToken] = []
     sort_by:    str  = ""
     sort_order: str  = "desc"
     columns:    List[str] = []
@@ -282,45 +287,71 @@ def build_query(table: str, registry: dict, req: ScreenerRequest,
             selects.append(f"{expr} AS {col}")
 
     # ── WHERE clause ───────────────────────────────────────────────────────
-    wheres, params = [], []
     where_sql_parts = []
+    params = []
     
-    for f in req.filters:
-        if f.field not in registry:
-            continue
-        op1 = f.op.strip()
-        if op1 not in VALID_OPS:
-            continue
-        expr = registry[f.field][0]
-        # Cast the filter value to numeric when possible
-        try:
-            val1 = float(f.value) if isinstance(f.value, str) else f.value
-        except (TypeError, ValueError):
-            val1 = f.value
-        
-        cond1 = f"({expr}) {op1} ?"
-        
-        if f.logic and f.logic.upper() in ["AND", "OR"] and f.op2 and f.op2.strip() in VALID_OPS:
-            op2 = f.op2.strip()
+    if req.query_tokens:
+        for t in req.query_tokens:
+            if t.type == 'bracket':
+                if str(t.value) in ['(', ')']:
+                    where_sql_parts.append(str(t.value))
+            elif t.type == 'logic':
+                logic_val = str(t.value).upper()
+                if logic_val in ['AND', 'OR']:
+                    where_sql_parts.append(logic_val)
+            elif t.type == 'operator':
+                op_val = str(t.value).strip()
+                if op_val in VALID_OPS:
+                    where_sql_parts.append(op_val)
+            elif t.type == 'metric':
+                metric_key = str(t.value)
+                if metric_key in registry:
+                    expr = registry[metric_key][0]
+                    where_sql_parts.append(f"({expr})")
+            elif t.type == 'value':
+                try:
+                    val = float(t.value) if isinstance(t.value, str) else t.value
+                except (TypeError, ValueError):
+                    val = t.value
+                where_sql_parts.append("?")
+                params.append(val)
+    elif req.filters:
+        # Fallback to old filters logic
+        for f in req.filters:
+            if f.field not in registry:
+                continue
+            op1 = f.op.strip()
+            if op1 not in VALID_OPS:
+                continue
+            expr = registry[f.field][0]
             try:
-                val2 = float(f.value2) if isinstance(f.value2, str) else f.value2
+                val1 = float(f.value) if isinstance(f.value, str) else f.value
             except (TypeError, ValueError):
-                val2 = f.value2
-            cond2 = f"({expr}) {op2} ?"
-            f_sql = f"({cond1} {f.logic.upper()} {cond2})"
-            f_params = [val1, val2]
-        else:
-            f_sql = cond1
-            f_params = [val1]
+                val1 = f.value
             
-        if where_sql_parts:
-            logic = f.outerLogic.upper() if f.outerLogic else "AND"
-            if logic not in ["AND", "OR"]:
-                logic = "AND"
-            where_sql_parts.append(logic)
+            cond1 = f"({expr}) {op1} ?"
             
-        where_sql_parts.append(f"({f_sql})")
-        params.extend(f_params)
+            if f.logic and f.logic.upper() in ["AND", "OR"] and f.op2 and f.op2.strip() in VALID_OPS:
+                op2 = f.op2.strip()
+                try:
+                    val2 = float(f.value2) if isinstance(f.value2, str) else f.value2
+                except (TypeError, ValueError):
+                    val2 = f.value2
+                cond2 = f"({expr}) {op2} ?"
+                f_sql = f"({cond1} {f.logic.upper()} {cond2})"
+                f_params = [val1, val2]
+            else:
+                f_sql = cond1
+                f_params = [val1]
+                
+            if where_sql_parts:
+                logic = f.outerLogic.upper() if f.outerLogic else "AND"
+                if logic not in ["AND", "OR"]:
+                    logic = "AND"
+                where_sql_parts.append(logic)
+                
+            where_sql_parts.append(f"({f_sql})")
+            params.extend(f_params)
 
     # Exclude delisted stocks globally (only for stocks)
     if table == 'stocks':
