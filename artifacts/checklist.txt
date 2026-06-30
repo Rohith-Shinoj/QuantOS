@@ -14,6 +14,9 @@
       coveredWeight += weight;
     }); in portfoliotracker
 
-[] Remove the dual datasets into one and new copied on the fly
-[] Remove Macro overview and combine to home
-[] Make Heatmap lok like Trading view map
+[x] Remove the dual datasets into one and new copied on the fly
+[x] Remove Macro overview and combine to home
+[.] Make Heatmap lok like Trading view map
+[x] Nav bar standardized
+[ ] Screener upgrade
+[ ] Logos in the Heatmap and non sector view

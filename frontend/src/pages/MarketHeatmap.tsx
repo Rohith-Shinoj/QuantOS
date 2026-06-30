@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchAllStocks } from '../api';
-import { ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { Maximize, Grid, PieChart, ChevronDown, Flag } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { StockLogo } from '../components/StockLogo';
 import { treemap, hierarchy } from 'd3-hierarchy';
@@ -19,14 +19,14 @@ const parseDayChange = (changeStr: string) => {
   return isNaN(justNum) ? 0 : justNum;
 };
 
-// Strict TradingView Colors [-5.5%, 5.5%]
+// Strict TradingView Colors Steps
 const getPerformanceColor = (value: number) => {
-  if (value <= -4.5) return '#991f29'; 
-  if (value <= -2.5) return '#f23645'; 
-  if (value < -0.5) return '#f77c80'; 
-  if (value >= -0.5 && value <= 0.5) return '#c9c9c9'; 
-  if (value > 0.5 && value <= 2.5) return '#42bd7f'; 
-  if (value > 2.5 && value < 4.5) return '#089950'; 
+  if (value <= -3) return '#f23645'; 
+  if (value <= -2) return '#f7525f'; 
+  if (value < -0.25) return '#f77c80'; 
+  if (value >= -0.25 && value <= 0.25) return '#787b86'; 
+  if (value > 0.25 && value <= 2) return '#42bd7f'; 
+  if (value > 2 && value < 3) return '#089950'; 
   return '#056636'; 
 };
 
@@ -39,7 +39,8 @@ const formatNumber = (num: number) => {
 export const MarketHeatmap = () => {
   const navigate = useNavigate();
   const [sizeBy, setSizeBy] = useState('Market Cap');
-  const [colorBy, setColorBy] = useState('Performance');
+  const [colorBy, setColorBy] = useState('Change 1D, %');
+  const [groupBy, setGroupBy] = useState('Sector');
   
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
@@ -71,26 +72,33 @@ export const MarketHeatmap = () => {
     const getSizeValue = (s: any) => {
       let val = 0;
       if (sizeBy === 'Market Cap') val = s.marketCap || 0;
-      else if (sizeBy === 'Volume') val = s.volume || 0;
-      else if (sizeBy === 'P/E Ratio') val = s.peRatio || 0;
-      else if (sizeBy === 'RS Rating') val = s.rs_rating || 0;
       return Math.max(0, val);
     };
 
     // Color logic
     const getColorValue = (s: any) => {
-      if (colorBy === 'Performance') return parseDayChange(s.day_change);
-      if (colorBy === 'Inst. Accumulation') return s.inst_accum || 0;
-      if (colorBy === 'RS Rating') return (s.rs_rating || 50) - 50; // shift to center at 0
-      if (colorBy === 'P/E Ratio') return -(s.peRatio || 0); // lower PE is greener
+      if (colorBy === 'Change 1D, %') return parseDayChange(s.day_change);
+      if (colorBy === 'Performance 1W, %') return s.perf_1w || 0;
+      if (colorBy === 'Performance 1M, %') return s.perf_1m || 0;
+      if (colorBy === 'Performance 3M, %') return s.perf_3m || 0;
+      if (colorBy === 'Performance 6M, %') return s.perf_6m || 0;
+      if (colorBy === 'Performance YTD, %') return s.perf_ytd || 0;
+      if (colorBy === 'Performance 1Y, %') return s.perf_1y || 0;
       return 0;
     };
 
-    let filteredStocks = stocks.filter((s: any) => getSizeValue(s) > 0);
+    let filteredStocks = stocks
+      .filter((s: any) => getSizeValue(s) > 0)
+      .sort((a: any, b: any) => getSizeValue(b) - getSizeValue(a))
+      .slice(0, 500);
 
     const groups: Record<string, any> = {};
+    if (groupBy === 'No group') {
+      groups['All'] = { name: 'All', children: [] };
+    }
+
     filteredStocks.forEach((stock: any) => {
-      const groupName = stock.industry || 'Other';
+      const groupName = groupBy === 'No group' ? 'All' : (stock.industry || 'Other');
       if (!groups[groupName]) {
         groups[groupName] = { name: groupName, children: [] };
       }
@@ -104,7 +112,13 @@ export const MarketHeatmap = () => {
         marketCap: stock.marketCap,
         volume: stock.volume,
         dayChange: parseDayChange(stock.day_change),
-        inst_accum: stock.inst_accum
+        inst_accum: stock.inst_accum,
+        perf_1w: stock.perf_1w,
+        perf_1m: stock.perf_1m,
+        perf_3m: stock.perf_3m,
+        perf_6m: stock.perf_6m,
+        perf_1y: stock.perf_1y,
+        perf_ytd: stock.perf_ytd
       });
     });
 
@@ -120,12 +134,12 @@ export const MarketHeatmap = () => {
     const tree = treemap()
       .size([dimensions.width, dimensions.height])
       .paddingInner(1) // space between leaf nodes
-      .paddingOuter(0)
-      .paddingTop(24) // DEDICATED HEADER SPACE FOR SECTORS
+      .paddingOuter(1) // gap from sector borders
+      .paddingTop(groupBy === 'No group' ? 1 : 22) // Top gap for sector headers
       .round(true);
 
     return tree(root as any);
-  }, [stocks, dimensions, sizeBy, colorBy]);
+  }, [stocks, dimensions, sizeBy, colorBy, groupBy]);
 
   if (isLoading || !stocks) {
     return (
@@ -138,50 +152,92 @@ export const MarketHeatmap = () => {
   return (
     <div className="flex flex-col h-full bg-[#131722] text-text-primary overflow-hidden">
       {/* Top Navigation Bar */}
-      <header className="flex-none p-3 border-b border-[#2a2e39] flex justify-between items-center bg-[#131722] z-10 shrink-0">
-        <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold tracking-tight text-white">Stock Heatmap</h1>
-        </div>
+      <header className="flex-none px-4 py-2 flex flex-col gap-3 border-b border-[#2a2e39] bg-[#131722] z-10 shrink-0">
+        <h1 className="text-xl font-bold tracking-tight text-white">Stock Heatmap</h1>
+        
+        <div className="flex items-center gap-4 overflow-x-auto text-sm">
+          {/* Index / Context */}
+          <div className="flex items-center gap-1.5 bg-[#1e222d] px-2 py-1 rounded border border-[#2a2e39] text-gray-300">
+            <Flag size={14} className="text-[#089950]" />
+            <span className="font-semibold text-xs">Nifty 500 Index</span>
+          </div>
 
-        <div className="flex items-center gap-3 overflow-x-auto text-sm">
-          <div className="flex items-center gap-2 bg-[#1e222d] px-3 py-1.5 rounded border border-[#2a2e39] hover:border-[#363a45] transition-colors group">
-            <span className="text-gray-400 whitespace-nowrap">Size by:</span>
+          <div className="w-px h-4 bg-[#2a2e39]" />
+
+          {/* Size By */}
+          <div className="flex items-center gap-1.5 group cursor-pointer">
+            <Maximize size={14} className="text-gray-500" />
             <select 
               value={sizeBy} 
               onChange={e => setSizeBy(e.target.value)}
-              className="bg-transparent focus:outline-none text-white font-medium cursor-pointer pr-4 appearance-none outline-none"
+              className="bg-transparent focus:outline-none text-gray-300 hover:text-white font-semibold cursor-pointer appearance-none outline-none pr-1"
             >
               <option>Market Cap</option>
-              <option>Volume</option>
-              <option>RS Rating</option>
-              <option>P/E Ratio</option>
             </select>
+            <ChevronDown size={14} className="text-gray-600 group-hover:text-gray-400" />
           </div>
-          <div className="flex items-center gap-2 bg-[#1e222d] px-3 py-1.5 rounded border border-[#2a2e39] hover:border-[#363a45] transition-colors group">
-            <span className="text-gray-400 whitespace-nowrap">Color by:</span>
+
+          <div className="w-px h-4 bg-[#2a2e39]" />
+
+          {/* Color By */}
+          <div className="flex items-center gap-1.5 group cursor-pointer">
+            <Grid size={14} className="text-gray-500" />
             <select 
               value={colorBy} 
               onChange={e => setColorBy(e.target.value)}
-              className="bg-transparent focus:outline-none text-white font-medium cursor-pointer pr-4 appearance-none outline-none"
+              className="bg-transparent focus:outline-none text-gray-300 hover:text-white font-semibold cursor-pointer appearance-none outline-none pr-1"
             >
-              <option>Performance</option>
-              <option>Inst. Accumulation</option>
-              <option>RS Rating</option>
-              <option>P/E Ratio</option>
+              <option>Change 1D, %</option>
+              <option>Performance 1W, %</option>
+              <option>Performance 1M, %</option>
+              <option>Performance 3M, %</option>
+              <option>Performance 6M, %</option>
+              <option>Performance YTD, %</option>
+              <option>Performance 1Y, %</option>
             </select>
+            <ChevronDown size={14} className="text-gray-600 group-hover:text-gray-400" />
+          </div>
+
+          <div className="w-px h-4 bg-[#2a2e39]" />
+
+          {/* Group By */}
+          <div className="flex items-center gap-1.5 group cursor-pointer">
+            <PieChart size={14} className="text-gray-500" />
+            <select 
+              value={groupBy} 
+              onChange={e => setGroupBy(e.target.value)}
+              className="bg-transparent focus:outline-none text-gray-300 hover:text-white font-semibold cursor-pointer appearance-none outline-none pr-1"
+            >
+              <option>Sector</option>
+              <option>No group</option>
+            </select>
+            <ChevronDown size={14} className="text-gray-600 group-hover:text-gray-400" />
           </div>
         </div>
       </header>
 
-      {/* Main Workspace */}
-      <div className="flex-1 relative w-full h-full min-h-0" ref={containerRef}>
+      {/* Heatmap Container */}
+      <div className="flex-1 relative w-full h-full min-h-0 bg-[#131722] overflow-hidden" ref={containerRef}>
+        {!rootNode && (
+          <div className="text-white p-4 font-mono text-sm">
+            DEBUG INFO: <br/>
+            dimensions: {dimensions.width}x{dimensions.height} <br/>
+            stocks loaded: {stocks ? stocks.length : 'loading...'} <br/>
+            filtered: {stocks ? stocks.filter((s: any) => (s.marketCap || 0) > 0).length : 0} <br/>
+          </div>
+        )}
+        {rootNode && rootNode.leaves().length === 0 && (
+          <div className="text-white p-4 font-mono text-sm">
+            DEBUG: rootNode has 0 leaves!
+          </div>
+        )}
         {rootNode && rootNode.children && rootNode.children.map((sectorNode, i) => {
           return (
             <div key={`sector-${i}`} style={{ position: 'absolute', left: sectorNode.x0, top: sectorNode.y0, width: sectorNode.x1 - sectorNode.x0, height: sectorNode.y1 - sectorNode.y0, pointerEvents: 'none' }}>
               {/* Sector Header */}
-              {(sectorNode.x1 - sectorNode.x0 > 50 && sectorNode.y1 - sectorNode.y0 > 30) && (
-                <div className="absolute top-0 left-0 right-0 h-[24px] flex items-center px-2 text-white/80 font-semibold text-[11px] bg-transparent truncate">
-                  {(sectorNode.data as any).name} <span className="ml-1 opacity-50">&gt;</span>
+              {(groupBy !== 'No group' && sectorNode.x1 - sectorNode.x0 > 50 && sectorNode.y1 - sectorNode.y0 > 25) && (
+                <div className="absolute top-0 left-0 h-[22px] flex items-center px-1 text-white/80 font-medium text-[11px] bg-transparent truncate">
+                  {(sectorNode.data as any).name} <span className="ml-0.5 opacity-50">&gt;</span>
                 </div>
               )}
               
@@ -196,9 +252,9 @@ export const MarketHeatmap = () => {
                 const relY = leafNode.y0 - sectorNode.y0;
 
                 const color = getPerformanceColor(data.colorValue);
-                const showContent = width > 40 && height > 30;
-                const logoSize = Math.max(16, Math.min(width * 0.3, height * 0.3, 40));
-                const showLogo = width > 60 && height > 70;
+                const showContent = width > 40 && height > 25;
+                const showLogo = width > 50 && height > 60;
+                const logoSize = Math.max(16, Math.min(width * 0.3, height * 0.3, 32));
 
                 return (
                   <div
@@ -216,22 +272,22 @@ export const MarketHeatmap = () => {
                       pointerEvents: 'auto',
                       cursor: 'pointer'
                     }}
-                    className="flex flex-col items-center justify-center overflow-hidden hover:brightness-110 transition-all border border-white/20"
+                    className="flex flex-col items-center justify-center overflow-hidden hover:brightness-110 transition-all"
                   >
                     {showContent && (
-                      <>
+                      <div className="flex flex-col items-center justify-center w-full px-1">
                         {showLogo && (
-                          <div style={{ width: logoSize, height: logoSize }} className="rounded-full overflow-hidden mb-1 shadow-md bg-white shrink-0">
-                            <StockLogo ticker={data.slug} name={data.name} className="w-full h-full object-cover" textClass="text-[8px] text-black font-bold" fallbackClass="bg-white flex items-center justify-center text-black" />
+                          <div style={{ width: logoSize, height: logoSize }} className="rounded-full overflow-hidden mb-1 shadow-sm bg-white shrink-0">
+                            <StockLogo ticker={data.name} name={data.fullName} className="w-full h-full object-cover" />
                           </div>
                         )}
-                        <span className="text-white font-bold tracking-tight truncate px-1" style={{ fontSize: Math.max(9, Math.min(width * 0.15, 14)) }}>
+                        <span className="text-white font-semibold leading-none truncate w-full text-center" style={{ fontSize: Math.max(9, Math.min(width * 0.18, 14)), marginBottom: '4px' }}>
                           {data.name}
                         </span>
-                        <span className="text-white/90 font-medium truncate px-1" style={{ fontSize: Math.max(8, Math.min(width * 0.12, 12)) }}>
-                          {data.colorValue > 0 ? '+' : ''}{data.colorValue.toFixed(2)}{colorBy === 'P/E Ratio' ? '' : '%'}
+                        <span className="text-white font-medium leading-none truncate w-full text-center" style={{ fontSize: Math.max(9, Math.min(width * 0.15, 12)) }}>
+                          {data.colorValue > 0 ? '+' : ''}{data.colorValue.toFixed(2)}%
                         </span>
-                      </>
+                      </div>
                     )}
                   </div>
                 );
@@ -245,7 +301,7 @@ export const MarketHeatmap = () => {
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 bg-[#131722] border border-[#2a2e39] shadow-2xl rounded-lg px-4 py-3 text-sm pointer-events-none transition-all duration-150 animate-in fade-in slide-in-from-bottom-4">
             <div className="flex items-center gap-3 pr-4 border-r border-[#2a2e39]">
               <div className="w-8 h-8 rounded-full bg-white overflow-hidden shrink-0">
-                <StockLogo ticker={hoveredNode.slug} name={hoveredNode.name} className="w-full h-full" textClass="text-[10px]" fallbackClass="bg-white text-black" />
+                <StockLogo ticker={hoveredNode.slug} name={hoveredNode.name} className="w-full h-full" />
               </div>
               <div>
                 <div className="text-white font-bold leading-tight">{hoveredNode.name}</div>
@@ -270,23 +326,29 @@ export const MarketHeatmap = () => {
       </div>
 
       {/* The Bottom Legend Bar */}
-      <div className="flex-none p-3 border-t border-[#2a2e39] bg-[#131722] flex justify-center items-center gap-1 text-xs shrink-0">
-        <div className="flex items-center gap-2">
-          <span className="text-gray-400 font-medium mr-2">{colorBy}</span>
-          {[
-            { label: '\u2264 -5.5%', color: '#991f29' },
-            { label: '-4.5% to -2.5%', color: '#f23645' },
-            { label: '-2.5% to -0.5%', color: '#f77c80' },
-            { label: 'Neutral', color: '#c9c9c9' },
-            { label: '0.5% to 2.5%', color: '#42bd7f' },
-            { label: '2.5% to 4.5%', color: '#089950' },
-            { label: '\u2265 5.5%', color: '#056636' },
-          ].map((item, idx) => (
-            <div key={idx} className="flex flex-col items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity">
-              <div className="w-16 h-3 rounded-sm border border-black/20" style={{ backgroundColor: item.color }}></div>
-              <span className="text-gray-400 text-[10px] font-medium">{item.label}</span>
-            </div>
-          ))}
+      <div className="flex-none p-2 bg-[#131722] flex justify-start pl-6 items-center gap-1 text-xs shrink-0 border-t border-[#2a2e39]">
+        <div className="flex items-center text-[10px] font-semibold text-gray-400">
+          <div className="mr-2">{colorBy}</div>
+          <div className="flex h-1.5 w-64 rounded overflow-hidden">
+            <div style={{ backgroundColor: '#f23645' }} className="flex-1" />
+            <div style={{ backgroundColor: '#f7525f' }} className="flex-1" />
+            <div style={{ backgroundColor: '#f77c80' }} className="flex-1" />
+            <div style={{ backgroundColor: '#787b86' }} className="flex-1" />
+            <div style={{ backgroundColor: '#42bd7f' }} className="flex-1" />
+            <div style={{ backgroundColor: '#089950' }} className="flex-1" />
+            <div style={{ backgroundColor: '#056636' }} className="flex-1" />
+          </div>
+        </div>
+        
+        {/* Scale labels */}
+        <div className="flex w-64 ml-[88px] text-[10px] text-gray-500 font-medium justify-between relative" style={{ top: '2px' }}>
+          <span>-3%</span>
+          <span>-2%</span>
+          <span>-0.25%</span>
+          <span>0%</span>
+          <span>0.25%</span>
+          <span>2%</span>
+          <span>3%</span>
         </div>
       </div>
     </div>

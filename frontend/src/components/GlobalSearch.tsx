@@ -61,10 +61,18 @@ export const GlobalSearch = ({ className = "w-96 lg:w-[400px] xl:w-[480px]", onS
 
           {/* Results */}
           <div className="overflow-y-auto max-h-[360px] hide-scrollbar">
-            {filtered.length > 0 ? filtered.map((res) => (
+            {filtered.length > 0 ? filtered.map((res) => {
+              const isDelisted = res.type === 'Stock' && (res.item.livePrice === '₹0.00' || res.item.livePrice === '0.00');
+              const delistedStyle = isDelisted ? {
+                backgroundColor: 'rgba(239, 68, 68, 0.05)',
+                backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(239, 68, 68, 0.05) 10px, rgba(239, 68, 68, 0.05) 20px)'
+              } : {};
+
+              return (
               <div 
                 key={res.slug}
-                className="px-4 py-3 hover:bg-surface-hover cursor-pointer border-b border-border last:border-0 flex items-center gap-3"
+                style={delistedStyle}
+                className={`px-4 py-3 hover:bg-surface-hover cursor-pointer border-b border-border last:border-0 flex items-center gap-3 ${isDelisted ? 'border-red-500/20' : ''}`}
                 onMouseDown={() => {
                   if (onSelect) {
                     onSelect(res);
@@ -95,7 +103,7 @@ export const GlobalSearch = ({ className = "w-96 lg:w-[400px] xl:w-[480px]", onS
                   <div className="text-[10px] text-text-secondary truncate mt-0.5">{res.subtitle}</div>
                 </div>
               </div>
-            )) : (
+            )}) : (
               <div className="p-4 text-center text-sm text-text-secondary">
                 No results found
               </div>

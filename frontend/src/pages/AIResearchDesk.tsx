@@ -472,11 +472,15 @@ const GenericDataRenderer = ({ componentKey, data }: { componentKey: string, dat
 };
 
 // 1. Narrative Insight
-const NarrativeInsight = ({ data }: { data: any }) => (
-  <div className="prose prose-invert prose-sm max-w-none [&>p]:mb-2 last:[&>p]:mb-0 [&>ul]:list-disc [&>ul]:ml-4 [&>ol]:list-decimal [&>ol]:ml-4 [&>li]:mb-1">
-    <ReactMarkdown>{data.text || data}</ReactMarkdown>
-  </div>
-);
+const NarrativeInsight = ({ data }: { data: any }) => {
+  const content = typeof data === 'string' ? data : (data?.summary || data?.text || JSON.stringify(data));
+  return (
+    <div className="prose prose-invert prose-sm max-w-none [&>p]:mb-2 last:[&>p]:mb-0 [&>ul]:list-disc [&>ul]:ml-4 [&>ol]:list-decimal [&>ol]:ml-4 [&>li]:mb-1">
+      {data?.title && <h3 className="text-lg font-bold mb-2 text-white">{data.title}</h3>}
+      <ReactMarkdown>{content}</ReactMarkdown>
+    </div>
+  );
+};
 
 // 2. Technical Levels
 const TechnicalLevels = ({ data }: { data: any }) => (

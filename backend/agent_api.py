@@ -51,10 +51,11 @@ async def stream_agent_events(ticker: str, query: str, history: list = None):
         for log in parsed.get('parsed_logs', []):
             yield f"data: {json.dumps({'type': 'debug_log', 'log': f'[NLP] {log}'})}\n\n"
         
+        BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        DB_PATH = os.path.realpath(os.path.join(BASE_DIR, "datasets/active/market_data.parquet"))
+        
         if parsed.get("intent") == "QUANTITATIVE":
             # Execute DuckDB Query
-            BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            DB_PATH = os.path.realpath(os.path.join(BASE_DIR, "datasets/A/market_data.duckdb"))
             
             # Select columns
             select_cols = parsed['select_columns']
@@ -65,7 +66,8 @@ async def stream_agent_events(ticker: str, query: str, history: list = None):
                 
             sql += f"WHERE {parsed['sql_where_clause']} ORDER BY s.market_cap DESC LIMIT 100"
             
-            con = duckdb.connect(DB_PATH, read_only=True)
+            con = duckdb.connect(':memory:')
+            con.execute(f"CREATE OR REPLACE VIEW stocks AS SELECT * FROM '{DB_PATH}'")
             results = con.execute(sql).fetchall()
             
             # --- SOFT FALLBACK UX ---
@@ -257,18 +259,18 @@ async def stream_agent_events(ticker: str, query: str, history: list = None):
             
             yield f"data: {json.dumps({'type': 'debug_log', 'log': f'[DB] Fetching qualitative data for {ticker} from DuckDB...'})}\n\n"
             
-            con = duckdb.connect(DB_PATH, read_only=True)
+            con = duckdb.connect(':memory:')
+            con.execute(f"CREATE OR REPLACE VIEW stocks AS SELECT * FROM '{DB_PATH}'")
             stock = con.execute("SELECT absolute_data, relative_data FROM stocks WHERE ticker = ? OR slug = ?", (ticker, ticker)).fetchone()
             con.close()
             
             if not stock:
-                yield f"data: {json.dumps({'type': 'debug_log', 'log': f'[DB] No data found for {ticker}'})}\n\n"
-                yield f"data: {json.dumps({'type': 'token', 'content': f'No data found for {ticker} in the database.'})}\n\n"
-                yield f"data: {json.dumps({'type': 'done'})}\n\n"
-                return
-                
-            abs_data = json.loads(stock[0]) if stock[0] else {}
-            rel_data = json.loads(stock[1]) if stock[1] else {}
+                yield f"data: {json.dumps({'type': 'debug_log', 'log': f'[DB] No specific DB data found. Falling back to LLM knowledge.'})}\n\n"
+                abs_data = {}
+                rel_data = {}
+            else:
+                abs_data = json.loads(stock[0]) if stock[0] else {}
+                rel_data = json.loads(stock[1]) if stock[1] else {}
             
             yield f"data: {json.dumps({'type': 'debug_log', 'log': f'[DB] Successfully fetched deep qualitative data for {ticker}'})}\n\n"
             yield f"data: {json.dumps({'type': 'debug_log', 'log': '[LLM] Bypassing LangGraph... Initiating single-shot qualitative analysis...'})}\n\n"
@@ -279,37 +281,55 @@ async def stream_agent_events(ticker: str, query: str, history: list = None):
                 if key != "narrative_insight":
                     registry_str += f"- {key}: {val['description']}\n  Expected Schema: {val['schema']}\n\n"
                     
-            prompt = f"The user asked about {ticker}: '{query}'\n\n"
-            prompt += f"Deep Database Extract for {ticker}:\n"
-            prompt += f"Absolute Fundamentals: {json.dumps(abs_data)[:5000]}...\n"
-            prompt += f"Relative Metrics: {json.dumps(rel_data)[:5000]}...\n\n"
-            prompt += f"""
-            You are a Qualitative Analysis Engine and Expert Institutional Portfolio Manager.
-            A user asked about {ticker}: "{query}"
-            
-            CRITICAL INSTRUCTION 1: You MUST output strictly in JSON format. NO MARKDOWN WRAPPERS, NO CODE BLOCKS, NO TEXT OUTSIDE THE JSON.
-            CRITICAL INSTRUCTION 2: You MUST include the `narrative_insight` key containing a deep, multi-paragraph qualitative analysis addressing the user's query.
-            CRITICAL INSTRUCTION 3: You MUST select EXACTLY 3 additional UI components from the registry below that best fit the analysis. You must populate their schemas using the data provided.
-            
-            AVAILABLE UI COMPONENTS:
-            {registry_str}
-            
-            REQUIRED OUTPUT JSON SCHEMA:
-            {{
-              "narrative_insight": {{
-                "title": "A compelling title",
-                "summary": "Deep, multi-paragraph analysis addressing the query",
-                "trend": "bullish | bearish | neutral"
-              }},
-              "metadata": {{
-                "ticker": "{ticker}",
-                "industry": "Extracted Industry",
-                "recommendation": "BUY | HOLD | SELL",
-                "current_price": "$0.00"
-              }},
-              // ... inject the 3 components you chose here using their exact keys and expected schemas
-            }}
-            """
+            if history and len(history) > 0:
+                hist_str = ""
+                for h in history:
+                    role = h.get("role", "user")
+                    hist_str += f"{role.upper()}: {h.get('content', '')}\n\n"
+                
+                prompt = f"CONVERSATION HISTORY:\n{hist_str}\n\n"
+                prompt += f"The user asked a follow-up question about {ticker}: '{query}'\n\n"
+                prompt += f"Deep Database Extract for {ticker}:\n"
+                prompt += f"Absolute Fundamentals: {json.dumps(abs_data)[:5000]}...\n"
+                prompt += f"Relative Metrics: {json.dumps(rel_data)[:5000]}...\n\n"
+                prompt += """
+                You are a Qualitative Analysis Engine and Expert Institutional Portfolio Manager.
+                Answer the user's follow-up question in a highly structured, aesthetically pleasing markdown format (similar to chatting to a premium AI assistant).
+                Use bullet points, bold text, and clear paragraphs. Provide deep, fundamental-oriented insights with strong conviction.
+                DO NOT output JSON. Output raw markdown text.
+                """
+            else:
+                prompt = f"The user asked about {ticker}: '{query}'\n\n"
+                prompt += f"Deep Database Extract for {ticker}:\n"
+                prompt += f"Absolute Fundamentals: {json.dumps(abs_data)[:5000]}...\n"
+                prompt += f"Relative Metrics: {json.dumps(rel_data)[:5000]}...\n\n"
+                prompt += f"""
+                You are a Qualitative Analysis Engine and Expert Institutional Portfolio Manager.
+                A user asked about {ticker}: "{query}"
+                
+                CRITICAL INSTRUCTION 1: You MUST output strictly in JSON format. NO MARKDOWN WRAPPERS, NO CODE BLOCKS, NO TEXT OUTSIDE THE JSON.
+                CRITICAL INSTRUCTION 2: You MUST include the `narrative_insight` key. This MUST be a HIGHLY ELABORATE, deep, multi-paragraph fundamental-oriented analysis. You MUST synthesize the provided financial metrics, evaluate the company's operational resilience, margin trajectory, and growth prospects. Finally, you MUST provide STRONG, UNAMBIGUOUS CUES for a BUY, HOLD, SKIP, or SELL decision based on the data.
+                CRITICAL INSTRUCTION 3: You MUST select EXACTLY 3 additional UI components from the registry below that best fit the analysis. You must populate their schemas using the data provided. ALL values you render in the components MUST be evaluated by you and backed by the database extract provided.
+                
+                AVAILABLE UI COMPONENTS:
+                {registry_str}
+                
+                REQUIRED OUTPUT JSON SCHEMA:
+                {{
+                  "narrative_insight": {{
+                    "title": "A compelling title",
+                    "summary": "Deep, multi-paragraph analysis addressing the query, fundamentals, and buy/sell cues",
+                    "trend": "bullish | bearish | neutral"
+                  }},
+                  "metadata": {{
+                    "ticker": "{ticker}",
+                    "industry": "Extracted Industry",
+                    "recommendation": "BUY | HOLD | SELL",
+                    "current_price": "$0.00"
+                  }},
+                  // ... inject the 3 components you chose here using their exact keys and expected schemas
+                }}
+                """
             
             model = ChatGoogleGenerativeAI(
                 model="gemini-3.1-flash-lite",

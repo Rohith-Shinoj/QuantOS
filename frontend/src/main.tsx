@@ -8,8 +8,8 @@ import App from './App.tsx'
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: Infinity,
-      refetchOnWindowFocus: false,
+      staleTime: 1000 * 60 * 5, // 5 minutes (was Infinity)
+      refetchOnWindowFocus: true,
       retry: 1
     }
   }

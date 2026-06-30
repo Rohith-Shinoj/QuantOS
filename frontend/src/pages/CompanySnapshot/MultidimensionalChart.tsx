@@ -233,7 +233,7 @@ export const MultidimensionalChart = ({
   const seriesRefs = useRef<any>({});
   const baseLineRef = useRef<any>(null);
 
-  const { parsedData, niftyData, sectorData, baseValue } = useMemo(() => {
+  const { parsedData, niftyData, sectorData, baseValue, delistedPadIndex } = useMemo(() => {
     const ohlcv = data?.absolute?.OHLCV || [];
     const rawNifty = data?.benchmark_ohlcv || [];
 
@@ -249,6 +249,34 @@ export const MultidimensionalChart = ({
         value: d.Volume,
       };
     }).filter(Boolean) as any[]).sort((a: any, b: any) => new Date(a.time).getTime() - new Date(b.time).getTime());
+
+    const isDelisted = data?.absolute?.['live price'] === '₹0.00' || data?.absolute?.['live price'] === '0.00';
+    let delistedPadIndex = -1;
+    
+    if (isDelisted && sortedData.length > 0) {
+      delistedPadIndex = sortedData.length;
+      const lastData = sortedData[sortedData.length - 1];
+      const lastDate = new Date(lastData.time);
+      const today = new Date();
+      
+      let currDate = new Date(lastDate);
+      currDate.setDate(currDate.getDate() + 1);
+      
+      while (currDate <= today) {
+        if (currDate.getDay() !== 0 && currDate.getDay() !== 6) {
+          sortedData.push({
+            time: currDate.toISOString().split('T')[0],
+            open: lastData.close,
+            high: lastData.close,
+            low: lastData.close,
+            close: lastData.close,
+            value: 0,
+            isPadded: true
+          });
+        }
+        currDate.setDate(currDate.getDate() + 1);
+      }
+    }
 
     // Deduplicate
     const uniqueData: any[] = [];
@@ -301,7 +329,7 @@ export const MultidimensionalChart = ({
     // Default base value for the Baseline chart (start of visible range ideally, but we use first point for now)
     const baseVal = uniqueData.length > 0 ? uniqueData[0].close : 0;
 
-    return { parsedData: uniqueData, niftyData: nUnique, sectorData: sUnique, baseValue: baseVal };
+    return { parsedData: uniqueData, niftyData: nUnique, sectorData: sUnique, baseValue: baseVal, delistedPadIndex };
   }, [data, sectorRaw]);
 
   // Main Chart Initialization
@@ -485,6 +513,35 @@ export const MultidimensionalChart = ({
         lineStyle: LineStyle.Solid,
         axisLabelVisible: true,
       });
+    }
+
+    if (delistedPadIndex !== -1 && delistedPadIndex < parsedData.length) {
+      const delistArea = chart.addAreaSeries({
+        lineColor: 'rgba(239, 68, 68, 1)',
+        topColor: 'rgba(239, 68, 68, 0.25)',
+        bottomColor: 'rgba(239, 68, 68, 0.05)',
+        lineWidth: 1,
+        crosshairMarkerVisible: false,
+        priceLineVisible: false,
+        lastValueVisible: false,
+      });
+      
+      const paddedPoints = parsedData.slice(delistedPadIndex - 1).map(d => ({
+        time: d.time,
+        value: d.close
+      }));
+      delistArea.setData(paddedPoints);
+      
+      const firstPadded = parsedData[delistedPadIndex];
+      const marker = {
+        time: firstPadded.time,
+        position: 'aboveBar' as const,
+        color: '#ef4444',
+        shape: 'arrowDown' as const,
+        text: 'Delisted',
+      };
+      candleSeries.setMarkers([marker]);
+      baselineSeries.setMarkers([marker]);
     }
 
     // Initial visibility state

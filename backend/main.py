@@ -28,7 +28,7 @@ env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
 load_dotenv(dotenv_path=env_path, override=True)
 
 from agent_api import router as agent_router
-from screener_api import router as screener_router
+from screener_api import router as screener_router, reload_screener_db
 from portfolio_api import router as portfolio_router
 
 app = FastAPI(title="Quant Dashboard API")
@@ -91,6 +91,12 @@ def reload_db(token: str = Depends(verify_admin_token)):
         
         # Re-initialize connection and view
         get_db()
+        
+        # Also reload the screener's singleton connection
+        try:
+            reload_screener_db()
+        except Exception:
+            pass  # Non-critical: screener will self-heal on next request
         
         return {"status": "success", "message": "Database hot-swapped to Parquet: " + DB_PATH}
     except Exception as e:
@@ -194,6 +200,50 @@ def refresh_batch(req: BatchRefreshRequest):
     print(f"[BACKEND] Finished refresh-batch. Took {t1-t0:.2f} seconds.\n")
     return results
 
+def calculate_historical_returns(ohlcv_json_str: str):
+    if not ohlcv_json_str:
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+    import json
+    try:
+        data = json.loads(ohlcv_json_str)
+        if not data:
+            return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+            
+        current_close = float(data[-1].get("Close", 0))
+        volume = float(data[-1].get("Volume", 0))
+        if current_close == 0:
+            return volume, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+            
+        def get_return(days_ago):
+            if len(data) > days_ago:
+                past_close = float(data[-(days_ago + 1)].get("Close", 0))
+                if past_close > 0:
+                    return ((current_close - past_close) / past_close) * 100
+            return 0.0
+            
+        perf_1w = get_return(5)
+        perf_1m = get_return(21)
+        perf_3m = get_return(63)
+        perf_6m = get_return(126)
+        perf_1y = get_return(252)
+        
+        # YTD calculation
+        perf_ytd = 0.0
+        last_date = data[-1].get("Date", "")
+        if last_date and "-" in last_date:
+            current_year = last_date.split("-")[-1]
+            ytd_base_close = 0
+            for row in reversed(data):
+                if not row.get("Date", "").endswith(current_year):
+                    ytd_base_close = float(row.get("Close", 0))
+                    break
+            if ytd_base_close > 0:
+                perf_ytd = ((current_close - ytd_base_close) / ytd_base_close) * 100
+                
+        return volume, perf_1w, perf_1m, perf_3m, perf_6m, perf_1y, perf_ytd
+    except Exception:
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+
 @app.get("/api/stocks")
 async def list_stocks():
     global _search_cache
@@ -215,8 +265,11 @@ async def list_stocks():
         """
         result = con.execute(query).fetchall()
         
-        _search_cache = [
-            {
+        _search_cache = []
+        for r in result:
+            vol, p_1w, p_1m, p_3m, p_6m, p_1y, p_ytd = calculate_historical_returns(r[19])
+            
+            _search_cache.append({
                 "slug": r[0], 
                 "ticker": r[1], 
                 "name": r[2],
@@ -236,9 +289,15 @@ async def list_stocks():
                 "shap_reason_3": r[16],
                 "livePrice": r[17],
                 "roe": r[18] if r[18] is not None else 0.0,
-                "volume": float(__import__('json').loads(r[19])[-1].get("Volume", 0)) if r[19] and len(__import__('json').loads(r[19])) > 0 else 0.0
-            } for r in result
-        ]
+                "volume": vol,
+                "perf_1w": p_1w,
+                "perf_1m": p_1m,
+                "perf_3m": p_3m,
+                "perf_6m": p_6m,
+                "perf_1y": p_1y,
+                "perf_ytd": p_ytd
+            })
+            
         return _search_cache
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

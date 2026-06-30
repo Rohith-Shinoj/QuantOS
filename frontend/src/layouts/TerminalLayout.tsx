@@ -47,10 +47,7 @@ export const TerminalLayout = () => {
   });
   
   const abs = stockData?.absolute;
-
-
-
-  return (
+  const isDelisted = abs?.['live price'] === '₹0.00' || abs?.['live price'] === '0.00';  return (
     <div className="flex flex-col h-screen w-full bg-canvas text-text-primary overflow-hidden text-sm">
       {/* Main Workspace (Panel Group) */}
       <div className="flex-1 min-h-0 flex">
@@ -75,31 +72,33 @@ export const TerminalLayout = () => {
                 </div>
 
                 {/* Bottom Panel (Quantitative Analytics Grid) */}
-                <div className="w-full min-h-[600px] bg-surface border-t border-border flex flex-col shrink-0">
-                  <div className="h-10 border-b border-border flex items-center px-4 shrink-0 bg-surface">
-                    <div className="flex gap-4">
-                      <div className="text-xs font-bold h-10 flex items-center text-alpha border-b-2 border-alpha">
-                        Quantitative Analytics Grid
+                {!isDelisted && (
+                  <div className="w-full min-h-[600px] bg-surface border-t border-border flex flex-col shrink-0">
+                    <div className="h-10 border-b border-border flex items-center px-4 shrink-0 bg-surface">
+                      <div className="flex gap-4">
+                        <div className="text-xs font-bold h-10 flex items-center text-alpha border-b-2 border-alpha">
+                          Quantitative Analytics Grid
+                        </div>
                       </div>
                     </div>
+                    <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                       {stockData ? (
+                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-[400px] [&>*]:min-h-0">
+                           <FinancialHealth data={stockData} />
+                           <ValuationGauges data={stockData} />
+                           <OwnershipTrends data={stockData} />
+                           <EarningsQuality data={stockData} />
+                           <FactorAttribution data={stockData} />
+                           <DeepFinancials data={stockData} />
+                           <NewsSentiment data={stockData} />
+                           {selectedStockSlug && <RelatedStocks slug={selectedStockSlug} />}
+                         </div>
+                       ) : (
+                         <div className="w-full h-full flex items-center justify-center text-text-secondary text-sm">Loading analytics...</div>
+                       )}
+                    </div>
                   </div>
-                  <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-                     {stockData ? (
-                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-[400px] [&>*]:min-h-0">
-                         <FinancialHealth data={stockData} />
-                         <ValuationGauges data={stockData} />
-                         <OwnershipTrends data={stockData} />
-                         <EarningsQuality data={stockData} />
-                         <FactorAttribution data={stockData} />
-                         <DeepFinancials data={stockData} />
-                         <NewsSentiment data={stockData} />
-                         {selectedStockSlug && <RelatedStocks slug={selectedStockSlug} />}
-                       </div>
-                     ) : (
-                       <div className="w-full h-full flex items-center justify-center text-text-secondary text-sm">Loading analytics...</div>
-                     )}
-                  </div>
-                </div>
+                )}
 
               </div>
         </div>

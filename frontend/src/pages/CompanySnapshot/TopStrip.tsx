@@ -19,7 +19,10 @@ export const TopStrip = ({ data }: { data: any }) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string>("As of 9:00 AM");
 
+  const isDelisted = abs['live price'] === '₹0.00' || abs['live price'] === '0.00';
+
   const handleRefresh = async () => {
+    if (isDelisted) return;
     setIsRefreshing(true);
     try {
       const quote = await fetchLiveQuote(data.slug);
@@ -39,8 +42,8 @@ export const TopStrip = ({ data }: { data: any }) => {
   }, [data.slug]);
 
   const isZero = liveData && liveData.dayChange === 0 && liveData.dayChangePerc === 0;
-  const currentPrice = liveData ? liveData.currentPrice : abs['live price'];
-  const dayChange = (liveData && !isZero) ? `${liveData.dayChange > 0 ? '+' : ''}${liveData.dayChange} (${liveData.dayChangePerc?.toFixed(2)}%)` : abs['day change'];
+  const currentPrice = isDelisted ? '0.00' : (liveData ? liveData.currentPrice : abs['live price']);
+  const dayChange = isDelisted ? '0.00 (0.00%)' : ((liveData && !isZero) ? `${liveData.dayChange > 0 ? '+' : ''}${liveData.dayChange} (${liveData.dayChangePerc?.toFixed(2)}%)` : abs['day change']);
   const isPositive = dayChange?.toString().includes('+') || (!dayChange?.toString().includes('-') && parseFloat(dayChange) > 0);
 
   return (
@@ -49,15 +52,20 @@ export const TopStrip = ({ data }: { data: any }) => {
         <div className="flex items-center gap-3">
           <StockLogo ticker={abs.ticker || ''} className="w-10 h-10 shadow-md" textClass="text-sm" fallbackClass="bg-canvas border border-border text-text-primary" />
           <h1 className="text-3xl font-bold text-text-primary">{abs.ticker || 'N/A'}</h1>
-          {qesFlag ? (
+          {isDelisted && (
+            <span className="px-2 py-1 bg-red-500/20 text-red-500 text-xs font-bold rounded flex items-center gap-1 border border-red-500/30">
+              <AlertTriangle size={14} /> Currently Delisted
+            </span>
+          )}
+          {qesFlag && !isDelisted ? (
             <span className="px-2 py-1 bg-beta/20 text-beta text-xs font-bold rounded flex items-center gap-1">
               <ShieldAlert size={14} /> High Risk
             </span>
-          ) : (
+          ) : !isDelisted ? (
             <span className="px-2 py-1 bg-alpha/20 text-alpha text-xs font-bold rounded flex items-center gap-1">
               <ShieldCheck size={14} /> Cleared
             </span>
-          )}
+          ) : null}
         </div>
         <p className="text-text-secondary mt-1 text-sm font-medium">
           {abs.displayName || 'Unknown Company'} • {meta.industry_name || 'Industry'} • {abs.cappedType || meta.cap_type || 'Cap Size'}
@@ -78,7 +86,7 @@ export const TopStrip = ({ data }: { data: any }) => {
               </span>
               <button 
                 onClick={handleRefresh}
-                disabled={isRefreshing}
+                disabled={isRefreshing || isDelisted}
                 className="flex items-center gap-1.5 px-2.5 py-1 bg-surface-hover hover:bg-border border border-border rounded text-xs font-semibold text-text-primary transition-all disabled:opacity-50"
               >
                 <RefreshCw size={12} className={isRefreshing ? "animate-spin" : ""} />

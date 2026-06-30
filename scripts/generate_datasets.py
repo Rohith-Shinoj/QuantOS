@@ -450,7 +450,7 @@ class MLDatasetEngineer:
 
     def _derive_health_scores(self):
         stats = self.stock_data.get("stats", {})
-        roe = safe_div(stats.get("roe"), 100.0)
+        financials = self.stock_data.get("financialStatement", [])
         
         # AI Metrics Additions: Graham Number & Altman Z Proxy
         eps = clean_float(stats.get("epsTtm"))
@@ -459,13 +459,60 @@ class MLDatasetEngineer:
         if not np.isnan(eps) and eps > 0 and not np.isnan(bvps) and bvps > 0:
             graham_num = math.sqrt(22.5 * eps * bvps)
             
+        roe = safe_div(stats.get("roe"), 100.0)
         altman_proxy = np.nan
         debt_to_eq = clean_float(stats.get("debtToEquity"))
         if not np.isnan(roe) and not np.isnan(debt_to_eq):
             altman_proxy = (roe * 3.0) - (debt_to_eq * 1.5) + 1.0
+
+        # --- PIOTROSki F-SCORE ---
+        def get_yearly(title):
+            item = next((i for i in financials if i.get("title") == title), None)
+            if not item or "yearly" not in item: return None, None
+            yearly = item["yearly"]
+            years = sorted(yearly.keys())
+            if len(years) >= 2: return yearly[years[-1]], yearly[years[-2]]
+            elif len(years) == 1: return yearly[years[-1]], None
+            return None, None
+
+        f_score = 0
+        roa = clean_float(stats.get("returnOnAssets"))
+        if not np.isnan(roa) and roa > 0: f_score += 1
+            
+        price_to_ocf = clean_float(stats.get("priceToOcf"))
+        if not np.isnan(price_to_ocf) and price_to_ocf > 0: f_score += 1
+            
+        p_cy, p_py = get_yearly("Profit")
+        nw_cy, nw_py = get_yearly("Net Worth")
+        rev_cy, rev_py = get_yearly("Revenue")
+        
+        if p_cy is not None and p_py is not None and nw_cy and nw_py:
+            if (p_cy / nw_cy) > (p_py / nw_py): f_score += 1
+                
+        pe = clean_float(stats.get("peRatio"))
+        if not np.isnan(price_to_ocf) and price_to_ocf > 0 and not np.isnan(pe) and pe > 0:
+            if (1.0 / price_to_ocf) > (1.0 / pe): f_score += 1
+                
+        de = clean_float(stats.get("debtToEquity"))
+        if not np.isnan(de) and de < 0.5: f_score += 1
+            
+        cr = clean_float(stats.get("currentRatio"))
+        if not np.isnan(cr) and cr > 1.5: f_score += 1
+            
+        mcap = clean_float(stats.get("marketCap"))
+        dy = clean_float(stats.get("divYield"))
+        if not np.isnan(mcap) and nw_cy is not None and nw_py is not None and p_cy is not None:
+            div_paid = mcap * (dy / 100.0) if not np.isnan(dy) else 0
+            if ((nw_cy - nw_py) - p_cy + div_paid) <= (0.05 * abs(nw_py)): f_score += 1
+                
+        if p_cy is not None and p_py is not None and rev_cy and rev_py:
+            if (p_cy / rev_cy) > (p_py / rev_py): f_score += 1
+                
+        if rev_cy is not None and rev_py is not None:
+            if rev_cy > rev_py: f_score += 1
             
         return {
-            "piotroski_f_score": self.track(1 if roe > 0.15 else 0),
+            "piotroski_f_score": self.track(f_score),
             "graham_number_value": self.track(graham_num),
             "altman_z_proxy": self.track(altman_proxy)
         }
