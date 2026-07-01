@@ -100,6 +100,19 @@ export const fetchMutualFunds = async (params?: {
   return response.data;
 };
 
+export const fetchMutualFundScreener = async (query: any) => {
+  const params = new URLSearchParams({ query: JSON.stringify(query) });
+  const response = await fetch(`${API_BASE_URL}/screener/mf?${params}`);
+  if (!response.ok) throw new Error('Failed to fetch MF screener results');
+  return response.json();
+};
+
+export const fetchBrokerTargets = async (slug: string) => {
+  const response = await fetch(`${API_BASE_URL}/stocks/${slug}/targets`);
+  if (!response.ok) throw new Error('Failed to fetch broker targets');
+  return response.json();
+};
+
 export const fetchMutualFundByCode = async (schemeCode: string) => {
   const response = await axios.get(`${API_BASE_URL}/mutual_funds/${schemeCode}`);
   return response.data;

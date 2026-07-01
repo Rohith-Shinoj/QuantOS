@@ -138,9 +138,68 @@ class MLDatasetEngineer:
         self.features["health_scores"] = self._derive_health_scores()
         self.features["risk_and_forensic_signals"] = self._derive_risk_and_forensics()
         self.features["market_breadth_regime"] = self._derive_market_breadth()
+        self.features["price_returns"] = self._derive_price_returns()
         
         self.features["data_integrity"] = 1.0 - safe_div(self.fallback_count, self.total_expected_features)
         return self.features
+
+    def _derive_price_returns(self):
+        returns = {}
+        
+        def calc_ret(periods):
+            if not self.active_ohlcv or len(self.active_ohlcv) <= periods: return np.nan
+            start_price = self.active_ohlcv[-1-periods]["Close"]
+            end_price = self.active_ohlcv[-1]["Close"]
+            return safe_div(end_price - start_price, start_price) * 100.0
+
+        returns["1m_return"] = self.track(calc_ret(21))
+        returns["3m_return"] = self.track(calc_ret(63))
+        returns["6m_return"] = self.track(calc_ret(126))
+        returns["1y_return"] = self.track(calc_ret(252))
+        returns["5y_return"] = self.track(calc_ret(1260))
+
+        ytd_return = np.nan
+        if self.active_ohlcv:
+            current_year = datetime.fromtimestamp(self.active_ohlcv[-1]["Timestamp"]).year
+            start_price = None
+            for c in reversed(self.active_ohlcv):
+                if datetime.fromtimestamp(c["Timestamp"]).year != current_year:
+                    break
+                start_price = c["Close"]
+            if start_price is not None:
+                end_price = self.active_ohlcv[-1]["Close"]
+                ytd_return = safe_div(end_price - start_price, start_price) * 100.0
+        returns["ytd_return"] = self.track(ytd_return)
+        
+        # Calculate vs Nifty returns
+        nifty_ohlcv = self.active_indices.get("NIFTY", [])
+        
+        def calc_nifty_ret(periods):
+            if not nifty_ohlcv or len(nifty_ohlcv) <= periods: return np.nan
+            start_price = nifty_ohlcv[-1-periods]["Close"]
+            end_price = nifty_ohlcv[-1]["Close"]
+            return safe_div(end_price - start_price, start_price) * 100.0
+
+        returns["1m_nifty_return"] = self.track(calc_nifty_ret(21))
+        returns["3m_nifty_return"] = self.track(calc_nifty_ret(63))
+        returns["6m_nifty_return"] = self.track(calc_nifty_ret(126))
+        returns["1y_nifty_return"] = self.track(calc_nifty_ret(252))
+        returns["5y_nifty_return"] = self.track(calc_nifty_ret(1260))
+        
+        ytd_nifty_return = np.nan
+        if nifty_ohlcv:
+            current_year = datetime.fromtimestamp(nifty_ohlcv[-1]["Timestamp"]).year
+            start_price = None
+            for c in reversed(nifty_ohlcv):
+                if datetime.fromtimestamp(c["Timestamp"]).year != current_year:
+                    break
+                start_price = c["Close"]
+            if start_price is not None:
+                end_price = nifty_ohlcv[-1]["Close"]
+                ytd_nifty_return = safe_div(end_price - start_price, start_price) * 100.0
+        returns["ytd_nifty_return"] = self.track(ytd_nifty_return)
+
+        return returns
 
     def _derive_risk_and_forensics(self):
         # 1. Volatility Squeeze Index (Bollinger Band Width instead of arbitrary division)

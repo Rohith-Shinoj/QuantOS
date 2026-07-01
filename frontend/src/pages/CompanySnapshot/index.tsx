@@ -14,6 +14,7 @@ import { PeerComparison } from './PeerComparison';
 import { DeepFinancials } from './DeepFinancials';
 import { ValuationGauges } from './ValuationGauges';
 import { AdvancedCharting } from './AdvancedCharting';
+import { BrokerTargets } from './BrokerTargets';
 import { useAppStore } from '../../store';
 import { Skeleton } from '../../components/Skeleton';
 

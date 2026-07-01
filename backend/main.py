@@ -30,6 +30,7 @@ load_dotenv(dotenv_path=env_path, override=True)
 from agent_api import router as agent_router
 from screener_api import router as screener_router, reload_screener_db
 from portfolio_api import router as portfolio_router
+from broker_scraper import fetch_broker_targets_from_mc
 
 app = FastAPI(title="Quant Dashboard API")
 
@@ -1205,3 +1206,11 @@ def get_capture_ratios():
     except Exception as e:
         print(f"Error fetching capture ratios: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/stocks/{slug}/targets")
+def get_broker_targets(slug: str):
+    con = get_db()
+    res = con.execute("SELECT ticker FROM stocks WHERE slug = ?", (slug,)).fetchone()
+    ticker = res[0] if res else slug.upper()
+    targets = fetch_broker_targets_from_mc(slug, ticker)
+    return {"targets": targets}

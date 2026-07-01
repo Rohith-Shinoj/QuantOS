@@ -145,7 +145,7 @@ export const MutualFundSnapshot = () => {
 
         {/* Hero Chart */}
         <div className="h-[600px] w-full bg-[#111114] border border-white/5 rounded-xl overflow-hidden shrink-0">
-          <MutualFundPriceChart fund={fund} />
+          <MutualFundPriceChart fund={fund} setIsAIOverlayOpen={setIsAIOverlayOpen} />
         </div>
 
         {/* Analytics Grid */}

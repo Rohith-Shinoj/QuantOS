@@ -14,7 +14,7 @@ export interface SearchResult {
   logoUrl?: string;
 }
 
-export const useSearch = (query: string, activeFilter: string = 'All'): SearchResult[] => {
+export function useSearch(query: string, activeFilter: string | string[] = 'All') {
   const { data: stocks } = useQuery({ queryKey: ['allStocks'], queryFn: fetchAllStocks });
   const { data: mfsResp } = useQuery({ queryKey: ['allMFsSearch'], queryFn: () => fetchMutualFunds({ limit: 5000, minimal: true }) });
   const mfs = (mfsResp as any)?.data;
@@ -40,9 +40,11 @@ export const useSearch = (query: string, activeFilter: string = 'All'): SearchRe
         else if (name.includes(q)) score = 50;
         else if (tokens.every(token => ticker.includes(token) || name.includes(token))) score = 40;
         
-        let type: 'Stock' | 'ETF' = 'Stock';
-        const isETF = /\betf\b/i.test(name) || /\betf\b/i.test(s.industry || '') || /\betf\b/i.test(s.sector || '');
+        let type: 'Stock' | 'ETF' | 'Index' = 'Stock';
+        const isETF = /\\betf\\b/i.test(name) || /\\betf\\b/i.test(s.industry || '') || /\\betf\\b/i.test(s.sector || '');
+        const isIndex = !isETF && s.volume === 0 && (s.industry === 'Unknown' || !s.industry);
         if (isETF) type = 'ETF';
+        else if (isIndex) type = 'Index';
         
         return { 
           item: s, 
@@ -89,7 +91,14 @@ export const useSearch = (query: string, activeFilter: string = 'All'): SearchRe
     
     const sortedResults = combined
       .filter((res) => res.score > 0)
-      .filter((res) => activeFilter === 'All' || res.type === (activeFilter === 'Mutual Funds' ? 'Mutual Fund' : activeFilter === 'Stocks' ? 'Stock' : 'ETF'))
+      .filter((res) => {
+        if (activeFilter === 'All' || (Array.isArray(activeFilter) && activeFilter.includes('All'))) return true;
+        
+        const filterArray = Array.isArray(activeFilter) ? activeFilter : [activeFilter];
+        const mappedFilters = filterArray.map(f => f === 'Mutual Funds' ? 'Mutual Fund' : f === 'Stocks' ? 'Stock' : f === 'ETFs' ? 'ETF' : f);
+        
+        return mappedFilters.includes(res.type);
+      })
       .sort((a, b) => b.score - a.score);
 
     const seen = new Set();

@@ -328,7 +328,7 @@ export const Screener: React.FC = () => {
       {/* ── ERROR ──────────────────────────────────────────────────────────── */}
       {error && (
         <div className="mx-6 mt-4 px-4 py-3 rounded-xl border border-red-500/20 bg-red-500/5 text-red-400 text-xs font-mono">
-          ⚠ {error}
+          ⚠ Syntax error
         </div>
       )}
 

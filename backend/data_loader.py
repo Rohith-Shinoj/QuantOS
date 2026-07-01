@@ -317,6 +317,13 @@ def init_db(target_dir):
     con.execute("CREATE TABLE IF NOT EXISTS db.daily_index_prices AS SELECT * FROM daily_index_prices")
     con.execute("CREATE TABLE IF NOT EXISTS db.daily_prices AS SELECT * FROM daily_prices")
     con.execute("CREATE TABLE IF NOT EXISTS db.quarterly_fundamentals AS SELECT * FROM quarterly_fundamentals")
+    
+    # Check if mutual_funds exists in memory, and if so, copy it to the duckdb file
+    try:
+        con.execute("CREATE TABLE IF NOT EXISTS db.mutual_funds AS SELECT * FROM mutual_funds")
+    except duckdb.CatalogException:
+        pass
+        
     con.execute("DETACH db")
 
     print(f"Parquet and DuckDB generation complete.")

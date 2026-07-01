@@ -47,7 +47,7 @@ function calculateBollingerBands(data: any[], period: number, multiplier: number
   return { sma, upper, lower };
 }
 
-export const MutualFundPriceChart = ({ fund }: { fund: any }) => {
+export const MutualFundPriceChart = ({ fund, setIsAIOverlayOpen }: { fund: any, setIsAIOverlayOpen?: (o: boolean) => void }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<any>(null);
   const seriesRef = useRef<any>(null);
@@ -679,6 +679,15 @@ export const MutualFundPriceChart = ({ fund }: { fund: any }) => {
             >
               Sector ({getSectorName(sectorSlug)})
             </button>
+            <div className="w-px h-4 bg-border mx-1"></div>
+            {setIsAIOverlayOpen && (
+              <button 
+                onClick={() => setIsAIOverlayOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded transition-all border bg-indigo-500/10 text-indigo-400 border-indigo-500/30 hover:bg-indigo-500/20 shadow-[0_0_10px_rgba(99,102,241,0.15)]"
+              >
+                <BrainCircuit size={14} /> AI Analysis
+              </button>
+            )}
             <button 
               onClick={() => {
                 const nextState = !showBands;

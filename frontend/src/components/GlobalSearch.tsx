@@ -5,7 +5,7 @@ import { useSearch } from '../hooks/useSearch';
 import { useAppStore } from '../store';
 import { StockLogo } from './StockLogo';
 
-export const GlobalSearch = ({ className = "w-96 lg:w-[400px] xl:w-[480px]", onSelect, value, onChange, fixedFilter }: { className?: string, onSelect?: (res: any) => void, value?: string, onChange?: (val: string) => void, fixedFilter?: string }) => {
+export const GlobalSearch = ({ className = "w-96 lg:w-[400px] xl:w-[480px]", onSelect, value, onChange, fixedFilter }: { className?: string, onSelect?: (res: any) => void, value?: string, onChange?: (val: string) => void, fixedFilter?: string | string[] }) => {
   const [internalQuery, setInternalQuery] = useState('');
   const query = value !== undefined ? value : internalQuery;
   const setQuery = onChange !== undefined ? onChange : setInternalQuery;

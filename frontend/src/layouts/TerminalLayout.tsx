@@ -15,6 +15,7 @@ import { EarningsQuality } from '../pages/CompanySnapshot/EarningsQuality';
 import { FactorAttribution } from '../pages/CompanySnapshot/FactorAttribution';
 import { NewsSentiment } from '../pages/CompanySnapshot/NewsSentiment';
 import { RelatedStocks } from '../pages/CompanySnapshot/RelatedStocks';
+import { BrokerTargets } from '../pages/CompanySnapshot/BrokerTargets';
 import { PairTrading } from '../pages/PairTrading';
 import { Watchlists } from '../pages/Watchlists';
 import { StockLogo } from '../components/StockLogo';
@@ -67,7 +68,7 @@ export const TerminalLayout = () => {
                 
                 {/* Central Canvas (Chart) */}
                 <div className="w-full min-h-[600px] flex flex-col relative shrink-0">
-                  {centralMode === 'PRICE' && stockData && <MultidimensionalChart data={stockData} />}
+                  {centralMode === 'PRICE' && stockData && <MultidimensionalChart data={stockData} setIsAIOverlayOpen={setIsAIOverlayOpen} />}
                   {centralMode === 'PAIRS' && <PairTrading isPanel initialAssetA={slug} />}
                 </div>
 
@@ -92,6 +93,7 @@ export const TerminalLayout = () => {
                            <DeepFinancials data={stockData} />
                            <NewsSentiment data={stockData} />
                            {selectedStockSlug && <RelatedStocks slug={selectedStockSlug} />}
+                           {selectedStockSlug && <BrokerTargets slug={selectedStockSlug} />}
                          </div>
                        ) : (
                          <div className="w-full h-full flex items-center justify-center text-text-secondary text-sm">Loading analytics...</div>

@@ -214,55 +214,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
     return { amount: 0, pct: 0 };
   };
 
-  const filtered = useMemo(() => {
-    if (query.length === 0) return [];
-    const q = query.toLowerCase();
 
-    if (activeTab === 'STOCKS') {
-      if (!allStocks) return [];
-      
-      const results = allStocks
-        .filter((s: any) => !stockHoldings.find(h => h.slug === s.slug))
-        .map((s: any) => {
-          let score = 0;
-          const ticker = s.ticker ? s.ticker.toLowerCase() : '';
-          const name = s.name ? s.name.toLowerCase() : '';
-          
-          if (ticker === q) score = 100;
-          else if (name === q) score = 90;
-          else if (ticker.startsWith(q)) score = 80;
-          else if (name.startsWith(q)) score = 70;
-          else if (ticker.includes(q)) score = 60;
-          else if (name.includes(q)) score = 50;
-          
-          return { item: s, score };
-        })
-        .filter((res: any) => res.score > 0)
-        .sort((a: any, b: any) => b.score - a.score);
-        
-      return results.slice(0, 50).map((res: any) => res.item);
-    } else {
-      if (!allMFs) return [];
-      
-      const results = allMFs
-        .filter((m: any) => !mfHoldings.find(h => h.slug === (m.scheme_code || m.direct_search_id)))
-        .map((m: any) => {
-          let score = 0;
-          const sname = m.scheme_name ? m.scheme_name.toLowerCase() : '';
-          const fname = m.fund_name ? m.fund_name.toLowerCase() : '';
-          
-          if (sname === q || fname === q) score = 100;
-          else if (sname.startsWith(q) || fname.startsWith(q)) score = 80;
-          else if (sname.includes(q) || fname.includes(q)) score = 60;
-          
-          return { item: m, score };
-        })
-        .filter((res: any) => res.score > 0)
-        .sort((a: any, b: any) => b.score - a.score);
-        
-      return results.slice(0, 50).map((res: any) => res.item);
-    }
-  }, [query, activeTab, allStocks, allMFs, stockHoldings, mfHoldings]);
 
   const addAsset = (slug: string, type: 'STOCKS' | 'MUTUAL_FUNDS') => {
     const holdVal = parseFloat(unitsInput);
@@ -1326,7 +1278,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
               <label className="block text-[10px] text-text-secondary font-bold uppercase mb-1 tracking-widest">Search</label>
               <GlobalSearch 
                 className="w-full"
-                fixedFilter={activeTab === 'STOCKS' ? 'Stocks' : 'Mutual Funds'}
+                fixedFilter={activeTab === 'STOCKS' ? ['Stocks', 'ETFs'] : 'Mutual Funds'}
                 value={selectedAsset ? selectedAsset.title : query}
                 onChange={(val) => {
                   if (!val) setSelectedAsset(null);
