@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { createChart, ColorType, CrosshairMode, LineStyle } from 'lightweight-charts';
 import type { IChartApi, ISeriesApi } from 'lightweight-charts';
-import { HelpCircle, RefreshCw, Calendar, BrainCircuit } from 'lucide-react';
+import { HelpCircle, RefreshCw, Calendar, BrainCircuit, Settings } from 'lucide-react';
 import { StockLogo } from '../../components/StockLogo';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { fetchLiveQuote, fetchStockData } from '../../api';
-import QuantitativeWorker from '../../workers/QuantitativeEngine.worker?worker';
+import { calculateATR, calculateOBV, calculateRSDivergence, findSwingPivots, detectGeometricPatterns } from '../../utils/QuantitativeEngine';
 import { TrendLinePrimitive } from '../../plugins/TrendLinePrimitive';
+import { WedgePrimitive } from '../../plugins/WedgePrimitive';
 
 const TIMEFRAMES = ['1M', '3M', '6M', '1Y', '5Y', 'ALL', 'CUSTOM'];
 
@@ -195,15 +196,19 @@ export const MultidimensionalChart = ({
   const [showNifty, setShowNifty] = useState(false);
   const [showSector, setShowSector] = useState(false);
   const [showBands, setShowBands] = useState(false);
-  const [showPatterns, setShowPatterns] = useState(false);
+  const [showMacroPatterns, setShowMacroPatterns] = useState(false);
+  const [showMLOverlay, setShowMLOverlay] = useState(false);
   const [showTechnicalLevels, setShowTechnicalLevels] = useState(false);
   const [pivotTimeframe, setPivotTimeframe] = useState<'1D' | '1W' | '1M' | '1Y'>('1D');
   const priceLinesRef = useRef<any[]>([]);
   const [timeframe, setTimeframe] = useState('ALL');
   const [customRange, setCustomRange] = useState({ start: '', end: '' });
   const [periodStats, setPeriodStats] = useState({ change: 0, percentChange: 0, cagr: 0 });
-  const [quantData, setQuantData] = useState<{ lines: any[], atr: number[], patterns: any[] } | null>(null);
   const trendLinePluginRef = useRef<TrendLinePrimitive | null>(null);
+  const wedgePluginRef = useRef<WedgePrimitive | null>(null);
+  
+  const [patternFilter, setPatternFilter] = useState<'ALL' | 'FORMING' | 'REACHED'>('ALL');
+  const [showPatternSettings, setShowPatternSettings] = useState(false);
   
   const [isDrawingMode, setIsDrawingMode] = useState(false);
   const [activeDrawPoint, setActiveDrawPoint] = useState<{time: number | string, price: number, x: number} | null>(null);
@@ -269,6 +274,7 @@ export const MultidimensionalChart = ({
 
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRefs = useRef<any>({});
+  const mlSeriesRefs = useRef<any[]>([]);
   const baseLineRef = useRef<any>(null);
 
   const { parsedData, niftyData, sectorData, baseValue, delistedPadIndex } = useMemo(() => {
@@ -370,18 +376,45 @@ export const MultidimensionalChart = ({
     return { parsedData: uniqueData, niftyData: nUnique, sectorData: sUnique, baseValue: baseVal, delistedPadIndex };
   }, [data, sectorRaw]);
 
-  // Run Quantitative Engine Web Worker
-  useEffect(() => {
-    if (parsedData.length === 0) return;
-    const worker = new QuantitativeWorker();
-    worker.postMessage({ action: 'PROCESS_TRENDS', data: parsedData });
-    worker.onmessage = (e) => {
-      if (e.data.status === 'SUCCESS') {
-        setQuantData({ lines: e.data.lines, atr: e.data.atr, patterns: e.data.patterns });
+  // Strict useMemo for Quantitative Engine
+  const quantData = useMemo(() => {
+    if (parsedData.length === 0) return { atr: [], obv: [], geometricPatterns: [], lines: [], mlPatterns: [] };
+    
+    const instAccum = data?.absolute?.inst_accum || 0;
+    
+    // 1. Math Arrays
+    const atr = calculateATR(parsedData, 14);
+    const obv = calculateOBV(parsedData);
+    
+    // 2. Structural Overlays
+    const { swingHighs, swingLows } = showMacroPatterns ? findSwingPivots(parsedData, 10) : { swingHighs: [], swingLows: [] };
+    const { swingHighs: geomHighs, swingLows: geomLows } = showMacroPatterns ? findSwingPivots(parsedData, 5) : { swingHighs: [], swingLows: [] };
+    const geometricPatternsAll = showMacroPatterns ? detectGeometricPatterns(parsedData, geomHighs, geomLows) : [];
+    const geometricPatterns = geometricPatternsAll.filter(p => patternFilter === 'ALL' || p.status === patternFilter);
+    
+    const lines = showMacroPatterns ? calculateRSDivergence(parsedData, niftyData.length > 0 ? niftyData : null) : [];
+    
+    // 3. ML Patterns (Current Day Only if toggled, calculated locally if possible, or extracted from backend)
+    // The backend provides alpha_score_moonshot, shap_reasons, etc. We map this to the last candle.
+    const mlPatterns = [];
+    if (showMacroPatterns && showMLOverlay) {
+      const alphaScore = data?.absolute?.alpha_score_moonshot || data?.absolute?.alpha_score_conservative || 0;
+      if (alphaScore > 0) {
+        mlPatterns.push({
+          time: parsedData[parsedData.length - 1].time,
+          position: 'aboveBar',
+          color: alphaScore > 0.7 ? '#10b981' : '#eab308',
+          shape: 'arrowDown',
+          text: `ML Score: ${(alphaScore * 100).toFixed(0)}%`,
+          shap1: data?.absolute?.shap_reason_1 || '',
+          shap2: data?.absolute?.shap_reason_2 || '',
+          shap3: data?.absolute?.shap_reason_3 || ''
+        });
       }
-    };
-    return () => worker.terminate();
-  }, [parsedData]);
+    }
+    
+    return { atr, obv, geometricPatterns, lines, mlPatterns };
+  }, [parsedData, niftyData, data?.absolute, showMacroPatterns, showMLOverlay, patternFilter]);
 
   // Main Chart Initialization
   useEffect(() => {
@@ -424,6 +457,10 @@ export const MultidimensionalChart = ({
     const trendlinePrimitive = new TrendLinePrimitive([]);
     candleSeries.attachPrimitive(trendlinePrimitive);
     trendLinePluginRef.current = trendlinePrimitive;
+
+    const wedgePrimitive = new WedgePrimitive([]);
+    candleSeries.attachPrimitive(wedgePrimitive);
+    wedgePluginRef.current = wedgePrimitive;
 
     // 2. Baseline Series
     const baselineSeries = chart.addBaselineSeries({
@@ -717,6 +754,87 @@ export const MultidimensionalChart = ({
     };
   }, [parsedData, niftyData, baseValue]);
 
+  // Sync Quantitative Overlays (Accumulation Zones, RS Divergence, ML Markers, Geometric Patterns)
+  useEffect(() => {
+    if (!chartRef.current || !seriesRefs.current.candle) return;
+    const chart = chartRef.current;
+    
+    // Clear old zone series safely
+    mlSeriesRefs.current.forEach(s => {
+      if (s) {
+        try { chart.removeSeries(s); } catch (e) { console.warn('Series already removed', e); }
+      }
+    });
+    mlSeriesRefs.current = [];
+
+    // Render ML Markers
+    if (showMacroPatterns && showMLOverlay && quantData.mlPatterns.length > 0) {
+      // Preserve existing markers like delisted flag if present
+      const existingMarkers = delistedPadIndex !== -1 ? [{
+        time: parsedData[delistedPadIndex]?.time,
+        position: 'aboveBar' as const,
+        color: '#ef4444',
+        shape: 'arrowDown' as const,
+        text: 'Delisted',
+      }] : [];
+      seriesRefs.current.candle.setMarkers([...existingMarkers, ...quantData.mlPatterns]);
+    } else {
+      const existingMarkers = delistedPadIndex !== -1 ? [{
+        time: parsedData[delistedPadIndex]?.time,
+        position: 'aboveBar' as const,
+        color: '#ef4444',
+        shape: 'arrowDown' as const,
+        text: 'Delisted',
+      }] : [];
+      seriesRefs.current.candle.setMarkers(existingMarkers);
+    }
+
+    // Render Finite Geometric Patterns using WedgePrimitive plugin
+    if (wedgePluginRef.current) {
+      wedgePluginRef.current.setPatterns(showMacroPatterns && quantData ? quantData.geometricPatterns : []);
+    }
+
+    if (showMacroPatterns && quantData.geometricPatterns && quantData.geometricPatterns.length > 0) {
+      quantData.geometricPatterns.forEach((pattern: any) => {
+        if (pattern.targetPrice && pattern.showTargetInUI) {
+          const targetLine = seriesRefs.current.candle.createPriceLine({
+            price: pattern.targetPrice,
+            color: pattern.color || '#10b981',
+            lineWidth: 2,
+            lineStyle: LineStyle.Dashed,
+            axisLabelVisible: true,
+            title: 'Target',
+          });
+          // Track this for cleanup if necessary, though it might persist on the series
+          mlSeriesRefs.current.push(targetLine as any); 
+        }
+      });
+    }
+
+    if (trendLinePluginRef.current) {
+      const activeAlgorithmic = showMacroPatterns && quantData ? quantData.lines : [];
+      trendLinePluginRef.current.setLines([...activeAlgorithmic, ...userLines]);
+    }
+
+    // React Cleanup: Ensure dynamically generated series and lines are removed on unmount or dependency change safely
+    return () => {
+      if (chartRef.current) {
+        mlSeriesRefs.current.forEach(s => {
+          if (s) {
+            try { 
+              if ((s as any).price !== undefined) {
+                 seriesRefs.current.candle.removePriceLine(s);
+              } else {
+                 chartRef.current?.removeSeries(s);
+              }
+            } catch (e) {}
+          }
+        });
+        mlSeriesRefs.current = [];
+      }
+    };
+  }, [quantData, showMacroPatterns, showMLOverlay, parsedData, delistedPadIndex, userLines]);
+
   // Handle Drawing Mode Click
   useEffect(() => {
     if (!chartRef.current || !seriesRefs.current.candle) return;
@@ -867,7 +985,7 @@ export const MultidimensionalChart = ({
               }
               return line;
           });
-          const activeAlgorithmic = showPatterns && quantData ? quantData.lines : [];
+          const activeAlgorithmic = showMacroPatterns && quantData ? quantData.lines : [];
           trendLinePluginRef.current.setLines([...activeAlgorithmic, ...previewLines]);
           return;
       }
@@ -890,7 +1008,7 @@ export const MultidimensionalChart = ({
             method: 'USER'
           };
           
-          const activeAlgorithmic = showPatterns && quantData ? quantData.lines : [];
+          const activeAlgorithmic = showMacroPatterns && quantData ? quantData.lines : [];
           trendLinePluginRef.current.setLines([...activeAlgorithmic, ...userLines, previewLine]);
         }
       }
@@ -903,7 +1021,7 @@ export const MultidimensionalChart = ({
        chart.unsubscribeClick(clickHandler);
        chart.unsubscribeCrosshairMove(crosshairMoveHandler);
     };
-  }, [isDrawingMode, activeDrawPoint, showPatterns, quantData, userLines, selectedLineId, dragState]);
+  }, [isDrawingMode, activeDrawPoint, showMLOverlay, quantData, userLines, selectedLineId, dragState]);
 
   // Sync external HTML labels with canvas price positions
   const bandValuesRef = useRef({ upper: 0, lower: 0, sma: 0 });
@@ -1031,37 +1149,6 @@ export const MultidimensionalChart = ({
 
   }, [viewMode, showNifty, showSector, showBands]);
 
-  // Quantitative Plugin Update
-  useEffect(() => {
-    if (trendLinePluginRef.current && quantData) {
-      trendLinePluginRef.current.setLines([...(showPatterns ? quantData.lines : []), ...userLines]);
-    } else if (trendLinePluginRef.current) {
-      trendLinePluginRef.current.setLines([...userLines]);
-    }
-  }, [quantData, showPatterns, userLines]);
-
-  // Candlestick Pattern Overlay (Institutional Confluence Matrix)
-  useEffect(() => {
-    if (!seriesRefs.current.candle) return;
-    const candleSeries = seriesRefs.current.candle;
-    
-    let baseMarkers = [] as any[];
-    if (delistedPadIndex !== -1 && delistedPadIndex < parsedData.length) {
-      baseMarkers.push({
-        time: parsedData[delistedPadIndex].time,
-        position: 'aboveBar',
-        color: '#ef4444',
-        shape: 'arrowDown',
-        text: 'Delisted'
-      });
-    }
-
-    if (showPatterns && quantData && quantData.patterns) {
-      candleSeries.setMarkers([...baseMarkers, ...quantData.patterns]);
-    } else {
-      candleSeries.setMarkers(baseMarkers);
-    }
-  }, [showPatterns, parsedData, delistedPadIndex, quantData]);
 
   // Technical Overlays Update
   useEffect(() => {
@@ -1375,12 +1462,58 @@ export const MultidimensionalChart = ({
             >
               ✏️ Draw
             </button>
-            <button 
-              onClick={() => setShowPatterns(prev => !prev)}
-              className={`px-3 py-1.5 rounded transition-all border ${showPatterns ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-surface text-text-secondary border-border hover:text-text-primary hover:bg-surface-hover'}`}
-            >
-              Candle Patterns
-            </button>
+            {/* Macro Patterns Toggle */}
+            <div className="flex items-center relative">
+              <button
+                onClick={() => setShowMacroPatterns(prev => !prev)}
+                className={`px-3 py-1.5 rounded transition-all border ${
+                  showMacroPatterns 
+                    ? 'bg-amber-500/20 text-amber-400 border-amber-500/30 rounded-r-none border-r-0' 
+                    : 'bg-surface text-text-secondary border-border hover:text-text-primary hover:bg-surface-hover'
+                }`}
+              >
+                Macro Patterns
+              </button>
+              {showMacroPatterns && (
+                <>
+                  <select
+                    value={showMLOverlay ? 'ON' : 'OFF'}
+                    onChange={(e) => setShowMLOverlay(e.target.value === 'ON')}
+                    className="px-2 py-1.5 rounded-none bg-amber-500/10 text-amber-400 border border-amber-500/30 border-l-0 focus:outline-none cursor-pointer text-sm"
+                  >
+                    <option value="OFF" className="bg-surface text-text-primary">ML: OFF</option>
+                    <option value="ON" className="bg-surface text-text-primary">ML: ON</option>
+                  </select>
+                  <button
+                    onClick={() => setShowPatternSettings(!showPatternSettings)}
+                    className={`px-2 py-1.5 rounded rounded-l-none border border-amber-500/30 border-l-0 transition-colors ${showPatternSettings ? 'bg-amber-500/30 text-amber-300' : 'bg-amber-500/10 text-amber-400 hover:bg-amber-500/20'}`}
+                  >
+                    <Settings size={16} />
+                  </button>
+                  
+                  {showPatternSettings && (
+                    <div className="absolute top-full mt-2 right-0 bg-surface-elevated border border-border rounded-lg shadow-xl p-3 z-50 min-w-[200px]">
+                      <h4 className="text-sm font-semibold text-text-primary mb-3">Pattern Settings</h4>
+                      
+                      <div className="space-y-3">
+                        <div>
+                          <label className="text-xs text-text-secondary mb-1 block">Filter Patterns</label>
+                          <select 
+                            value={patternFilter}
+                            onChange={(e) => setPatternFilter(e.target.value as any)}
+                            className="w-full bg-surface text-sm text-text-primary border border-border rounded px-2 py-1.5 focus:outline-none focus:border-blue-500"
+                          >
+                            <option value="ALL">All Patterns</option>
+                            <option value="FORMING">In Progress</option>
+                            <option value="REACHED">Target Reached</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
             
             <div className="w-px h-4 bg-border mx-1"></div>
 
