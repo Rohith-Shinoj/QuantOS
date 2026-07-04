@@ -388,8 +388,7 @@ export const MultidimensionalChart = ({
     
     // 2. Structural Overlays
     const { swingHighs, swingLows } = showMacroPatterns ? findSwingPivots(parsedData, 10) : { swingHighs: [], swingLows: [] };
-    const { swingHighs: geomHighs, swingLows: geomLows } = showMacroPatterns ? findSwingPivots(parsedData, 5) : { swingHighs: [], swingLows: [] };
-    const geometricPatternsAll = showMacroPatterns ? detectGeometricPatterns(parsedData, geomHighs, geomLows) : [];
+    const geometricPatternsAll = showMacroPatterns ? detectGeometricPatterns(parsedData, swingHighs, swingLows) : [];
     const geometricPatterns = geometricPatternsAll.filter(p => patternFilter === 'ALL' || p.status === patternFilter);
     
     const lines = showMacroPatterns ? calculateRSDivergence(parsedData, niftyData.length > 0 ? niftyData : null) : [];

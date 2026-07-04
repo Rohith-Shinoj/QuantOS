@@ -4,39 +4,57 @@
 show_help() {
     echo "Usage:"
     echo "  ./git.sh \"<commit_message>\"    # Commit without push"
-    echo "  ./git.sh -push \"<commit_message>\" # Commit and push"
-    echo "  ./git.sh -pull                 # Pull from remote"
+    echo "  ./git.sh --push \"<commit_message>\" # Commit and push"
+    echo "  ./git.sh --pull                # Pull from remote"
+    echo "  ./git.sh --reset               # Hard reset to last local commit"
+    echo "  ./git.sh --resetremote         # Hard reset to last pushed commit"
 }
 
-# Check if arguments provided
-if [ -z "$1" ]; then
-    show_help
-    exit 1
-fi
+# Function to ask for confirmation
+confirm_action() {
+    echo "--------------------------------------------------"
+    echo "Action to perform: $1"
+    echo "Press Enter to continue or Ctrl+C to abort..."
+    read -r
+}
 
-# Handle -pull
-if [ "$1" == "-pull" ]; then
-    echo "Pulling latest changes from origin..."
-    git pull
-    exit 0
-fi
+# Handle Commands
+case "$1" in
+    --pull)
+        confirm_action "git pull"
+        git pull
+        ;;
 
-# Handle -push <message>
-if [ "$1" == "-push" ]; then
-    if [ -z "$2" ]; then
-        echo "Error: You must provide a commit message after -push."
-        exit 1
-    fi
-    
-    echo "Committing and pushing..."
-    git add .
-    git commit -m "$2"
-    git push -u origin main
-    exit 0
-fi
+    --reset)
+        confirm_action "git reset --hard HEAD"
+        git reset --hard HEAD
+        ;;
 
-# Handle <message> (Standard commit)
-echo "Committing locally..."
-git add .
-git commit -m "$1"
-echo "Changes committed locally."
+    --resetremote)
+        confirm_action "git fetch origin && git reset --hard origin/HEAD"
+        git fetch origin
+        git reset --hard origin/HEAD
+        ;;
+
+    --push)
+        if [ -z "$2" ]; then
+            echo "Error: You must provide a commit message after --push."
+            exit 1
+        fi
+        confirm_action "git add . && git commit -m \"$2\" && git push -u origin HEAD"
+        git add .
+        git commit -m "$2"
+        git push -u origin HEAD
+        ;;
+
+    "")
+        show_help
+        ;;
+
+    *)
+        # Default: Treat $1 as commit message
+        confirm_action "git add . && git commit -m \"$1\""
+        git add .
+        git commit -m "$1"
+        ;;
+esac

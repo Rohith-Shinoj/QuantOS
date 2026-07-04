@@ -29,6 +29,7 @@ export interface GeometricPattern {
   targetPrice?: number;
   showTargetInUI?: boolean;
   color?: string;
+  breakoutConfirmed?: boolean;
 }
 
 export interface TrendlineObject {
@@ -120,22 +121,21 @@ export function detectGeometricPatterns(data: OHLCV[], swingHighs: Pivot[], swin
   const currentIndex = data.length - 1;
   const currentPrice = data[currentIndex].close;
 
-  let lastWedgeEndIndex = -1;
+  const rawPatterns: GeometricPattern[] = [];
+  const MAX_PIVOT_SKIP = 2;
+
+  // Generate minor pivots (n=5) exclusively for the touch pool
+  const { swingHighs: minorHighs, swingLows: minorLows } = findSwingPivots(data, 5);
 
   for (let i = 0; i < swingHighs.length - 1; i++) {
-    const h1 = swingHighs[i];
-    if (h1.index < lastWedgeEndIndex) continue;
-
-    for (let j = i + 1; j < swingHighs.length; j++) {
+    for (let j = i + 1; j <= i + 1 + MAX_PIVOT_SKIP && j < swingHighs.length; j++) {
+      const h1 = swingHighs[i];
       const h2 = swingHighs[j];
       if (h2.index - h1.index < 20 || h2.index - h1.index > 150) continue;
 
-      let patternFound = false;
       for (let m = 0; m < swingLows.length - 1; m++) {
-        const l1 = swingLows[m];
-        if (l1.index < lastWedgeEndIndex) continue;
-
-        for (let n = m + 1; n < swingLows.length; n++) {
+        for (let n = m + 1; n <= m + 1 + MAX_PIVOT_SKIP && n < swingLows.length; n++) {
+          const l1 = swingLows[m];
           const l2 = swingLows[n];
           if (l2.index - l1.index < 20 || l2.index - l1.index > 150) continue;
 
@@ -147,7 +147,12 @@ export function detectGeometricPatterns(data: OHLCV[], swingHighs: Pivot[], swin
           const overlapEnd = Math.min(h2.index, l2.index);
           if (overlapEnd - overlapStart < 10) continue;
 
-          if (start < lastWedgeEndIndex) continue;
+          // Preceding Trend Requirement (>10% move in 50 candles before the wedge)
+          const lookbackIndex = Math.max(0, start - 50);
+          const lookbackPrice = data[lookbackIndex].close;
+          const startPrice = data[start].close;
+          const trendMove = Math.abs((startPrice - lookbackPrice) / lookbackPrice);
+          if (trendMove < 0.10) continue;
 
           // Use exact high/low for un-breakable bounds
           const h1y = data[h1.index].high;
@@ -161,9 +166,10 @@ export function detectGeometricPatterns(data: OHLCV[], swingHighs: Pivot[], swin
           let isFallingWedge = false;
           let isRisingWedge = false;
 
-          if (rSlope < 0 && sSlope < 0 && rSlope < sSlope) {
+          // 1.5x Strict Convergence Multiplier to prevent Ascending Channels from being flagged
+          if (rSlope < 0 && sSlope < 0 && rSlope < sSlope * 1.5) {
              isFallingWedge = true;
-          } else if (rSlope > 0 && sSlope > 0 && sSlope > rSlope) {
+          } else if (rSlope > 0 && sSlope > 0 && sSlope > rSlope * 1.5) {
              isRisingWedge = true;
           }
 
@@ -179,14 +185,12 @@ export function detectGeometricPatterns(data: OHLCV[], swingHighs: Pivot[], swin
             const rLine = h1y + rSlope * (k - h1.index);
             const sLine = l1y + sSlope * (k - l1.index);
 
-            // Allow wicks to pierce slightly. We check the 'close' price for strict containment, 
-            // and the 'high/low' for massive wicks.
+            // Allow wicks to pierce slightly.
             if (data[k].close > rLine * 1.005 || data[k].close < sLine * 0.995 || 
                 data[k].high > rLine * 1.02 || data[k].low < sLine * 0.98) {
               
               violationCount++;
               
-              // If a candle violently breaks the pattern (e.g. > 3%), it's invalidated
               if (data[k].close > rLine * 1.03 || data[k].close < sLine * 0.97) {
                  isValid = false;
                  break;
@@ -211,14 +215,51 @@ export function detectGeometricPatterns(data: OHLCV[], swingHighs: Pivot[], swin
             }
           }
 
+          // The True 2-Additional-Touch Rule (using minor pivots)
+          let additionalTouches = 0;
+          let backHalfTouch = false;
+          const midPoint = (start + breakoutIndex) / 2;
+
+          for (const h of minorHighs) {
+              if (h.index >= start && h.index <= breakoutIndex) {
+                  const expectedR = h1y + rSlope * (h.index - h1.index);
+                  if (Math.abs(h.price - expectedR) / expectedR < 0.015) {
+                      if (h.index !== h1.index && h.index !== h2.index) {
+                          additionalTouches++;
+                          if (h.index > midPoint) backHalfTouch = true;
+                      }
+                  }
+              }
+          }
+          
+          for (const l of minorLows) {
+              if (l.index >= start && l.index <= breakoutIndex) {
+                  const expectedS = l1y + sSlope * (l.index - l1.index);
+                  if (Math.abs(l.price - expectedS) / expectedS < 0.015) {
+                      if (l.index !== l1.index && l.index !== l2.index) {
+                          additionalTouches++;
+                          if (l.index > midPoint) backHalfTouch = true;
+                      }
+                  }
+              }
+          }
+
+          // Must have at least 2 distinct touches beyond the 4 anchor points
+          if (additionalTouches < 2) continue;
+          
+          // Pattern-wide back-half requirement (at least one touch anywhere in the back half)
+          if (!backHalfTouch) continue;
+
           const rEnd = h1y + rSlope * (breakoutIndex - h1.index);
           const sEnd = l1y + sSlope * (breakoutIndex - l1.index);
 
-          // Target is the height at the start of the pattern added to breakout
+          // Target is the height at the start of the pattern added to the true breakout point
           const startR = h1y + rSlope * (start - h1.index);
           const startS = l1y + sSlope * (start - l1.index);
           const height = Math.abs(startR - startS);
-          const targetPrice = isFallingWedge ? h2y + height : l2y - height;
+          
+          const breakoutPrice = data[breakoutIndex].close;
+          const targetPrice = isFallingWedge ? breakoutPrice + height : breakoutPrice - height;
 
           let hitTarget = false;
           let hitTargetIndex = -1;
@@ -236,13 +277,17 @@ export function detectGeometricPatterns(data: OHLCV[], swingHighs: Pivot[], swin
           }
 
           const status = hitTarget ? 'REACHED' : 'FORMING';
+          
+          // If breakout is exactly today, flag is false (lower confidence live projection)
+          const breakoutConfirmed = breakoutIndex < currentIndex;
 
-          patterns.push({
+          rawPatterns.push({
             name: isFallingWedge ? 'Falling Wedge' : 'Rising Wedge',
             status,
             targetPrice,
             showTargetInUI: status === 'FORMING' || (currentIndex - breakoutIndex < 50) || (hitTarget && currentIndex - hitTargetIndex < 50),
             color: isFallingWedge ? '#10b981' : '#ef4444',
+            breakoutConfirmed,
             lines: [
               {
                 type: 'resistance',
@@ -256,15 +301,44 @@ export function detectGeometricPatterns(data: OHLCV[], swingHighs: Pivot[], swin
               }
             ]
           });
-
-          lastWedgeEndIndex = breakoutIndex;
-          patternFound = true;
-          break; // break n loop
         }
-        if (patternFound) break; // break m loop
       }
-      if (patternFound) break; // break j loop
     }
+  }
+
+  // Filter overlapping patterns
+  rawPatterns.sort((a, b) => {
+     // Sort by duration descending (longest first)
+     const aDur = a.lines[0].p2.index - a.lines[0].p1.index;
+     const bDur = b.lines[0].p2.index - b.lines[0].p1.index;
+     return bDur - aDur;
+  });
+
+  for (const p of rawPatterns) {
+     const pStart = Math.min(p.lines[0].p1.index, p.lines[1].p1.index);
+     const pEnd = p.lines[0].p2.index;
+     
+     let overlap = false;
+     for (const kept of patterns) {
+        const keptStart = Math.min(kept.lines[0].p1.index, kept.lines[1].p1.index);
+        const keptEnd = kept.lines[0].p2.index;
+        
+        const overlapStart = Math.max(pStart, keptStart);
+        const overlapEnd = Math.min(pEnd, keptEnd);
+        
+        if (overlapEnd > overlapStart) {
+           const overlapLength = overlapEnd - overlapStart;
+           const pLength = pEnd - pStart;
+           if (overlapLength / pLength > 0.5) {
+              overlap = true;
+              break;
+           }
+        }
+     }
+     
+     if (!overlap) {
+        patterns.push(p);
+     }
   }
 
   return patterns;
