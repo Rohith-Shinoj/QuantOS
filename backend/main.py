@@ -636,85 +636,30 @@ async def get_stock_news(slug: str):
             
     try:
         con = get_db()
-        # Get target stock's ticker and name
+        # Get target stock's news feed from Parquet/DuckDB directly
         target = con.execute("""
-            SELECT ticker, name
+            SELECT json_extract_string(relative_data, '$.aggregated_news_signals.raw_feed') 
             FROM stocks WHERE slug = ?
         """, (slug,)).fetchone()
         
-        if not target:
-            raise HTTPException(status_code=404, detail="Stock not found")
+        if not target or not target[0]:
+            raise HTTPException(status_code=404, detail="Stock or news not found")
             
-        ticker, name = target
-        display_name = name or ticker
+        import json
+        import time
+        news_feed = json.loads(target[0])
         
-        import urllib.request, json, os, random
-        from datetime import timedelta, datetime
-        
-        url = 'https://api.tavily.com/search'
-        headers = {'Content-Type': 'application/json'}
-        data = json.dumps({
-            'api_key': os.getenv('TAVILY_API_KEY', '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'),
-            'query': f'"{display_name}" (earnings OR dividend OR trade OR results)',
-            'search_depth': 'advanced',
-            'topic': 'general',
-            'max_results': 8
-        }).encode('utf-8')
-        
-        req = urllib.request.Request(url, data=data, headers=headers)
-        resp = urllib.request.urlopen(req, timeout=5).read()
-        tavily_results = json.loads(resp).get('results', [])
-        
-        news_feed = []
-        now = datetime.now()
-        for r in tavily_results:
-            title = r.get('title', '')
-            if ticker.lower() in title.lower() or display_name.lower() in title.lower():
-                # Heuristic tag assignment
-                lower_title = title.lower()
-                tag = "General"
-                score = random.uniform(-0.2, 0.2)
-                if 'earn' in lower_title or 'result' in lower_title or 'q4' in lower_title or 'q1' in lower_title:
-                    tag = "Earnings"
-                    score = random.uniform(0.5, 0.9) if 'profit' in lower_title or 'jump' in lower_title else random.uniform(-0.9, -0.2)
-                elif 'dividend' in lower_title:
-                    tag = "Dividend"
-                    score = random.uniform(0.6, 0.9)
-                elif 'trade' in lower_title or 'block' in lower_title:
-                    tag = "Order Win"
-                    score = random.uniform(0.1, 0.4)
-                elif 'sebi' in lower_title or 'rbi' in lower_title or 'fine' in lower_title:
-                    tag = "Regulatory"
-                    score = random.uniform(-0.9, -0.4)
-                    
-                simulated_date = now - timedelta(days=random.randint(0, 13))
-                date_str = simulated_date.strftime('%b %d')
-                
-                news_feed.append({
-                    "date": date_str,
-                    "tag": tag,
-                    "score": score,
-                    "title": title,
-                    "summary": r.get('content', '')[:300] + '...',
-                    "url": r.get('url', '#')
-                })
-                
-        # Sort by date pseudo-randomly to look natural
-        news_feed.sort(key=lambda x: datetime.strptime(x["date"], '%b %d'), reverse=True)
-        
+        # The ML pipeline already calculated VADER scores and tagged them!
         result_data = {"raw_feed": news_feed}
         
-        # Cache the result
-        import time
         _news_cache[slug] = {
-            'timestamp': time.time(),
-            'data': result_data
+            'data': result_data,
+            'timestamp': time.time()
         }
-        
         return result_data
     except Exception as e:
         print("Error fetching news:", str(e))
-        return {"raw_feed": []}
+        return {"raw_feed": [], "error": str(e)}
 
 class PortfolioRequest(BaseModel):
     slugs: list[str]

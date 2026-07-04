@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { HelpCircle } from 'lucide-react';
 
-export const InfoTooltip = ({ text, position = 'top' }: { text: string, position?: 'top' | 'bottom' | 'right' }) => {
+export const InfoTooltip = ({ text, position = 'top' }: { text: React.ReactNode, position?: 'top' | 'bottom' | 'right' }) => {
   const [show, setShow] = useState(false);
 
   let posClasses = "bottom-full left-1/2 -translate-x-1/2 mb-2";

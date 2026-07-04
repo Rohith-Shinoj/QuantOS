@@ -5,6 +5,8 @@ import { HelpCircle, RefreshCw, Calendar, BrainCircuit } from 'lucide-react';
 import { StockLogo } from '../../components/StockLogo';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { fetchLiveQuote, fetchStockData } from '../../api';
+import QuantitativeWorker from '../../workers/QuantitativeEngine.worker?worker';
+import { TrendLinePrimitive } from '../../plugins/TrendLinePrimitive';
 
 const TIMEFRAMES = ['1M', '3M', '6M', '1Y', '5Y', 'ALL', 'CUSTOM'];
 
@@ -113,11 +115,13 @@ function calculateBollingerBands(data: any[], period: number, multiplier: number
   const sma = calculateSMA(data, period);
   const upper = [];
   const lower = [];
+  const bbw: any[] = [];
   
   for (let i = 0; i < data.length; i++) {
     if (i < period - 1) {
       upper.push({ time: data[i].time, value: NaN });
       lower.push({ time: data[i].time, value: NaN });
+      bbw.push({ time: data[i].time, value: NaN });
       continue;
     }
     let sumVariance = 0;
@@ -126,10 +130,13 @@ function calculateBollingerBands(data: any[], period: number, multiplier: number
       sumVariance += Math.pow(data[i - j].close - currentSMA, 2);
     }
     const stdDev = Math.sqrt(sumVariance / period);
-    upper.push({ time: data[i].time, value: currentSMA + stdDev * multiplier });
-    lower.push({ time: data[i].time, value: currentSMA - stdDev * multiplier });
+    const u = currentSMA + stdDev * multiplier;
+    const l = currentSMA - stdDev * multiplier;
+    upper.push({ time: data[i].time, value: u });
+    lower.push({ time: data[i].time, value: l });
+    bbw.push({ time: data[i].time, value: currentSMA > 0 ? ((u - l) / currentSMA) * 100 : 0 });
   }
-  return { sma, upper, lower };
+  return { sma, upper, lower, bbw };
 }
 
 export const MultidimensionalChart = ({ 
@@ -188,12 +195,43 @@ export const MultidimensionalChart = ({
   const [showNifty, setShowNifty] = useState(false);
   const [showSector, setShowSector] = useState(false);
   const [showBands, setShowBands] = useState(false);
+  const [showPatterns, setShowPatterns] = useState(false);
   const [showTechnicalLevels, setShowTechnicalLevels] = useState(false);
   const [pivotTimeframe, setPivotTimeframe] = useState<'1D' | '1W' | '1M' | '1Y'>('1D');
   const priceLinesRef = useRef<any[]>([]);
   const [timeframe, setTimeframe] = useState('ALL');
   const [customRange, setCustomRange] = useState({ start: '', end: '' });
   const [periodStats, setPeriodStats] = useState({ change: 0, percentChange: 0, cagr: 0 });
+  const [quantData, setQuantData] = useState<{ lines: any[], atr: number[], patterns: any[] } | null>(null);
+  const trendLinePluginRef = useRef<TrendLinePrimitive | null>(null);
+  
+  const [isDrawingMode, setIsDrawingMode] = useState(false);
+  const [activeDrawPoint, setActiveDrawPoint] = useState<{time: number | string, price: number, x: number} | null>(null);
+  const [userLines, setUserLines] = useState<any[]>([]);
+  
+  const [selectedLineId, setSelectedLineId] = useState<string | null>(null);
+  const [dragState, setDragState] = useState<'start' | 'end' | null>(null);
+
+  // Global keydown for deletion
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Backspace' || e.key === 'Delete') {
+        if (selectedLineId) {
+          setUserLines(prev => prev.filter(l => l.id !== selectedLineId));
+          setSelectedLineId(null);
+          setDragState(null);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedLineId]);
+
+  useEffect(() => {
+    if (trendLinePluginRef.current) {
+      trendLinePluginRef.current.setSelectedLineId(selectedLineId);
+    }
+  }, [selectedLineId]);
 
   const getSectorSlug = (industry: string) => {
     const ind = industry.toLowerCase();
@@ -332,6 +370,19 @@ export const MultidimensionalChart = ({
     return { parsedData: uniqueData, niftyData: nUnique, sectorData: sUnique, baseValue: baseVal, delistedPadIndex };
   }, [data, sectorRaw]);
 
+  // Run Quantitative Engine Web Worker
+  useEffect(() => {
+    if (parsedData.length === 0) return;
+    const worker = new QuantitativeWorker();
+    worker.postMessage({ action: 'PROCESS_TRENDS', data: parsedData });
+    worker.onmessage = (e) => {
+      if (e.data.status === 'SUCCESS') {
+        setQuantData({ lines: e.data.lines, atr: e.data.atr, patterns: e.data.patterns });
+      }
+    };
+    return () => worker.terminate();
+  }, [parsedData]);
+
   // Main Chart Initialization
   useEffect(() => {
     if (!chartContainerRef.current || parsedData.length === 0) return;
@@ -369,6 +420,10 @@ export const MultidimensionalChart = ({
     });
     candleSeries.setData(parsedData);
     seriesRefs.current.candle = candleSeries;
+    
+    const trendlinePrimitive = new TrendLinePrimitive([]);
+    candleSeries.attachPrimitive(trendlinePrimitive);
+    trendLinePluginRef.current = trendlinePrimitive;
 
     // 2. Baseline Series
     const baselineSeries = chart.addBaselineSeries({
@@ -402,8 +457,8 @@ export const MultidimensionalChart = ({
     })));
     seriesRefs.current.volume = volumeSeries;
 
-    // 4. Bollinger Bands (Decluttered but visible)
-    const { sma, upper, lower } = calculateBollingerBands(parsedData, 20, 2);
+    // 4. Bollinger Bands & Volatility Squeeze (Decluttered but visible)
+    const { sma, upper, lower, bbw } = calculateBollingerBands(parsedData, 20, 2);
     
     // Store last values for labels
     const validUpper = upper.filter(d => !isNaN(d.value));
@@ -441,6 +496,35 @@ export const MultidimensionalChart = ({
     });
     lowerBand.setData(lower.filter(d => !isNaN(d.value)));
     seriesRefs.current.lowerBand = lowerBand;
+
+    // Volatility Squeeze (BBW) Heatmap
+    const bbwSeries = chart.addHistogramSeries({
+      priceFormat: { type: 'volume' },
+      priceScaleId: 'bbw',
+    });
+    chart.priceScale('bbw').applyOptions({
+      scaleMargins: { top: 0.9, bottom: 0 },
+    });
+    
+    let maxBbw = 0, minBbw = Infinity;
+    bbw.forEach(d => {
+       if (!isNaN(d.value)) {
+           if(d.value > maxBbw) maxBbw = d.value;
+           if(d.value < minBbw) minBbw = d.value;
+       }
+    });
+    
+    const bbwData = bbw.map(d => {
+       let color = 'rgba(167, 139, 250, 0.2)'; // purple
+       if (!isNaN(d.value) && maxBbw > minBbw) {
+          const pct = (d.value - minBbw) / (maxBbw - minBbw);
+          if (pct < 0.15) color = 'rgba(37, 99, 235, 0.8)'; // dark blue (squeeze)
+          else if (pct > 0.85) color = 'rgba(239, 68, 68, 0.8)'; // bright red (expansion)
+       }
+       return { time: d.time, value: d.value, color };
+    });
+    bbwSeries.setData(bbwData.filter(d => !isNaN(d.value)));
+    seriesRefs.current.bbw = bbwSeries;
 
     const smaLine = chart.addBaselineSeries({ 
       topLineColor: 'rgba(167, 139, 250, 0.4)',
@@ -551,6 +635,7 @@ export const MultidimensionalChart = ({
     upperBand.applyOptions({ visible: false });
     lowerBand.applyOptions({ visible: false });
     smaLine.applyOptions({ visible: false });
+    bbwSeries.applyOptions({ visible: false });
 
     const handleResize = () => {
       if (chartContainerRef.current) {
@@ -631,6 +716,194 @@ export const MultidimensionalChart = ({
       chartRef.current = null;
     };
   }, [parsedData, niftyData, baseValue]);
+
+  // Handle Drawing Mode Click
+  useEffect(() => {
+    if (!chartRef.current || !seriesRefs.current.candle) return;
+    const chart = chartRef.current;
+    const series = seriesRefs.current.candle;
+
+    const clickHandler = (param: any) => {
+      if (!param.point) return;
+      const logical = chart.timeScale().coordinateToLogical(param.point.x);
+      
+      if (isDrawingMode) {
+        if (logical === null) return;
+        if (!activeDrawPoint) {
+          // First click: Start drawing
+          setActiveDrawPoint({ time: logical, price: series.coordinateToPrice(param.point.y) as number, x: logical as number });
+        } else {
+          // Second click: End drawing
+          const endX = logical as number;
+          const endY = series.coordinateToPrice(param.point.y) as number;
+          const startX = activeDrawPoint.x;
+          const startY = activeDrawPoint.price;
+          
+          if (startX !== endX) {
+            const slope = (endY - startY) / (endX - startX);
+            const newLine = {
+              id: Math.random().toString(36).substring(7),
+              startX: Math.min(startX, endX),
+              startY: startX < endX ? startY : endY,
+              endX: Math.max(startX, endX),
+              endY: startX < endX ? endY : startY,
+              slope,
+              type: 'support',
+              inliers: 2,
+              method: 'USER'
+            };
+            setUserLines(prev => [...prev, newLine]);
+          }
+          setActiveDrawPoint(null);
+          setIsDrawingMode(false); // Turn off drawing mode
+        }
+        return;
+      }
+
+      // Hit testing logic for selection and dragging
+      if (dragState && selectedLineId) {
+         // Dropping a line
+         if (logical === null) return;
+         const price = series.coordinateToPrice(param.point.y) as number;
+
+         setUserLines(prev => prev.map(line => {
+             if (line.id === selectedLineId) {
+                 const newX = logical as number;
+                 const newY = price;
+                 if (dragState === 'start') {
+                     const slope = newX !== line.endX ? (line.endY - newY) / (line.endX - newX) : line.slope;
+                     return { ...line, startX: newX, startY: newY, slope };
+                 } else {
+                     const slope = newX !== line.startX ? (newY - line.startY) / (newX - line.startX) : line.slope;
+                     return { ...line, endX: newX, endY: newY, slope };
+                 }
+             }
+             return line;
+         }));
+         setDragState(null);
+         return;
+      }
+
+      // Check hit test to select a line or pick up a grab handle
+      const px = param.point.x;
+      const py = param.point.y;
+      
+      let hitHandle: 'start' | 'end' | null = null;
+      let hitLineId: string | null = null;
+
+      // Prioritize currently selected line's handles
+      if (selectedLineId) {
+         const selLine = userLines.find(l => l.id === selectedLineId);
+         if (selLine) {
+             const sx = chart.timeScale().logicalToCoordinate(selLine.startX);
+             const sy = series.priceToCoordinate(selLine.startY);
+             const ex = chart.timeScale().logicalToCoordinate(selLine.endX);
+             const ey = series.priceToCoordinate(selLine.endY);
+             
+             if (sx !== null && sy !== null && Math.hypot(px - sx, py - sy) < 15) {
+                 hitHandle = 'start';
+                 hitLineId = selLine.id;
+             } else if (ex !== null && ey !== null && Math.hypot(px - ex, py - ey) < 15) {
+                 hitHandle = 'end';
+                 hitLineId = selLine.id;
+             }
+         }
+      }
+
+      if (!hitHandle) {
+          // Check line bodies
+          for (const line of userLines) {
+             const sx = chart.timeScale().logicalToCoordinate(line.startX);
+             const sy = series.priceToCoordinate(line.startY);
+             const ex = chart.timeScale().logicalToCoordinate(line.endX);
+             const ey = series.priceToCoordinate(line.endY);
+             
+             if (sx !== null && sy !== null && ex !== null && ey !== null) {
+                 const minX = Math.min(sx, ex) - 10;
+                 const maxX = Math.max(sx, ex) + 10;
+                 if (px >= minX && px <= maxX) {
+                     const l2 = (ex - sx) ** 2 + (ey - sy) ** 2;
+                     if (l2 > 0) {
+                         let t = ((px - sx) * (ex - sx) + (py - sy) * (ey - sy)) / l2;
+                         t = Math.max(0, Math.min(1, t));
+                         const projX = sx + t * (ex - sx);
+                         const projY = sy + t * (ey - sy);
+                         const dist = Math.hypot(px - projX, py - projY);
+                         if (dist < 8) {
+                             hitLineId = line.id;
+                             break;
+                         }
+                     }
+                 }
+             }
+          }
+      }
+
+      setDragState(hitHandle);
+      setSelectedLineId(hitLineId);
+    };
+
+    const crosshairMoveHandler = (param: any) => {
+      if (!trendLinePluginRef.current) return;
+      if (!param.point) return;
+
+      const logical = chart.timeScale().coordinateToLogical(param.point.x);
+      if (logical === null) return;
+      
+      const currX = logical as number;
+      const currY = series.coordinateToPrice(param.point.y) as number;
+
+      if (dragState && selectedLineId) {
+          // Preview dragged line
+          const previewLines = userLines.map(line => {
+              if (line.id === selectedLineId) {
+                  if (dragState === 'start') {
+                      const slope = currX !== line.endX ? (line.endY - currY) / (line.endX - currX) : line.slope;
+                      return { ...line, startX: currX, startY: currY, slope };
+                  } else {
+                      const slope = currX !== line.startX ? (currY - line.startY) / (currX - line.startX) : line.slope;
+                      return { ...line, endX: currX, endY: currY, slope };
+                  }
+              }
+              return line;
+          });
+          const activeAlgorithmic = showPatterns && quantData ? quantData.lines : [];
+          trendLinePluginRef.current.setLines([...activeAlgorithmic, ...previewLines]);
+          return;
+      }
+
+      if (isDrawingMode && activeDrawPoint) {
+        const startX = activeDrawPoint.x;
+        const startY = activeDrawPoint.price;
+        
+        if (startX !== currX) {
+          const slope = (currY - startY) / (currX - startX);
+          const previewLine = {
+            id: 'preview',
+            startX: Math.min(startX, currX),
+            startY: startX < currX ? startY : currY,
+            endX: Math.max(startX, currX),
+            endY: startX < currX ? currY : startY,
+            slope,
+            type: 'support',
+            inliers: 2,
+            method: 'USER'
+          };
+          
+          const activeAlgorithmic = showPatterns && quantData ? quantData.lines : [];
+          trendLinePluginRef.current.setLines([...activeAlgorithmic, ...userLines, previewLine]);
+        }
+      }
+    };
+
+    chart.subscribeClick(clickHandler);
+    chart.subscribeCrosshairMove(crosshairMoveHandler);
+    
+    return () => {
+       chart.unsubscribeClick(clickHandler);
+       chart.unsubscribeCrosshairMove(crosshairMoveHandler);
+    };
+  }, [isDrawingMode, activeDrawPoint, showPatterns, quantData, userLines, selectedLineId, dragState]);
 
   // Sync external HTML labels with canvas price positions
   const bandValuesRef = useRef({ upper: 0, lower: 0, sma: 0 });
@@ -738,6 +1011,7 @@ export const MultidimensionalChart = ({
     refs.upperBand.applyOptions({ visible: showBands });
     refs.lowerBand.applyOptions({ visible: showBands });
     refs.sma.applyOptions({ visible: showBands });
+    refs.bbw?.applyOptions({ visible: showBands });
 
     // Sector Overlay
     refs.sector?.applyOptions({ visible: showSector });
@@ -756,6 +1030,38 @@ export const MultidimensionalChart = ({
     }
 
   }, [viewMode, showNifty, showSector, showBands]);
+
+  // Quantitative Plugin Update
+  useEffect(() => {
+    if (trendLinePluginRef.current && quantData) {
+      trendLinePluginRef.current.setLines([...(showPatterns ? quantData.lines : []), ...userLines]);
+    } else if (trendLinePluginRef.current) {
+      trendLinePluginRef.current.setLines([...userLines]);
+    }
+  }, [quantData, showPatterns, userLines]);
+
+  // Candlestick Pattern Overlay (Institutional Confluence Matrix)
+  useEffect(() => {
+    if (!seriesRefs.current.candle) return;
+    const candleSeries = seriesRefs.current.candle;
+    
+    let baseMarkers = [] as any[];
+    if (delistedPadIndex !== -1 && delistedPadIndex < parsedData.length) {
+      baseMarkers.push({
+        time: parsedData[delistedPadIndex].time,
+        position: 'aboveBar',
+        color: '#ef4444',
+        shape: 'arrowDown',
+        text: 'Delisted'
+      });
+    }
+
+    if (showPatterns && quantData && quantData.patterns) {
+      candleSeries.setMarkers([...baseMarkers, ...quantData.patterns]);
+    } else {
+      candleSeries.setMarkers(baseMarkers);
+    }
+  }, [showPatterns, parsedData, delistedPadIndex, quantData]);
 
   // Technical Overlays Update
   useEffect(() => {
@@ -1058,7 +1364,22 @@ export const MultidimensionalChart = ({
               }}
               className={`px-3 py-1.5 rounded transition-all border ${showBands ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' : 'bg-surface text-text-secondary border-border hover:text-text-primary hover:bg-surface-hover'}`}
             >
-              Volatility Bands
+              Volatility Bands & Squeeze
+            </button>
+            <button 
+              onClick={() => {
+                setIsDrawingMode(prev => !prev);
+                setActiveDrawPoint(null);
+              }}
+              className={`px-3 py-1.5 rounded transition-all border ${isDrawingMode ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : 'bg-surface text-text-secondary border-border hover:text-text-primary hover:bg-surface-hover'}`}
+            >
+              ✏️ Draw
+            </button>
+            <button 
+              onClick={() => setShowPatterns(prev => !prev)}
+              className={`px-3 py-1.5 rounded transition-all border ${showPatterns ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-surface text-text-secondary border-border hover:text-text-primary hover:bg-surface-hover'}`}
+            >
+              Candle Patterns
             </button>
             
             <div className="w-px h-4 bg-border mx-1"></div>

@@ -20,74 +20,59 @@ def fetch_broker_targets_from_mc(slug: str, ticker: str):
     result = []
     
     try:
-        # Step 1: Use autosuggest API to find the exact Moneycontrol link
-        # Clean ticker (e.g. RELIANCE-EQ -> RELIANCE)
+        # Step 1: Hit Trendlyne research reports page for the ticker
+        # Trendlyne automatically handles routing /stock/RELIANCE
         search_query = ticker.split('-')[0].split('_')[0]
-        search_url = f"https://www.moneycontrol.com/mccode/common/autosuggestion_solr.php?query={search_query}&type=1&format=json"
+        mc_link = f"https://trendlyne.com/research-reports/stock/{search_query}"
         
-        res = requests.get(search_url, headers=headers, timeout=5)
-        
-        if res.status_code != 200:
-            return result
-            
-        data = res.json()
-        if not data or len(data) == 0:
-            return result
-            
-        mc_link = None
-        for item in data:
-            if 'link_src' in item and 'india/stockpricequote' in item['link_src']:
-                mc_link = item['link_src']
-                break
-                
-        if not mc_link:
-            return result
-            
-        # Step 2: Hit the actual stock page
         page_res = requests.get(mc_link, headers=headers, timeout=8)
         
         if page_res.status_code != 200:
             return result
             
         soup = BeautifulSoup(page_res.text, 'html.parser')
-        broker_div = soup.find('div', id='broker_research')
+        table = soup.find('table')
         
-        if not broker_div:
+        if not table:
             return result
             
-        items = broker_div.find_all('div', class_='brrs_bx')
+        rows = table.find_all('tr')
         
-        # Limit to 9 items as requested by frontend grid
-        for item in items[:9]:
-            date_div = item.find('div', class_='br_date')
-            broker_h3 = item.find('h3')
-            action_td = item.find('td', class_='str_buy') or item.find('td', class_='str_sell') or item.find('td', class_='str_hold')
-            
-            # Target Price typically inside the table next to "Target Price" label
-            target_td = item.find('td', string=lambda text: text and 'Target Price' in text)
-            
-            target_price = None
-            if target_td and target_td.find_next_sibling('td'):
-                raw_target = target_td.find_next_sibling('td').text.strip()
-                # Clean up comma parsing
-                target_price = raw_target.replace(',', '')
+        # Skip header rows (typically first 2 rows are headers/consensus)
+        # Limit to top 9 analyst targets
+        for r in rows[2:11]:
+            cells = r.find_all('td')
+            if len(cells) > 8:
+                date_str = cells[1].text.strip()
+                broker = cells[3].text.replace('\n', '').replace('Target', '').strip()
+                target_price_str = cells[5].text.strip()
+                action_str = cells[8].text.strip()
                 
-            if date_div and broker_h3 and action_td and target_price and target_price != '-':
-                # Standardize action string
-                raw_action = action_td.text.strip().upper()
+                # Clean up target price (sometimes has "Target" text or commas)
+                target_price_clean = target_price_str.replace('Target', '').replace(',', '').strip()
+                
+                # Standardize action
                 action = 'HOLD'
-                if 'BUY' in raw_action or 'ACCUMULATE' in raw_action or 'OUTPERFORM' in raw_action or 'ADD' in raw_action:
+                if 'buy' in action_str.lower() or 'accumulate' in action_str.lower() or 'add' in action_str.lower():
                     action = 'BUY'
-                elif 'SELL' in raw_action or 'REDUCE' in raw_action or 'UNDERPERFORM' in raw_action:
+                elif 'sell' in action_str.lower() or 'reduce' in action_str.lower():
                     action = 'SELL'
                     
-                result.append({
-                    'date': date_div.text.strip(),
-                    'broker': broker_h3.text.strip(),
-                    'action': action,
-                    'target_price': float(target_price) if target_price.replace('.', '', 1).isdigit() else 0
-                })
-                
+                if date_str and broker and target_price_clean and target_price_clean != '-':
+                    try:
+                        # Validate it's a number
+                        float(target_price_clean)
+                        result.append({
+                            'date': date_str,
+                            'broker': broker,
+                            'action': action,
+                            'target_price': float(target_price_clean)
+                        })
+                    except ValueError:
+                        continue
+                        
+        return result
+        
     except Exception as e:
         print(f"Error fetching targets for {ticker}: {e}")
         pass

@@ -15,6 +15,7 @@ from datetime import datetime, date
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from bs4 import BeautifulSoup
 
 # Initialize SIA once
 sia = SentimentIntensityAnalyzer()
@@ -403,7 +404,9 @@ class MLDatasetEngineer:
         }
 
     def _derive_news(self):
-        news = self.stock_data.get("news", []) or self.raw.get("newsData", [])
+        # We now use the batched Trendlyne fetcher for high quality news instead of Groww's SEO pages
+        ticker = extract_ticker(self.stock_data.get("header", {}))
+        news = TrendlyneFetcher().get_news(ticker) if ticker else []
         
         flags = {
             "active_debt_crisis_flag": self.track(1 if any(any(k in str(n).lower() for k in ['debt','default','crisis']) for n in news) else 0),
@@ -577,6 +580,62 @@ class MLDatasetEngineer:
         }
 
 # --- UNIFIED PROCESSING ---
+class TrendlyneFetcher:
+    def __init__(self, session=None):
+        self.session = session or requests.Session()
+        self.session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        })
+        
+    def get_news(self, ticker):
+        """Resolves the Trendlyne ID and fetches the latest news."""
+        try:
+            # 1. Resolve ID via Redirect
+            redirect_url = f"https://trendlyne.com/research-reports/stock/{ticker}"
+            res1 = self.session.head(redirect_url, allow_redirects=True, timeout=10)
+            final_url = res1.url
+            
+            # Example final_url: https://trendlyne.com/research-reports/stock/1127/RELIANCE/reliance-industries-ltd/
+            match = re.search(r'/stock/(\d+)/([^/]+)/([^/]+)/', final_url)
+            if not match:
+                return []
+                
+            stock_id = match.group(1)
+            canonical_slug = match.group(3)
+            
+            # 2. Fetch Latest News
+            news_url = f"https://trendlyne.com/latest-news/{stock_id}/{ticker}/{canonical_slug}/"
+            res2 = self.session.get(news_url, timeout=10)
+            soup = BeautifulSoup(res2.text, 'html.parser')
+            
+            # 3. Parse News
+            news = []
+            for a in soup.find_all('a'):
+                href = a.get('href', '')
+                if '/news/article/' in href or '/news/' in href:
+                    title_text = re.sub(r'\s+', ' ', a.text).strip()
+                    # Filter out metadata lines
+                    if len(title_text) > 20 and 'Trendlyne' not in title_text and '|' not in title_text:
+                        # For simplicity, assign today's date for ML calculations 
+                        # (Trendlyne latest news are mostly within 7-14 days anyway)
+                        news.append({
+                            'title': title_text,
+                            'summary': '',
+                            'pubDate': datetime.now().isoformat() + "Z"
+                        })
+            
+            # Deduplicate by title
+            seen = set()
+            unique_news = []
+            for n in news:
+                if n['title'] not in seen:
+                    seen.add(n['title'])
+                    unique_news.append(n)
+            
+            return unique_news
+        except Exception as e:
+            print(f"Trendlyne News Error for {ticker}: {e}")
+            return []
 
 class GrowwFetcher:
     def __init__(self, session=None):

@@ -46,6 +46,7 @@ function App() {
           <Route path="mutual-funds" element={<MutualFunds />} />
           <Route path="watchlists" element={<Watchlists />} />
           <Route path="terminal/:slug" element={<TerminalLayout />} />
+          <Route path="stock/:slug" element={<TerminalLayout />} />
           <Route path="mutual-funds/:code" element={<MutualFundSnapshot />} />
         </Route>
       </Routes>
