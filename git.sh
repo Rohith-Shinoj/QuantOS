@@ -3,33 +3,40 @@
 # Usage helper
 show_help() {
     echo "Usage:"
-    echo "  ./git.sh \"<commit_message>\" [-push]"
-    echo "  ./git.sh -pull"
+    echo "  ./git.sh \"<commit_message>\"    # Commit without push"
+    echo "  ./git.sh -push \"<commit_message>\" # Commit and push"
+    echo "  ./git.sh -pull                 # Pull from remote"
 }
 
-# Check if an argument was provided
+# Check if arguments provided
 if [ -z "$1" ]; then
     show_help
     exit 1
 fi
 
-# Handle -pull command
+# Handle -pull
 if [ "$1" == "-pull" ]; then
-    echo "Pulling latest changes from origin main..."
-    git pull origin main
+    echo "Pulling latest changes from origin..."
+    git pull
     exit 0
 fi
 
-# Handle commit
-MESSAGE=$1
-git add .
-git commit -m "$MESSAGE"
-
-# Handle optional push
-# We check if the second argument is exactly "-push"
-if [ "$2" == "-push" ]; then
-    echo "Pushing changes to origin main..."
+# Handle -push <message>
+if [ "$1" == "-push" ]; then
+    if [ -z "$2" ]; then
+        echo "Error: You must provide a commit message after -push."
+        exit 1
+    fi
+    
+    echo "Committing and pushing..."
+    git add .
+    git commit -m "$2"
     git push -u origin main
-else
-    echo "Changes committed locally (no push requested)."
+    exit 0
 fi
+
+# Handle <message> (Standard commit)
+echo "Committing locally..."
+git add .
+git commit -m "$1"
+echo "Changes committed locally."
