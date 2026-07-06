@@ -307,7 +307,8 @@ def init_db(target_dir):
         except:
             continue
             
-    con.executemany("INSERT INTO quarterly_fundamentals VALUES (?, ?, ?, ?, ?, ?, ?, ?)", q_funds)
+    if q_funds:
+        con.executemany("INSERT INTO quarterly_fundamentals VALUES (?, ?, ?, ?, ?, ?, ?, ?)", q_funds)
     print("Extracted real quarterly fundamentals.")
 
     

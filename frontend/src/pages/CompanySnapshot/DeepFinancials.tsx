@@ -80,9 +80,21 @@ export const DeepFinancials = ({ data }: { data: any }) => {
               }
             }
 
+            let isAnomaly = false;
+            if (yoy !== null && yoy <= -10 && info.row.original.metric.toLowerCase().includes('net worth')) {
+               const profitRow = tableData.find((d: any) => d.metric.toLowerCase().includes('profit'));
+               const profitVal = profitRow ? Number(profitRow[date]) : 0;
+               if (profitVal > 0) {
+                  isAnomaly = true;
+               }
+            }
+
             return (
               <div className="flex flex-col items-start gap-1 min-w-[80px]">
-                <span className="tabular-nums text-text-primary font-medium">{numVal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+                <div className="flex items-center gap-1">
+                   <span className="tabular-nums text-text-primary font-medium">{numVal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+                   {isAnomaly && <span title="⚠ possible corporate action (Demerger/Bonus) — verify manually" className="text-amber-500 cursor-help text-xs">⚠</span>}
+                </div>
                 {yoy !== null && (
                   <span className={`text-[12px] font-bold px-1.5 py-0.5 rounded tabular-nums ${yoy > 0 ? 'bg-[#42bd7f]/20 text-[#42bd7f]' : yoy < 0 ? 'bg-[#f23645]/20 text-[#f23645]' : 'bg-surface-hover text-text-secondary'}`}>
                     {yoy > 0 ? '+' : ''}{yoy.toFixed(1)}%
@@ -96,7 +108,7 @@ export const DeepFinancials = ({ data }: { data: any }) => {
     });
 
     return cols;
-  }, [financialStatement, period]);
+  }, [financialStatement, period, tableData]);
 
   const table = useReactTable({
     data: tableData,

@@ -13,6 +13,8 @@ import { ValuationGauges } from '../pages/CompanySnapshot/ValuationGauges';
 import { OwnershipTrends } from '../pages/CompanySnapshot/OwnershipTrends';
 import { EarningsQuality } from '../pages/CompanySnapshot/EarningsQuality';
 import { FactorAttribution } from '../pages/CompanySnapshot/FactorAttribution';
+
+import { MacroResilience } from '../pages/CompanySnapshot/MacroResilience';
 import { NewsSentiment } from '../pages/CompanySnapshot/NewsSentiment';
 import { RelatedStocks } from '../pages/CompanySnapshot/RelatedStocks';
 import { BrokerTargets } from '../pages/CompanySnapshot/BrokerTargets';
@@ -92,6 +94,7 @@ export const TerminalLayout = () => {
                            <FactorAttribution data={stockData} />
                            <DeepFinancials data={stockData} />
                            <NewsSentiment data={stockData} />
+                           <MacroResilience data={stockData} />
                            {selectedStockSlug && <RelatedStocks slug={selectedStockSlug} />}
                            {selectedStockSlug && <BrokerTargets slug={selectedStockSlug} />}
                          </div>

@@ -1154,8 +1154,14 @@ def get_capture_ratios():
 
 @app.get("/api/stocks/{slug}/targets")
 def get_broker_targets(slug: str):
-    con = get_db()
-    res = con.execute("SELECT ticker FROM stocks WHERE slug = ?", (slug,)).fetchone()
-    ticker = res[0] if res else slug.upper()
-    targets = fetch_broker_targets_from_mc(slug, ticker)
-    return {"targets": targets}
+    try:
+        con = get_db()
+        res_ticker = con.execute("SELECT ticker FROM stocks WHERE slug = ?", (slug,)).fetchone()
+        ticker = res_ticker[0] if res_ticker else slug.upper()
+        
+        from broker_scraper import fetch_broker_targets_from_mc
+        targets = fetch_broker_targets_from_mc(slug, ticker)
+        return {"targets": targets}
+    except Exception as e:
+        print(f"Error fetching broker targets for {slug}: {e}")
+        return {"targets": []}

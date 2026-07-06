@@ -9,6 +9,7 @@ import { OwnershipTrends } from './OwnershipTrends';
 import { EarningsQuality } from './EarningsQuality';
 import { FactorAttribution } from './FactorAttribution';
 import { NewsSentiment } from './NewsSentiment';
+import { MacroResilience } from './MacroResilience';
 import { RelatedStocks } from './RelatedStocks';
 import { PeerComparison } from './PeerComparison';
 import { DeepFinancials } from './DeepFinancials';
@@ -101,6 +102,7 @@ export const CompanySnapshot = () => {
             <OwnershipTrends data={data} />
             <EarningsQuality data={data} />
             <FactorAttribution data={data} />
+            <MacroResilience data={data} />
             <NewsSentiment data={data} />
             <RelatedStocks slug={slug as string} />
           </div>

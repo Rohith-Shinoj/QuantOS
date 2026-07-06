@@ -20,6 +20,7 @@ export interface PatternLine {
   type: 'support' | 'resistance';
   p1: { time: string; value: number; index: number };
   p2: { time: string; value: number; index: number };
+  pExtrapolated?: { time: string; value: number; index: number };
 }
 
 export interface GeometricPattern {
@@ -88,16 +89,16 @@ export function findSwingPivots(data: OHLCV[], n: number = 10) {
   const swingLows: Pivot[] = [];
 
   for (let i = n; i < data.length - n; i++) {
-    const currentHigh = Math.max(data[i].open, data[i].close);
-    const currentLow = Math.min(data[i].open, data[i].close);
+    const currentHigh = data[i].high;
+    const currentLow = data[i].low;
 
     let isHigh = true;
     let isLow = true;
 
     for (let j = i - n; j <= i + n; j++) {
       if (i === j) continue;
-      const jHigh = Math.max(data[j].open, data[j].close);
-      const jLow = Math.min(data[j].open, data[j].close);
+      const jHigh = data[j].high;
+      const jLow = data[j].low;
       if (jHigh >= currentHigh) isHigh = false;
       if (jLow <= currentLow) isLow = false;
     }
@@ -113,7 +114,7 @@ export function findSwingPivots(data: OHLCV[], n: number = 10) {
   return { swingHighs, swingLows };
 }
 
-export function detectGeometricPatterns(data: OHLCV[], swingHighs: Pivot[], swingLows: Pivot[]): GeometricPattern[] {
+export function detectGeometricPatterns(data: OHLCV[], swingHighs: Pivot[], swingLows: Pivot[], atr: number[] = []): GeometricPattern[] {
   const patterns: GeometricPattern[] = [];
   
   if (swingHighs.length < 3 || swingLows.length < 3) return patterns;
@@ -185,13 +186,18 @@ export function detectGeometricPatterns(data: OHLCV[], swingHighs: Pivot[], swin
             const rLine = h1y + rSlope * (k - h1.index);
             const sLine = l1y + sSlope * (k - l1.index);
 
+            // Dynamic ATR validation instead of rigid 3% boundaries
+            const currentATR = (atr && atr.length > k) ? atr[k] : 0;
+            const rTolerance = currentATR > 0 ? currentATR : rLine * 0.03;
+            const sTolerance = currentATR > 0 ? currentATR : sLine * 0.03;
+            
             // Allow wicks to pierce slightly.
-            if (data[k].close > rLine * 1.005 || data[k].close < sLine * 0.995 || 
-                data[k].high > rLine * 1.02 || data[k].low < sLine * 0.98) {
+            if (data[k].close > rLine + (rTolerance * 0.2) || data[k].close < sLine - (sTolerance * 0.2) || 
+                data[k].high > rLine + (rTolerance * 0.7) || data[k].low < sLine - (sTolerance * 0.7)) {
               
               violationCount++;
               
-              if (data[k].close > rLine * 1.03 || data[k].close < sLine * 0.97) {
+              if (data[k].close > rLine + rTolerance || data[k].close < sLine - sTolerance) {
                  isValid = false;
                  break;
               }
@@ -218,10 +224,10 @@ export function detectGeometricPatterns(data: OHLCV[], swingHighs: Pivot[], swin
           // The True 2-Additional-Touch Rule (using minor pivots)
           let additionalTouches = 0;
           let backHalfTouch = false;
-          const midPoint = (start + breakoutIndex) / 2;
+          const midPoint = (start + end) / 2;
 
           for (const h of minorHighs) {
-              if (h.index >= start && h.index <= breakoutIndex) {
+              if (h.index >= start && h.index <= end) {
                   const expectedR = h1y + rSlope * (h.index - h1.index);
                   if (Math.abs(h.price - expectedR) / expectedR < 0.015) {
                       if (h.index !== h1.index && h.index !== h2.index) {
@@ -233,7 +239,7 @@ export function detectGeometricPatterns(data: OHLCV[], swingHighs: Pivot[], swin
           }
           
           for (const l of minorLows) {
-              if (l.index >= start && l.index <= breakoutIndex) {
+              if (l.index >= start && l.index <= end) {
                   const expectedS = l1y + sSlope * (l.index - l1.index);
                   if (Math.abs(l.price - expectedS) / expectedS < 0.015) {
                       if (l.index !== l1.index && l.index !== l2.index) {
@@ -252,6 +258,9 @@ export function detectGeometricPatterns(data: OHLCV[], swingHighs: Pivot[], swin
 
           const rEnd = h1y + rSlope * (breakoutIndex - h1.index);
           const sEnd = l1y + sSlope * (breakoutIndex - l1.index);
+          
+          const rTrueEnd = h1y + rSlope * (end - h1.index);
+          const sTrueEnd = l1y + sSlope * (end - l1.index);
 
           // Target is the height at the start of the pattern added to the true breakout point
           const startR = h1y + rSlope * (start - h1.index);
@@ -292,12 +301,14 @@ export function detectGeometricPatterns(data: OHLCV[], swingHighs: Pivot[], swin
               {
                 type: 'resistance',
                 p1: { time: data[h1.index].time, value: h1y, index: h1.index },
-                p2: { time: data[breakoutIndex].time, value: rEnd, index: breakoutIndex }
+                p2: { time: data[end].time, value: rTrueEnd, index: end },
+                pExtrapolated: { time: data[breakoutIndex].time, value: rEnd, index: breakoutIndex }
               },
               {
                 type: 'support',
                 p1: { time: data[l1.index].time, value: l1y, index: l1.index },
-                p2: { time: data[breakoutIndex].time, value: sEnd, index: breakoutIndex }
+                p2: { time: data[end].time, value: sTrueEnd, index: end },
+                pExtrapolated: { time: data[breakoutIndex].time, value: sEnd, index: breakoutIndex }
               }
             ]
           });
@@ -395,15 +406,15 @@ export function calculateRSDivergence(data: OHLCV[], benchmarkData: OHLCV[] | nu
   const rsRSI = calculateRSI(rsLine, 14);
   
   // Find structural divergences
-  // Simple algorithm: Look back 60 days for a higher high in price but lower high in RS RSI
-  for (let i = 60; i < data.length; i++) {
+  // Multi-year algorithm: Look back 250 days for a higher high in price but lower high in RS RSI
+  for (let i = 250; i < data.length; i++) {
     // Determine if i is a local peak in price
     const isPeak = data[i].high > data[i - 1].high && data[i].high > data[i - 2].high &&
                    data[i].high > data[i + 1]?.high && data[i].high > data[i + 2]?.high;
     
     if (isPeak) {
-      // Find a previous peak within last 60 days
-      for (let j = i - 10; j >= i - 60; j--) {
+      // Find a previous peak within last 250 days (secular exhaustion)
+      for (let j = i - 10; j >= i - 250; j--) {
         if (j < 2) continue; // safety check
         const isPrevPeak = data[j].high > data[j - 1].high && data[j].high > data[j - 2].high &&
                            data[j].high > (data[j + 1]?.high ?? 0) && data[j].high > (data[j + 2]?.high ?? 0);

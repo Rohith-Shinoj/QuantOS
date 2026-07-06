@@ -24,54 +24,57 @@ export const FinancialHealth = ({ data }: { data: any }) => {
     const [nw_cy, nw_py] = getYearly('Net Worth');
     const [rev_cy, rev_py] = getYearly('Revenue');
 
-    // 1. Positive ROA (Proxy using ROE if ROA missing)
-    const roa = Number(stats.returnOnAssets) || Number(stats.roe) || 0;
-    const isRoaPositive = roa > 0;
+    // 1. Positive ROA
+    const roa = Number(stats.returnOnAssets);
+    const isRoaPositive = !isNaN(roa) && roa > 0;
 
     // 2. Positive OCF
     const pToOcf = Number(stats.priceToOcf);
     const isOcfPositive = !isNaN(pToOcf) && pToOcf > 0;
 
-    // 3. Accruals (OCF > Net Profit)
+    // 3. Increasing ROE
+    let roeIncreasing = false;
+    if (p_cy !== null && p_py !== null && nw_cy !== null && nw_py !== null && nw_cy !== 0 && nw_py !== 0) {
+      roeIncreasing = (p_cy / nw_cy) > (p_py / nw_py);
+    }
+
+    // 4. Accruals (OCF > Net Profit)
     const pe = Number(stats.peRatio);
     let ocfGreater = false;
     if (isOcfPositive && !isNaN(pe) && pe > 0) {
       ocfGreater = (1.0 / pToOcf) > (1.0 / pe); // OCF yield > Earnings yield
     }
 
-    // 4. Margins Expansion
-    let marginExpansion = false;
-    if (p_cy !== null && p_py !== null && rev_cy !== null && rev_py !== null && rev_cy > 0 && rev_py > 0) {
-      marginExpansion = (p_cy / rev_cy) > (p_py / rev_py);
-    }
-
-    // 5. Revenue Growth
-    let revenueGrowth = false;
-    if (rev_cy !== null && rev_py !== null) {
-      revenueGrowth = rev_cy > rev_py;
-    }
-
-    // 6. Leverage Control (D/E < 0.5)
+    // 5. Leverage Control (D/E < 0.5)
     const de = Number(stats.debtToEquity);
     const leverageControl = !isNaN(de) && de < 0.5;
 
-    // 7. Liquidity (Current Ratio > 1.5)
+    // 6. Liquidity (Current Ratio > 1.5)
     const cr = Number(stats.currentRatio);
     const liquidity = !isNaN(cr) && cr > 1.5;
 
-    // 8. Capital Dilution
+    // 7. Capital Dilution
     const mcap = Number(stats.marketCap);
     const dy = Number(stats.divYield) || 0;
     let noDilution = false;
     if (!isNaN(mcap) && nw_cy !== null && nw_py !== null && p_cy !== null) {
-      const divPaid = mcap * (dy / 100.0);
+      const divPaid = !isNaN(dy) ? mcap * (dy / 100.0) : 0;
       noDilution = ((nw_cy - nw_py) - p_cy + divPaid) <= (0.05 * Math.abs(nw_py));
     } else {
       noDilution = true; // Give benefit of doubt if data missing
     }
 
-    // 9. Forensic Tax Audit
-    const forensicPass = rel.qes_forensic_red_flag !== 1;
+    // 8. Margins Expansion
+    let marginExpansion = false;
+    if (p_cy !== null && p_py !== null && rev_cy !== null && rev_py !== null && rev_cy > 0 && rev_py > 0) {
+      marginExpansion = (p_cy / rev_cy) > (p_py / rev_py);
+    }
+
+    // 9. Revenue Growth
+    let revenueGrowth = false;
+    if (rev_cy !== null && rev_py !== null) {
+      revenueGrowth = rev_cy > rev_py;
+    }
 
     return [
       { 
@@ -79,8 +82,28 @@ export const FinancialHealth = ({ data }: { data: any }) => {
         desc: <>Is the Return on Assets (ROA) positive?<BlockMath math="\text{ROA} > 0" /></>
       },
       { 
+        name: 'Positive OCF', passed: isOcfPositive, 
+        desc: <>Is the company generating positive operating cash flow?<BlockMath math="\text{OCF} > 0" /></>
+      },
+      { 
+        name: 'Increasing ROE', passed: roeIncreasing, 
+        desc: <>Did the Return on Equity increase?<BlockMath math="\text{ROE}_{\text{current}} > \text{ROE}_{\text{previous}}" /></>
+      },
+      { 
         name: 'Cash > Profit', passed: ocfGreater, 
-        desc: <>Quality of Earnings: Calculates if the actual cash generated exceeds the accounting net profit.<BlockMath math="\text{Operating Cash Flow Yield} > \text{Earnings Yield}" /></>
+        desc: <>Calculates if the actual cash generated exceeds the accounting net profit.<BlockMath math="\text{OCF Yield} > \text{Earnings Yield}" /></>
+      },
+      { 
+        name: 'Low Leverage', passed: leverageControl, 
+        desc: <>Is the company keeping its debt under control?<BlockMath math="\frac{\text{Total Debt}}{\text{Total Equity}} < 0.5" /></>
+      },
+      { 
+        name: 'High Liquidity', passed: liquidity, 
+        desc: <>Does the company have enough short-term assets to cover short-term liabilities?<BlockMath math="\text{Current Ratio} > 1.5" /></>
+      },
+      { 
+        name: 'No Dilution', passed: noDilution, 
+        desc: <>Is the company avoiding shareholder dilution?<BlockMath math="\Delta \text{Net Worth} - \text{Net Income} + \text{Dividends} \le 0.05 \times \text{Net Worth}_{\text{previous}}" /></>
       },
       { 
         name: 'Margin Exp.', passed: marginExpansion, 
@@ -90,42 +113,24 @@ export const FinancialHealth = ({ data }: { data: any }) => {
         name: 'Rev Growth', passed: revenueGrowth, 
         desc: <>Did the company grow its revenue year-over-year?<BlockMath math="\text{Revenue}_{\text{current}} > \text{Revenue}_{\text{previous}}" /></>
       },
-      { 
-        name: 'Low Leverage', passed: leverageControl, 
-        desc: <>Is the company keeping its debt under control?<BlockMath math="\frac{\text{Total Debt}}{\text{Total Equity}} < 0.5" /></>
-      },
-      { 
-        name: 'High Liquidity', passed: liquidity, 
-        desc: <>Does the company have enough short-term assets to cover its short-term liabilities?<BlockMath math="\text{Current Ratio} > 1.5" /></>
-      },
-      { 
-        name: 'No Dilution', passed: noDilution, 
-        desc: <>Is the company avoiding shareholder dilution by not issuing excessive new equity?<BlockMath math="\Delta \text{Net Worth} - \text{Net Income} + \text{Dividends} \le 0.05 \times \text{Net Worth}_{\text{previous}}" /></>
-      },
-      { 
-        name: 'Positive OCF', passed: isOcfPositive, 
-        desc: <>Is the company generating positive operating cash flow from its core business?<BlockMath math="\text{Operating Cash Flow} > 0" /></>
-      },
-      { 
-        name: 'Tax Forensic', passed: forensicPass, 
-        desc: <>Does the reported Tax expense growth align closely with Profit Before Tax growth? Major divergences can indicate accounting manipulation.<BlockMath math="|\Delta \text{Tax}_{\%} - \Delta \text{PBT}_{\%}| < 30\%" /></>
-      },
     ];
-  }, [stats, financials, rel.qes_forensic_red_flag]);
+  }, [stats, financials]);
 
-  const score = checks.filter(c => c.passed).length;
-  const isHealthy = score >= 6;
+  // Use the exact score from backend to prevent calculation mismatches
+  const backendScore = rel.health_scores?.piotroski_f_score;
+  const score = backendScore !== undefined && backendScore !== null ? Number(backendScore) : checks.filter(c => c.passed).length;
+  const isHealthy = score >= 7;
 
   return (
     <div className="bg-surface p-4 rounded-lg border border-border h-full flex flex-col">
       <div className="flex justify-between items-start mb-4 shrink-0">
         <h3 className="text-lg font-medium text-text-primary flex items-center">
           Forensic X-Ray Matrix
-          <InfoTooltip text="Strict 9-point Piotroski & Forensic checklist. Evaluates deep accounting reality vs engineered earnings." />
+          <InfoTooltip text="Strict 9-point Piotroski checklist. Evaluates deep accounting reality vs engineered earnings." />
         </h3>
         <div className="text-right">
-          <div className="text-sm text-text-secondary font-medium">Audit Score</div>
-          <div className={`text-xl font-bold ${isHealthy ? 'text-alpha' : 'text-beta'}`}>
+          <div className="text-sm text-text-secondary font-medium">Piotroski F-Score</div>
+          <div className={`text-xl font-bold ${isHealthy ? 'text-emerald-400' : 'text-amber-400'}`}>
             {score}/9
           </div>
         </div>

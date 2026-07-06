@@ -80,6 +80,37 @@ class WedgePaneRenderer implements ISeriesPrimitivePaneRenderer {
                 ctx.lineTo(sP2X * pr, sP2Y * vr);
                 ctx.stroke();
 
+                // Draw extrapolated lines if they exist and extend beyond p2
+                if (resistance.pExtrapolated && resistance.pExtrapolated.index > resistance.p2.index) {
+                    const rExtrapX = this._timeScale.timeToCoordinate(resistance.pExtrapolated.time);
+                    const rExtrapY = this._series.priceToCoordinate(resistance.pExtrapolated.value);
+                    if (rExtrapX !== null && rExtrapY !== null) {
+                        ctx.beginPath();
+                        ctx.lineWidth = 1;
+                        ctx.setLineDash([5, 5]);
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                        ctx.moveTo(rP2X * pr, rP2Y * vr);
+                        ctx.lineTo(rExtrapX * pr, rExtrapY * vr);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                    }
+                }
+
+                if (support.pExtrapolated && support.pExtrapolated.index > support.p2.index) {
+                    const sExtrapX = this._timeScale.timeToCoordinate(support.pExtrapolated.time);
+                    const sExtrapY = this._series.priceToCoordinate(support.pExtrapolated.value);
+                    if (sExtrapX !== null && sExtrapY !== null) {
+                        ctx.beginPath();
+                        ctx.lineWidth = 1;
+                        ctx.setLineDash([5, 5]);
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                        ctx.moveTo(sP2X * pr, sP2Y * vr);
+                        ctx.lineTo(sExtrapX * pr, sExtrapY * vr);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                    }
+                }
+
                 // Label
                 const labelX = (rP1X + rP2X) / 2 * pr;
                 const labelY = Math.max(rP1Y, sP1Y) * vr + 20; // Slightly below

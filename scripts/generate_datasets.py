@@ -23,8 +23,10 @@ sia.lexicon.update({
     'crushed': 0.7, 'beat': 0.8, 'missed': -0.8, 'liability': 0.0,
     'surged': 0.6, 'plunged': -0.8, 'bankruptcy': -0.9, 'default': -0.9,
     'growth': 0.4, 'profitable': 0.5, 'slashed': -0.4, 'downgraded': -0.6, 'upgraded': 0.6,
-    'outperform': 0.6, 'underperform': -0.6, 'dividend': 0.4, 'buyback': 0.6,
-    'debt': -0.4, 'lawsuit': -0.7, 'scandal': -0.8
+    'bullish': 0.5, 'bearish': -0.5, 'dividend': 0.3, 'fraud': -0.9, 'investigation': -0.6,
+    'scam': -0.9, 'resignation': -0.7, 'lawsuit': -0.6, 'fine': -0.5, 'probe': -0.5,
+    'invest': 0.4, 'expansion': 0.5, 'acquire': 0.5, 'deal': 0.4, 'partnership': 0.5,
+    'surge': 0.5, 'record': 0.5, 'target': 0.3, 'upgrade': 0.5, 'downgrade': -0.5
 })
 
 # --- UTILITIES ---
@@ -138,6 +140,7 @@ class MLDatasetEngineer:
         self.features["historical_time_series_matrix"] = self._derive_history()
         self.features["health_scores"] = self._derive_health_scores()
         self.features["risk_and_forensic_signals"] = self._derive_risk_and_forensics()
+        self.features["macro_resilience_profile"] = self._derive_resilience()
         self.features["market_breadth_regime"] = self._derive_market_breadth()
         self.features["price_returns"] = self._derive_price_returns()
         
@@ -298,6 +301,111 @@ class MLDatasetEngineer:
             "vix_intensity_ratio": self.track(vix_ratio),
             "is_bull_regime": self.track(1 if (nifty_trend or 0) > 1.0 else 0),
             "is_high_fear_regime": self.track(1 if (vix_ratio or 0) > 1.2 else 0)
+        }
+
+    def _derive_resilience(self):
+        nifty = self.active_indices.get("NIFTY", [])
+        vix = self.active_indices.get("INDIAVIX", [])
+        stock = self.active_ohlcv
+        if len(stock) < 20 or len(nifty) < 20:
+            return {
+                "up_beta": np.nan, "down_beta": np.nan,
+                "up_capture": np.nan, "down_capture": np.nan,
+                "vix_stress_reaction": np.nan, "avg_recovery_days": np.nan
+            }
+
+        nifty_dict = {x["Date"]: x["Close"] for x in nifty}
+        vix_dict = {x["Date"]: x["Close"] for x in vix}
+        
+        up_s, up_n = [], []
+        dn_s, dn_n = [], []
+        vix_ret = []
+        
+        # Calculate Returns
+        for i in range(1, len(stock)):
+            curr, prev = stock[i], stock[i-1]
+            date = curr["Date"]
+            if date in nifty_dict and stock[i-1]["Date"] in nifty_dict:
+                s_ret = (curr["Close"] - prev["Close"]) / prev["Close"]
+                n_prev = nifty_dict[stock[i-1]["Date"]]
+                n_curr = nifty_dict[date]
+                n_ret = (n_curr - n_prev) / n_prev
+                
+                if n_ret > 0:
+                    up_s.append(s_ret)
+                    up_n.append(n_ret)
+                elif n_ret < 0:
+                    dn_s.append(s_ret)
+                    dn_n.append(n_ret)
+                    
+                if date in vix_dict and stock[i-1]["Date"] in vix_dict:
+                    v_prev = vix_dict[stock[i-1]["Date"]]
+                    v_curr = vix_dict[date]
+                    v_ret_val = (v_curr - v_prev) / v_prev
+                    vix_ret.append((v_ret_val, s_ret))
+                    
+        # Beta
+        def calc_beta(s, n):
+            if len(s) < 2: return np.nan
+            cov = np.cov(s, n)[0][1]
+            var = np.var(n)
+            return float(cov / var) if var != 0 else np.nan
+            
+        up_beta = calc_beta(up_s, up_n)
+        down_beta = calc_beta(dn_s, dn_n)
+        
+        # Capture Ratio
+        def calc_capture(s, n):
+            if len(s) < 2: return np.nan
+            comp_s = float(np.prod([1 + x for x in s])) - 1.0
+            comp_n = float(np.prod([1 + x for x in n])) - 1.0
+            return float(comp_s / comp_n) if comp_n != 0 else np.nan
+            
+        up_capture = calc_capture(up_s, up_n)
+        down_capture = calc_capture(dn_s, dn_n)
+        
+        # VIX Stress Reaction
+        if len(vix_ret) > 10:
+            vix_spikes = sorted(vix_ret, key=lambda x: x[0], reverse=True)
+            top_spikes = vix_spikes[:max(1, int(len(vix_ret)*0.05))]
+            vix_reaction = float(np.mean([x[1] for x in top_spikes]))
+        else:
+            vix_reaction = np.nan
+            
+        # Drawdown Recovery Days
+        peak = stock[0]["Close"]
+        peak_idx = 0
+        in_drawdown = False
+        trough = peak
+        
+        recovery_days = []
+        for i in range(1, len(stock)):
+            c = stock[i]["Close"]
+            if c > peak:
+                if in_drawdown:
+                    dd_depth = (trough - peak) / peak
+                    if dd_depth <= -0.10: # >10% drawdown
+                        days = i - peak_idx
+                        recovery_days.append(days)
+                peak = c
+                peak_idx = i
+                in_drawdown = False
+            else:
+                if not in_drawdown:
+                    in_drawdown = True
+                    trough = c
+                else:
+                    trough = min(trough, c)
+                    
+        avg_recovery = float(np.mean(recovery_days)) if recovery_days else np.nan
+
+        return {
+            "up_beta": self.track(up_beta),
+            "down_beta": self.track(down_beta),
+            "up_capture": self.track(up_capture),
+            "down_capture": self.track(down_capture),
+            "vix_stress_reaction": self.track(vix_reaction),
+            "avg_recovery_days": self.track(avg_recovery)
         }
 
     def _derive_meta(self):
@@ -610,19 +718,29 @@ class TrendlyneFetcher:
             
             # 3. Parse News
             news = []
-            for a in soup.find_all('a'):
-                href = a.get('href', '')
-                if '/news/article/' in href or '/news/' in href:
-                    title_text = re.sub(r'\s+', ' ', a.text).strip()
-                    # Filter out metadata lines
-                    if len(title_text) > 20 and 'Trendlyne' not in title_text and '|' not in title_text:
-                        # For simplicity, assign today's date for ML calculations 
-                        # (Trendlyne latest news are mostly within 7-14 days anyway)
-                        news.append({
-                            'title': title_text,
-                            'summary': '',
-                            'pubDate': datetime.now().isoformat() + "Z"
-                        })
+            for a in soup.find_all('a', class_='newslink'):
+                title_text = re.sub(r'\s+', ' ', a.text).strip()
+                # Filter out metadata lines
+                if len(title_text) > 20 and 'Trendlyne' not in title_text and '|' not in title_text:
+                    # Parse the date from the parent card if possible
+                    card = a.find_parent('div', class_='post-body')
+                    date_str = datetime.now().isoformat() + "Z" # default
+                    if card:
+                        # Try to find date in the card
+                        date_span = card.find('span', attrs={'data-toggle': 'tooltip', 'title': True})
+                        if date_span and date_span.get('title'):
+                            try:
+                                # format: "4 Jul, 2026 at 03:49 PM"
+                                raw_title = date_span['title']
+                                dt = datetime.strptime(raw_title, "%d %b, %Y at %I:%M %p")
+                                date_str = dt.isoformat() + "Z"
+                            except: pass
+                            
+                    news.append({
+                        'title': title_text,
+                        'summary': '',
+                        'pubDate': date_str
+                    })
             
             # Deduplicate by title
             seen = set()
@@ -636,6 +754,88 @@ class TrendlyneFetcher:
         except Exception as e:
             print(f"Trendlyne News Error for {ticker}: {e}")
             return []
+            
+    def get_broker_targets(self, ticker):
+        """Fetches institutional targets directly from Trendlyne."""
+        result = []
+        if not ticker: return result
+        try:
+            search_query = ticker.split('-')[0].split('_')[0]
+            mc_link = f"https://trendlyne.com/research-reports/stock/{search_query}"
+            
+            page_res = None
+            import random
+            for attempt in range(3):
+                with _TRENDLYNE_SEMAPHORE:
+                    time.sleep(random.uniform(0.5, 1.5)) # Prevent burst requests
+                    try:
+                        page_res = self.session.get(mc_link, timeout=10)
+                        if page_res.status_code == 200:
+                            break
+                        elif page_res.status_code in [403, 429]:
+                            time.sleep(2 * (attempt + 1)) # Backoff on rate limit
+                    except Exception as e:
+                        if attempt == 2: raise e
+                        time.sleep(2 * (attempt + 1))
+                        
+            if not page_res or page_res.status_code != 200: return result
+                
+            soup = BeautifulSoup(page_res.text, 'html.parser')
+            table = soup.find('table')
+            if not table: return result
+                
+            rows = table.find_all('tr')
+            for r in rows[2:11]:
+                cells = r.find_all('td')
+                if len(cells) > 8:
+                    date_str = cells[1].text.strip()
+                    
+                    author_cell = cells[3]
+                    broker_a = author_cell.find('a')
+                    broker = broker_a.text.strip() if broker_a else author_cell.text.replace('\n', '').replace('Target', '').replace('Reco', '').strip()
+                    
+                    signals = []
+                    labels = author_cell.find_all('label')
+                    for label in labels:
+                        txt = label.text.strip().lower()
+                        i_tag = label.find('i')
+                        if not i_tag: continue
+                        alt_text = i_tag.get('alt', '').lower()
+                        signal_type = 'target' if 'target' in txt else 'reco' if 'reco' in txt else None
+                        direction = 'up' if 'up' in alt_text else 'down' if 'down' in alt_text else None
+                        if signal_type and direction:
+                            signals.append({"type": signal_type, "direction": direction})
+
+                    target_price_str = cells[5].text.strip()
+                    upside_str = cells[7].text.strip().lower()
+                    is_target_met = 'target met' in upside_str
+                    action_str = cells[8].text.strip()
+                    
+                    target_price_clean = target_price_str.replace('Target', '').replace(',', '').strip()
+                    
+                    action = 'HOLD'
+                    if 'buy' in action_str.lower() or 'accumulate' in action_str.lower() or 'add' in action_str.lower(): action = 'BUY'
+                    elif 'sell' in action_str.lower() or 'reduce' in action_str.lower(): action = 'SELL'
+                        
+                    if date_str and broker and target_price_clean and target_price_clean != '-':
+                        try:
+                            tp = float(target_price_clean)
+                            price_at_reco_str = cells[6].text.split('(')[0].replace(',', '').strip()
+                            price_at_reco = float(price_at_reco_str) if price_at_reco_str and price_at_reco_str != '-' else None
+                            result.append({
+                                'date': date_str,
+                                'broker': broker,
+                                'action': action,
+                                'target_price': tp,
+                                'price_at_reco': price_at_reco,
+                                'is_target_met': is_target_met,
+                                'signals': signals
+                            })
+                        except ValueError: continue
+            return result
+        except Exception as e:
+            print(f"Trendlyne Targets Error for {ticker}: {e}")
+            return result
 
 class GrowwFetcher:
     def __init__(self, session=None):
@@ -803,6 +1003,8 @@ def process_stock_unified(slug, fetcher, index_map, market_breadth_map, args):
             
         abs_data["OHLCV"] = [{"Date": x["Date"], "Open": x["Open"], "High": x["High"], "Low": x["Low"], "Close": x["Close"], "Volume": x["Volume"]} for x in ohlcv_converted]
 
+        # No broker ledger processing inline anymore; UI scrapes on the fly
+
         # --- B. RELATIVE DATASET LOGIC ---
         rel_engineer = MLDatasetEngineer(
             {"raw_next_data": page_props, "live_price": clean_float(raw["html_price"])}, 
@@ -882,7 +1084,10 @@ def main():
     for t in ["NIFTY", "INDIAVIX", "NIFTYSMALLCAP250", "NIFTYMIDCAP150"]:
         c = fetcher.get_ohlcv(t, "NSE")
         if c:
-            index_map[t] = [{"Timestamp": x[0]/1000 if x[0]>10**11 else x[0], "Close": x[4]} for x in c]
+            index_map[t] = []
+            for x in c:
+                ts = x[0]/1000 if x[0]>10**11 else x[0]
+                index_map[t].append({"Timestamp": ts, "Date": datetime.fromtimestamp(ts).strftime('%d-%m-%Y'), "Close": x[4]})
 
     print(f"Starting Unified Update with {args.workers} workers...")
     success = 0

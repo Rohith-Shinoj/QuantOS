@@ -44,12 +44,33 @@ def fetch_broker_targets_from_mc(slug: str, ticker: str):
             cells = r.find_all('td')
             if len(cells) > 8:
                 date_str = cells[1].text.strip()
-                broker = cells[3].text.replace('\n', '').replace('Target', '').strip()
+                # Parse Broker Name and Momentum Signals
+                author_cell = cells[3]
+                broker_a = author_cell.find('a')
+                broker = broker_a.text.strip() if broker_a else author_cell.text.replace('\n', '').replace('Target', '').replace('Reco', '').strip()
+                
+                signals = []
+                labels = author_cell.find_all('label')
+                for label in labels:
+                    txt = label.text.strip().lower()
+                    i_tag = label.find('i')
+                    if not i_tag: continue
+                    alt_text = i_tag.get('alt', '').lower()
+                    
+                    signal_type = 'target' if 'target' in txt else 'reco' if 'reco' in txt else None
+                    direction = 'up' if 'up' in alt_text else 'down' if 'down' in alt_text else None
+                    if signal_type and direction:
+                        signals.append({"type": signal_type, "direction": direction})
+
                 target_price_str = cells[5].text.strip()
+                price_at_reco_str = cells[6].text.strip().split('\n')[0].strip()
+                upside_str = cells[7].text.strip().lower()
+                is_target_met = 'target met' in upside_str
                 action_str = cells[8].text.strip()
                 
                 # Clean up target price (sometimes has "Target" text or commas)
                 target_price_clean = target_price_str.replace('Target', '').replace(',', '').strip()
+                price_at_reco_clean = price_at_reco_str.replace(',', '').strip()
                 
                 # Standardize action
                 action = 'HOLD'
@@ -62,11 +83,22 @@ def fetch_broker_targets_from_mc(slug: str, ticker: str):
                     try:
                         # Validate it's a number
                         float(target_price_clean)
+                        
+                        price_at_reco = None
+                        if price_at_reco_clean and price_at_reco_clean != '-':
+                            try:
+                                price_at_reco = float(price_at_reco_clean)
+                            except ValueError:
+                                pass
+                                
                         result.append({
                             'date': date_str,
                             'broker': broker,
                             'action': action,
-                            'target_price': float(target_price_clean)
+                            'target_price': float(target_price_clean),
+                            'price_at_reco': price_at_reco,
+                            'is_target_met': is_target_met,
+                            'signals': signals
                         })
                     except ValueError:
                         continue

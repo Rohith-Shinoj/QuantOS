@@ -9,7 +9,7 @@ export const ValuationGauges = ({ data }: { data: any }) => {
   const rel = data.relative || {};
   
   const currentIndustry = rel.meta_features?.industry_name;
-  const currentSlug = abs.slug;
+  const currentSlug = data.slug;
 
   const { data: allStocks } = useQuery({
     queryKey: ['allStocks'],
@@ -32,7 +32,7 @@ export const ValuationGauges = ({ data }: { data: any }) => {
       return {
         slug: p.slug,
         ticker: p.ticker || 'Unknown',
-        x: roe * 100, // convert to percentage
+        x: roe, // database already stores it as a percentage (e.g., 14.42)
         y: pe, // using PE Ratio as price multiple
         isCurrent: p.slug === currentSlug
       };
@@ -51,8 +51,11 @@ export const ValuationGauges = ({ data }: { data: any }) => {
     { name: "Beta", value: tech.beta, verdict: tech.beta !== undefined ? getBetaVerdict(tech.beta) : null }
   ].filter(m => m.value !== undefined && m.value !== null);
 
-  const avgX = scatterData.length > 0 ? scatterData.reduce((acc: number, val: any) => acc + val.x, 0) / scatterData.length : 0;
-  const avgY = scatterData.length > 0 ? scatterData.reduce((acc: number, val: any) => acc + val.y, 0) / scatterData.length : 0;
+  const sortedX = [...scatterData].map((d: any) => d.x).sort((a,b) => a-b);
+  const medianX = sortedX.length > 0 ? sortedX[Math.floor(sortedX.length/2)] : 0;
+
+  const sortedY = [...scatterData].map((d: any) => d.y).sort((a,b) => a-b);
+  const medianY = sortedY.length > 0 ? sortedY[Math.floor(sortedY.length/2)] : 0;
 
   return (
     <div className="bg-[#121214] p-5 rounded-xl border border-white/5 h-full flex flex-col group hover:border-white/10 transition-colors">
@@ -60,6 +63,7 @@ export const ValuationGauges = ({ data }: { data: any }) => {
         <div>
           <h3 className="text-lg font-medium text-text-primary flex items-center tracking-tight">
             Sector Valuation Matrix
+            {scatterData.length > 0 && <span className="ml-3 text-xs font-medium text-text-secondary">{scatterData.length} Peers</span>}
             <InfoTooltip text="2D Sector distribution. X-Axis: Quality (ROE). Y-Axis: Price (P/E Ratio). Bottom-Right quadrant is the Deep Value 'Multibagger' zone (High Quality, Low Price)." />
           </h3>
           <p className="text-[11px] text-text-secondary mt-1 uppercase tracking-wider font-semibold">
@@ -110,8 +114,8 @@ export const ValuationGauges = ({ data }: { data: any }) => {
                   return null;
                 }}
               />
-              <ReferenceLine x={avgX} stroke="#52525b" strokeDasharray="3 3" />
-              <ReferenceLine y={avgY} stroke="#52525b" strokeDasharray="3 3" />
+              <ReferenceLine x={medianX} stroke="#52525b" strokeDasharray="3 3" />
+              <ReferenceLine y={medianY} stroke="#52525b" strokeDasharray="3 3" />
               <Scatter name="Sector Peers" data={scatterData}>
                 {scatterData.map((entry: any, index: number) => (
                   <Cell 

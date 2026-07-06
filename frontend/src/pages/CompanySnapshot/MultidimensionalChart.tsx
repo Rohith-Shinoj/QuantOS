@@ -387,11 +387,26 @@ export const MultidimensionalChart = ({
     const obv = calculateOBV(parsedData);
     
     // 2. Structural Overlays
-    const { swingHighs, swingLows } = showMacroPatterns ? findSwingPivots(parsedData, 10) : { swingHighs: [], swingLows: [] };
-    const geometricPatternsAll = showMacroPatterns ? detectGeometricPatterns(parsedData, swingHighs, swingLows) : [];
+    const { swingHighs, swingLows } = (showMacroPatterns && !showNifty && !showSector) ? findSwingPivots(parsedData, 10) : { swingHighs: [], swingLows: [] };
+    const geometricPatternsAll = (showMacroPatterns && !showNifty && !showSector) ? detectGeometricPatterns(parsedData, swingHighs, swingLows, atr) : [];
     const geometricPatterns = geometricPatternsAll.filter(p => patternFilter === 'ALL' || p.status === patternFilter);
     
     const lines = showMacroPatterns ? calculateRSDivergence(parsedData, niftyData.length > 0 ? niftyData : null) : [];
+    
+    const exhaustionMarkers: any[] = [];
+    if (showMacroPatterns && lines.length > 0) {
+      lines.forEach((line: any) => {
+        if (line.type === 'divergence' && parsedData[line.endX]) {
+          exhaustionMarkers.push({
+            time: parsedData[line.endX].time,
+            position: 'aboveBar',
+            color: '#ef4444',
+            shape: 'arrowDown',
+            text: 'Trim/Sell Warning (Exhaustion)',
+          });
+        }
+      });
+    }
     
     // 3. ML Patterns (Current Day Only if toggled, calculated locally if possible, or extracted from backend)
     // The backend provides alpha_score_moonshot, shap_reasons, etc. We map this to the last candle.
@@ -412,7 +427,7 @@ export const MultidimensionalChart = ({
       }
     }
     
-    return { atr, obv, geometricPatterns, lines, mlPatterns };
+    return { atr, obv, geometricPatterns, lines, mlPatterns, exhaustionMarkers };
   }, [parsedData, niftyData, data?.absolute, showMacroPatterns, showMLOverlay, patternFilter]);
 
   // Main Chart Initialization
@@ -660,8 +675,10 @@ export const MultidimensionalChart = ({
         shape: 'arrowDown' as const,
         text: 'Delisted',
       };
-      candleSeries.setMarkers([marker]);
-      baselineSeries.setMarkers([marker]);
+      // @ts-ignore
+      candleSeries.setMarkers([marker] as any);
+      // @ts-ignore
+      baselineSeries.setMarkers([marker] as any);
     }
 
     // Initial visibility state
@@ -766,26 +783,29 @@ export const MultidimensionalChart = ({
     });
     mlSeriesRefs.current = [];
 
-    // Render ML Markers
-    if (showMacroPatterns && showMLOverlay && quantData.mlPatterns.length > 0) {
-      // Preserve existing markers like delisted flag if present
-      const existingMarkers = delistedPadIndex !== -1 ? [{
-        time: parsedData[delistedPadIndex]?.time,
-        position: 'aboveBar' as const,
-        color: '#ef4444',
-        shape: 'arrowDown' as const,
-        text: 'Delisted',
-      }] : [];
-      seriesRefs.current.candle.setMarkers([...existingMarkers, ...quantData.mlPatterns]);
-    } else {
-      const existingMarkers = delistedPadIndex !== -1 ? [{
-        time: parsedData[delistedPadIndex]?.time,
-        position: 'aboveBar' as const,
-        color: '#ef4444',
-        shape: 'arrowDown' as const,
-        text: 'Delisted',
-      }] : [];
-      seriesRefs.current.candle.setMarkers(existingMarkers);
+    // Render ML Markers & Exhaustion Warnings
+    let markersToSet: any[] = delistedPadIndex !== -1 ? [{
+      time: parsedData[delistedPadIndex]?.time,
+      position: 'aboveBar' as const,
+      color: '#ef4444',
+      shape: 'arrowDown' as const,
+      text: 'Delisted',
+    }] : [];
+
+    if (showMacroPatterns) {
+      if (showMLOverlay && quantData.mlPatterns && quantData.mlPatterns.length > 0) {
+        markersToSet = [...markersToSet, ...quantData.mlPatterns];
+      }
+      if (quantData.exhaustionMarkers && quantData.exhaustionMarkers.length > 0) {
+        markersToSet = [...markersToSet, ...quantData.exhaustionMarkers];
+      }
+    }
+    
+    // Sort markers by time before setting to avoid lightweight-charts sorting issues
+    markersToSet.sort((a: any, b: any) => new Date(a.time).getTime() - new Date(b.time).getTime());
+    seriesRefs.current.candle.setMarkers(markersToSet as any);
+    if (seriesRefs.current.baseline) {
+       seriesRefs.current.baseline.setMarkers(markersToSet as any);
     }
 
     // Render Finite Geometric Patterns using WedgePrimitive plugin
@@ -1473,7 +1493,12 @@ export const MultidimensionalChart = ({
               >
                 Macro Patterns
               </button>
-              {showMacroPatterns && (
+              {showMacroPatterns && (showNifty || showSector) && (
+                 <span className="ml-2 text-[10px] text-amber-500 italic whitespace-nowrap">
+                   (Hidden: Disable overlays to view)
+                 </span>
+              )}
+              {showMacroPatterns && !(showNifty || showSector) && (
                 <>
                   <select
                     value={showMLOverlay ? 'ON' : 'OFF'}
