@@ -43,6 +43,7 @@ export const MacroResilience = ({ data }: { data: any }) => {
             Macro Resilience
             <InfoTooltip text="Evaluates the stock's defensive characteristics and reaction to broader Nifty 50 volatility and VIX spikes." />
           </h3>
+          <p className="text-[11px] text-text-secondary mt-0.5 opacity-70 font-mono tracking-tight">Calculated over a 3-year window</p>
         </div>
         <div className="p-2 bg-indigo-500/10 rounded-lg">
            <Shield className="w-5 h-5 text-indigo-400" />

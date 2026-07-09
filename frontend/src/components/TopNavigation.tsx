@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { GlobalSearch } from './GlobalSearch';
-import { Activity, Target, Search, LineChart, BrainCircuit, RefreshCw } from 'lucide-react';
+import { Activity, Target, Search, LineChart, BrainCircuit, RefreshCw, Lock } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { fetchAllStocks } from '../api';
 
@@ -9,6 +9,16 @@ export const TopNavigation = () => {
   const location = useLocation();
   const queryClient = useQueryClient();
   const isLandingPage = location.pathname === '/';
+  
+  // Admin Toggle Logic
+  const searchParams = new URLSearchParams(location.search);
+  const secretKey = import.meta.env.VITE_ADMIN_KEY;
+  if (secretKey && searchParams.get('key') === secretKey) {
+    localStorage.setItem('admin_mode', 'true');
+  } else if (searchParams.get('key') === 'lock') {
+    localStorage.removeItem('admin_mode');
+  }
+  const isAdmin = localStorage.getItem('admin_mode') === 'true';
   
   const navItems = [
     { name: 'Home', path: '/', icon: <Activity size={16} /> },
@@ -54,12 +64,23 @@ export const TopNavigation = () => {
       </div>
 
       <div className="flex items-center gap-2 shrink-0 ml-2">
-        <Link 
-          to="/ai-research"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-500/20 transition-all shadow-[0_0_10px_rgba(99,102,241,0.15)]"
-        >
-          <BrainCircuit size={16} /> AI Research
-        </Link>
+        {isAdmin ? (
+          <Link 
+            to="/ai-research"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-500/20 transition-all shadow-[0_0_10px_rgba(99,102,241,0.15)]"
+          >
+            <BrainCircuit size={16} /> AI Research
+          </Link>
+        ) : (
+          <div className="group relative">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold bg-surface border border-border text-text-secondary opacity-50 cursor-not-allowed">
+              <BrainCircuit size={16} /> AI Research <Lock size={12} className="ml-1 opacity-70" />
+            </div>
+            <div className="absolute top-full mt-2 right-0 bg-[#1e1e24] border border-white/10 p-2 rounded text-[10px] w-48 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 text-text-secondary font-mono pointer-events-none text-right">
+              Due to increased demand, AI Analyst Desk is currently restricted to Enterprise / Internal use only.
+            </div>
+          </div>
+        )}
         
         {isLandingPage && (
           <button 

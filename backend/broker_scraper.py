@@ -28,7 +28,7 @@ def fetch_broker_targets_from_mc(slug: str, ticker: str):
         page_res = requests.get(mc_link, headers=headers, timeout=8)
         
         if page_res.status_code != 200:
-            return result
+            raise Exception(f"Trendlyne returned status {page_res.status_code}")
             
         soup = BeautifulSoup(page_res.text, 'html.parser')
         table = soup.find('table')

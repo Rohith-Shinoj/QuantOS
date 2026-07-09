@@ -121,11 +121,11 @@ export const DeepFinancials = ({ data }: { data: any }) => {
   }
 
   return (
-    <div className="h-full flex flex-col bg-canvas border border-border rounded-lg overflow-visible">
-      <div className="flex justify-between items-center p-4 border-b border-border bg-surface shrink-0">
+    <div className="bg-surface p-4 rounded-lg border border-border h-full flex flex-col">
+      <div className="flex justify-between items-start mb-4">
         <div>
-          <h2 className="text-xl font-bold text-text-primary">Deep Financials</h2>
-          <p className="text-sm text-text-secondary mt-1">Income Statement & Financial Ratios</p>
+          <h3 className="text-lg font-medium text-text-primary">Deep Financials</h3>
+          <p className="text-sm text-text-secondary mt-0.5">Income Statement & Financial Ratios</p>
         </div>
         
         <div className="flex bg-canvas p-1 rounded-lg border border-border">

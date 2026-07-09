@@ -314,99 +314,119 @@ class MLDatasetEngineer:
                 "vix_stress_reaction": np.nan, "avg_recovery_days": np.nan
             }
 
-        nifty_dict = {x["Date"]: x["Close"] for x in nifty}
-        vix_dict = {x["Date"]: x["Close"] for x in vix}
-        
-        up_s, up_n = [], []
-        dn_s, dn_n = [], []
-        vix_ret = []
-        
-        # Calculate Returns
-        for i in range(1, len(stock)):
-            curr, prev = stock[i], stock[i-1]
-            date = curr["Date"]
-            if date in nifty_dict and stock[i-1]["Date"] in nifty_dict:
-                s_ret = (curr["Close"] - prev["Close"]) / prev["Close"]
-                n_prev = nifty_dict[stock[i-1]["Date"]]
-                n_curr = nifty_dict[date]
-                n_ret = (n_curr - n_prev) / n_prev
+        try:
+            import pandas as pd
+            
+            # Convert to DataFrames
+            df_s = pd.DataFrame(stock)
+            df_s['Date'] = pd.to_datetime(df_s['Date'], format='%d-%m-%Y', errors='coerce')
+            df_s.set_index('Date', inplace=True)
+            df_s.sort_index(inplace=True)
+            df_s = df_s.tail(756)
+            
+            df_n = pd.DataFrame(nifty)
+            df_n['Date'] = pd.to_datetime(df_n['Date'], format='%d-%m-%Y', errors='coerce')
+            df_n.set_index('Date', inplace=True)
+            df_n.sort_index(inplace=True)
+            df_n = df_n.tail(756)
+            
+            df_v = pd.DataFrame(vix)
+            df_v['Date'] = pd.to_datetime(df_v['Date'], format='%d-%m-%Y', errors='coerce')
+            df_v.set_index('Date', inplace=True)
+            df_v.sort_index(inplace=True)
+            df_v = df_v.tail(756)
+            
+            # Monthly Resampling for Beta & Capture Ratios
+            df_m = pd.DataFrame({
+                'Stock': df_s['Close'].resample('ME').last(),
+                'Nifty': df_n['Close'].resample('ME').last()
+            }).dropna()
+            
+            ret_m = df_m.pct_change().dropna()
+            
+            up_mask = ret_m['Nifty'] > 0
+            dn_mask = ret_m['Nifty'] < 0
+            
+            up_s = ret_m['Stock'][up_mask]
+            up_n = ret_m['Nifty'][up_mask]
+            
+            dn_s = ret_m['Stock'][dn_mask]
+            dn_n = ret_m['Nifty'][dn_mask]
+            
+            def calc_beta(s, n):
+                if len(s) < 2: return np.nan
+                cov = np.cov(s, n)[0][1]
+                var = np.var(n, ddof=1)
+                return float(cov / var) if var != 0 else np.nan
                 
-                if n_ret > 0:
-                    up_s.append(s_ret)
-                    up_n.append(n_ret)
-                elif n_ret < 0:
-                    dn_s.append(s_ret)
-                    dn_n.append(n_ret)
-                    
-                if date in vix_dict and stock[i-1]["Date"] in vix_dict:
-                    v_prev = vix_dict[stock[i-1]["Date"]]
-                    v_curr = vix_dict[date]
-                    v_ret_val = (v_curr - v_prev) / v_prev
-                    vix_ret.append((v_ret_val, s_ret))
-                    
-        # Beta
-        def calc_beta(s, n):
-            if len(s) < 2: return np.nan
-            cov = np.cov(s, n)[0][1]
-            var = np.var(n)
-            return float(cov / var) if var != 0 else np.nan
+            up_beta = calc_beta(up_s, up_n)
+            down_beta = calc_beta(dn_s, dn_n)
             
-        up_beta = calc_beta(up_s, up_n)
-        down_beta = calc_beta(dn_s, dn_n)
-        
-        # Capture Ratio
-        def calc_capture(s, n):
-            if len(s) < 2: return np.nan
-            comp_s = float(np.prod([1 + x for x in s])) - 1.0
-            comp_n = float(np.prod([1 + x for x in n])) - 1.0
-            return float(comp_s / comp_n) if comp_n != 0 else np.nan
+            def calc_capture(s, n):
+                if len(s) < 2: return np.nan
+                # Annualized compounded returns formula for capture ratio
+                comp_s = (np.prod(1 + s) ** (12 / len(s))) - 1.0
+                comp_n = (np.prod(1 + n) ** (12 / len(n))) - 1.0
+                return float(comp_s / comp_n) if comp_n != 0 else np.nan
+                
+            up_capture = calc_capture(up_s, up_n)
+            down_capture = calc_capture(dn_s, dn_n)
             
-        up_capture = calc_capture(up_s, up_n)
-        down_capture = calc_capture(dn_s, dn_n)
-        
-        # VIX Stress Reaction
-        if len(vix_ret) > 10:
-            vix_spikes = sorted(vix_ret, key=lambda x: x[0], reverse=True)
-            top_spikes = vix_spikes[:max(1, int(len(vix_ret)*0.05))]
-            vix_reaction = float(np.mean([x[1] for x in top_spikes]))
-        else:
-            vix_reaction = np.nan
+            # VIX Stress Reaction using Daily Data
+            df_d = pd.DataFrame({
+                'Stock': df_s['Close'],
+                'VIX': df_v['Close']
+            }).dropna()
+            ret_d = df_d.pct_change().dropna()
             
-        # Drawdown Recovery Days
-        peak = stock[0]["Close"]
-        peak_idx = 0
-        in_drawdown = False
-        trough = peak
-        
-        recovery_days = []
-        for i in range(1, len(stock)):
-            c = stock[i]["Close"]
-            if c > peak:
-                if in_drawdown:
-                    dd_depth = (trough - peak) / peak
-                    if dd_depth <= -0.10: # >10% drawdown
-                        days = i - peak_idx
-                        recovery_days.append(days)
-                peak = c
-                peak_idx = i
-                in_drawdown = False
+            if len(ret_d) > 10:
+                top_spikes = ret_d.nlargest(max(1, int(len(ret_d)*0.05)), 'VIX')
+                vix_reaction = float(top_spikes['Stock'].mean())
             else:
-                if not in_drawdown:
-                    in_drawdown = True
-                    trough = c
+                vix_reaction = np.nan
+                
+            # Drawdown Recovery Days
+            peak = df_s['Close'].iloc[0]
+            peak_idx = df_s.index[0]
+            in_drawdown = False
+            trough = peak
+            
+            recovery_days = []
+            for date, row in df_s.iterrows():
+                c = row['Close']
+                if c > peak:
+                    if in_drawdown:
+                        dd_depth = (trough - peak) / peak
+                        if dd_depth <= -0.10: # >10% drawdown
+                            days = (date - peak_idx).days
+                            recovery_days.append(days)
+                    peak = c
+                    peak_idx = date
+                    in_drawdown = False
                 else:
-                    trough = min(trough, c)
-                    
-        avg_recovery = float(np.mean(recovery_days)) if recovery_days else np.nan
-
-        return {
-            "up_beta": self.track(up_beta),
-            "down_beta": self.track(down_beta),
-            "up_capture": self.track(up_capture),
-            "down_capture": self.track(down_capture),
-            "vix_stress_reaction": self.track(vix_reaction),
-            "avg_recovery_days": self.track(avg_recovery)
-        }
+                    if not in_drawdown:
+                        in_drawdown = True
+                        trough = c
+                    else:
+                        trough = min(trough, c)
+                        
+            avg_recovery = float(np.mean(recovery_days)) if recovery_days else np.nan
+            
+            return {
+                "up_beta": self.track(up_beta),
+                "down_beta": self.track(down_beta),
+                "up_capture": self.track(up_capture),
+                "down_capture": self.track(down_capture),
+                "vix_stress_reaction": self.track(vix_reaction),
+                "avg_recovery_days": self.track(avg_recovery)
+            }
+        except Exception as e:
+            # Fallback on nan if something goes wrong
+            return {
+                "up_beta": np.nan, "down_beta": np.nan,
+                "up_capture": np.nan, "down_capture": np.nan,
+                "vix_stress_reaction": np.nan, "avg_recovery_days": np.nan
+            }
 
     def _derive_meta(self):
         cap = self.stock_data.get("stats", {}).get("cappedType", "")

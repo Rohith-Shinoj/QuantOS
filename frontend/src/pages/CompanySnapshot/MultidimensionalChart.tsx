@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { createChart, ColorType, CrosshairMode, LineStyle } from 'lightweight-charts';
 import type { IChartApi, ISeriesApi } from 'lightweight-charts';
-import { HelpCircle, RefreshCw, Calendar, BrainCircuit, Settings } from 'lucide-react';
+import { HelpCircle, RefreshCw, Calendar, BrainCircuit, Settings, Lock } from 'lucide-react';
 import { StockLogo } from '../../components/StockLogo';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { fetchLiveQuote, fetchStockData } from '../../api';
@@ -1398,12 +1398,26 @@ export const MultidimensionalChart = ({
             )}
             {setIsAIOverlayOpen && (
               <>
-                <button 
-                  onClick={() => setIsAIOverlayOpen(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded transition-all border bg-indigo-500/10 text-indigo-400 border-indigo-500/30 hover:bg-indigo-500/20 shadow-[0_0_10px_rgba(99,102,241,0.15)]"
-                >
-                  <BrainCircuit size={14} /> AI Analysis
-                </button>
+                {localStorage.getItem('admin_mode') === 'true' ? (
+                  <button 
+                    onClick={() => setIsAIOverlayOpen(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded transition-all border bg-indigo-500/10 text-indigo-400 border-indigo-500/30 hover:bg-indigo-500/20 shadow-[0_0_10px_rgba(99,102,241,0.15)]"
+                  >
+                    <BrainCircuit size={14} /> AI Analysis
+                  </button>
+                ) : (
+                  <div className="group relative">
+                    <button 
+                      disabled
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded transition-all border bg-surface text-text-secondary opacity-50 border-border cursor-not-allowed"
+                    >
+                      <BrainCircuit size={14} /> AI Analysis <Lock size={10} className="ml-0.5 opacity-70" />
+                    </button>
+                    <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-[#1e1e24] border border-white/10 p-2 rounded text-[10px] w-48 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 text-text-secondary font-mono pointer-events-none text-center">
+                      Due to increased demand, AI Analyst Desk is currently restricted to Enterprise / Internal use only.
+                    </div>
+                  </div>
+                )}
                 <div className="w-px h-4 bg-border mx-1"></div>
               </>
             )}

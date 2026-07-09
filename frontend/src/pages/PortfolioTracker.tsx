@@ -1248,7 +1248,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
               className="px-6 py-2.5 bg-indigo-500 text-white font-bold rounded-lg hover:bg-indigo-600 transition-colors flex items-center gap-2 shadow-[0_0_15px_rgba(99,102,241,0.3)]"
             >
               <BrainCircuit size={18} />
-              CIO AI Analysis
+              AI Portfolio Analysis
             </button>
           </div>
         </div>
@@ -1923,7 +1923,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
             {/* Header */}
             <div className="bg-surface border-b border-border p-4 shrink-0 flex items-center justify-between">
               <div className="flex items-center gap-3 font-bold text-indigo-400">
-                <BrainCircuit size={20} /> CIO AI Analysis
+                <BrainCircuit size={20} /> AI Portfolio Analysis
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={() => setIsMaximized(!isMaximized)} className="p-1.5 text-text-secondary hover:text-white transition-colors">
