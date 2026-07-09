@@ -12,30 +12,34 @@ import numpy as np
 
 def init_db(target_dir):
     parquet_path = os.path.join(target_dir, "market_data.parquet")
-    absolute_dir = os.path.join(target_dir, "absolute_dataset")
-    relative_dir = os.path.join(target_dir, "relative_dataset")
-    
-    # Ensure directories exist within target
-    os.makedirs(absolute_dir, exist_ok=True)
-    os.makedirs(relative_dir, exist_ok=True)
+    abs_jsonl_path = os.path.join(target_dir, "absolute_dataset.jsonl")
+    rel_jsonl_path = os.path.join(target_dir, "relative_dataset.jsonl")
     
     print(f"Generating Parquet at {parquet_path}...")
     
     # Use an in-memory DuckDB for the conversion
     con = duckdb.connect(":memory:")
     
-    # Load slugs
-    slugs = set()
-    if os.path.exists(absolute_dir):
-        for f in os.listdir(absolute_dir):
-            if f.endswith('.json'):
-                slugs.add(f.replace('.json', ''))
-                
-    if os.path.exists(relative_dir):
-        for f in os.listdir(relative_dir):
-            if f.endswith('.json'):
-                slugs.add(f.replace('.json', ''))
-                
+    # Load slugs and data from JSONL shards
+    abs_map = {}
+    rel_map = {}
+    
+    print("Loading sharded dataset files into memory...")
+    if os.path.exists(abs_jsonl_path):
+        with open(abs_jsonl_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                if line.strip():
+                    d = json.loads(line)
+                    abs_map[d['slug']] = d['data']
+                    
+    if os.path.exists(rel_jsonl_path):
+        with open(rel_jsonl_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                if line.strip():
+                    d = json.loads(line)
+                    rel_map[d['slug']] = d['data']
+                    
+    slugs = set(abs_map.keys()).union(set(rel_map.keys()))
     print(f"Found {len(slugs)} unique slugs. Processing...")
     
     # Create staging table
@@ -63,24 +67,11 @@ def init_db(target_dir):
     insert_data = []
     
     for slug in slugs:
-        abs_path = os.path.join(absolute_dir, f"{slug}.json")
-        rel_path = os.path.join(relative_dir, f"{slug}.json")
+        abs_data = abs_map.get(slug, {})
+        rel_data = rel_map.get(slug, {})
         
-        abs_json_str = None
-        rel_json_str = None
-        
-        abs_data = {}
-        rel_data = {}
-        
-        if os.path.exists(abs_path):
-            with open(abs_path, 'r', encoding='utf-8') as f:
-                abs_json_str = f.read()
-                abs_data = json.loads(abs_json_str)
-        
-        if os.path.exists(rel_path):
-            with open(rel_path, 'r', encoding='utf-8') as f:
-                rel_json_str = f.read()
-                rel_data = json.loads(rel_json_str)
+        abs_json_str = json.dumps(abs_data) if abs_data else None
+        rel_json_str = json.dumps(rel_data) if rel_data else None
         
         # Temporal & Price Viability Gate (Phase 1 Filter)
         ohlcv = abs_data.get("OHLCV", [])

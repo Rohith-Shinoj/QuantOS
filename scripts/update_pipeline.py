@@ -134,18 +134,18 @@ def main():
         print("\nStep 11: Snapshotting user portfolio...")
         run_cmd(["python3", "scripts/snapshot_portfolio.py"], allow_fail=True)
         
-        # Step 12: Cleanup Old Buffer
+        # Step 12: Cleanup Old Buffers
         print("\nStep 12: Cleaning up old buffer...")
-        if current_target:
-            old_buffer_path = f"datasets/{current_target}"
-            if os.path.exists(old_buffer_path) and current_target != new_buffer_basename:
-                print(f"Removing outdated buffer: {old_buffer_path}")
-                shutil.rmtree(old_buffer_path, ignore_errors=True)
+        for entry in os.listdir("datasets"):
+            if entry.startswith("run_") and entry != new_buffer_basename:
+                garbage_dir = os.path.join("datasets", entry)
+                print(f"Removing outdated/abandoned buffer: {garbage_dir}")
+                shutil.rmtree(garbage_dir, ignore_errors=True)
                 
         print("\n--- Data Update Successful ---")
 
-    except Exception as e:
-        print(f"\n❌ Pipeline failed with exception: {e}")
+    except BaseException as e:
+        print(f"\n❌ Pipeline failed or aborted: {e}")
         print(f"Cleaning up abandoned buffer: {NEW_BUFFER}")
         shutil.rmtree(NEW_BUFFER, ignore_errors=True)
         sys.exit(1)

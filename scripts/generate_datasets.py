@@ -77,12 +77,13 @@ def sanitize_nan(obj):
 # --- ENGINEERING ---
 
 class MLDatasetEngineer:
-    def __init__(self, raw_data, ohlcv, ref_idx=-1, index_map=None, market_breadth_map=None):
+    def __init__(self, raw_data, ohlcv, ref_idx=-1, index_map=None, market_breadth_map=None, fetcher_session=None):
         self.raw = raw_data.get("raw_next_data", {})
         self.stock_data = self.raw.get("stockData", {})
         self.ohlcv = ohlcv or []
         self.index_map = index_map or {}
         self.market_breadth_map = market_breadth_map or {}
+        self.fetcher_session = fetcher_session
         
         if not self.ohlcv:
             self.ref_idx = 0
@@ -534,7 +535,7 @@ class MLDatasetEngineer:
     def _derive_news(self):
         # We now use the batched Trendlyne fetcher for high quality news instead of Groww's SEO pages
         ticker = extract_ticker(self.stock_data.get("header", {}))
-        news = TrendlyneFetcher().get_news(ticker) if ticker else []
+        news = TrendlyneFetcher(session=self.fetcher_session).get_news(ticker) if ticker else []
         
         flags = {
             "active_debt_crisis_flag": self.track(1 if any(any(k in str(n).lower() for k in ['debt','default','crisis']) for n in news) else 0),
@@ -710,7 +711,14 @@ class MLDatasetEngineer:
 # --- UNIFIED PROCESSING ---
 class TrendlyneFetcher:
     def __init__(self, session=None):
-        self.session = session or requests.Session()
+        if session:
+            self.session = session
+        else:
+            self.session = requests.Session()
+            adapter = requests.adapters.HTTPAdapter(pool_connections=64, pool_maxsize=64)
+            self.session.mount('https://', adapter)
+            self.session.mount('http://', adapter)
+            
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         })
@@ -859,7 +867,14 @@ class TrendlyneFetcher:
 
 class GrowwFetcher:
     def __init__(self, session=None):
-        self.session = session or requests.Session()
+        if session:
+            self.session = session
+        else:
+            self.session = requests.Session()
+            adapter = requests.adapters.HTTPAdapter(pool_connections=64, pool_maxsize=64)
+            self.session.mount('https://', adapter)
+            self.session.mount('http://', adapter)
+
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         })
@@ -1024,28 +1039,21 @@ def process_stock_unified(slug, fetcher, index_map, market_breadth_map, args):
         abs_data["OHLCV"] = [{"Date": x["Date"], "Open": x["Open"], "High": x["High"], "Low": x["Low"], "Close": x["Close"], "Volume": x["Volume"]} for x in ohlcv_converted]
 
         # No broker ledger processing inline anymore; UI scrapes on the fly
-
         # --- B. RELATIVE DATASET LOGIC ---
         rel_engineer = MLDatasetEngineer(
             {"raw_next_data": page_props, "live_price": clean_float(raw["html_price"])}, 
             ohlcv_converted, 
             index_map=index_map, 
-            market_breadth_map=market_breadth_map
+            market_breadth_map=market_breadth_map,
+            fetcher_session=fetcher.session # pass shared session
         )
         rel_data = rel_engineer.derive_all()
         
-        # 4. Atomic Write
-        abs_path = os.path.join(args.target, "absolute_dataset", f"{slug}.json")
-        rel_path = os.path.join(args.target, "relative_dataset", f"{slug}.json")
+        return (slug, abs_data, rel_data)
         
-        with open(abs_path, 'w') as f: json.dump(abs_data, f, indent=4)
-        with open(rel_path, 'w') as f: json.dump(sanitize_nan(rel_data), f, indent=4)
-        
-        return True
     except Exception as e:
-        import traceback
         print(f"Error processing {slug}: {str(e)}")
-        # Print full traceback on unexpected errors
+        import traceback
         traceback.print_exc()
         time.sleep(1) # Backoff on failure
         return False
@@ -1087,8 +1095,8 @@ def main():
     parser.add_argument("--limit", type=int)
     args = parser.parse_args()
 
-    os.makedirs(os.path.join(args.target, "absolute_dataset"), exist_ok=True)
-    os.makedirs(os.path.join(args.target, "relative_dataset"), exist_ok=True)
+    if args.target:
+        os.makedirs(args.target, exist_ok=True)
 
     if not os.path.exists(args.slugs): return
     with open(args.slugs, 'r') as f: slugs = [l.strip() for l in f if l.strip()]
@@ -1111,10 +1119,23 @@ def main():
 
     print(f"Starting Unified Update with {args.workers} workers...")
     success = 0
+    
+    # We write directly to .jsonl shards to bypass NTFS small-file thrashing
+    abs_jsonl_path = os.path.join(args.target, "absolute_dataset.jsonl")
+    rel_jsonl_path = os.path.join(args.target, "relative_dataset.jsonl")
+    
     with ThreadPoolExecutor(max_workers=args.workers) as executor:
         futures = {executor.submit(process_stock_unified, s, fetcher, index_map, breadth_map, args): s for s in slugs}
-        for f in tqdm(as_completed(futures), total=len(slugs)):
-            if f.result(): success += 1
+        
+        with open(abs_jsonl_path, 'w', encoding='utf-8') as f_abs, \
+             open(rel_jsonl_path, 'w', encoding='utf-8') as f_rel:
+            for f in tqdm(as_completed(futures), total=len(slugs)):
+                res = f.result()
+                if res: 
+                    s_slug, s_abs, s_rel = res
+                    f_abs.write(json.dumps({"slug": s_slug, "data": s_abs}) + "\n")
+                    f_rel.write(json.dumps({"slug": s_slug, "data": sanitize_nan(s_rel)}) + "\n")
+                    success += 1
 
     print(f"Unified Ingestion Complete. Success: {success}/{len(slugs)}")
 
