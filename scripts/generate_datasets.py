@@ -724,65 +724,72 @@ class TrendlyneFetcher:
         })
         
     def get_news(self, ticker):
-        """Resolves the Trendlyne ID and fetches the latest news."""
-        try:
-            # 1. Resolve ID via Redirect
-            redirect_url = f"https://trendlyne.com/research-reports/stock/{ticker}"
-            res1 = self.session.head(redirect_url, allow_redirects=True, timeout=10)
-            final_url = res1.url
-            
-            # Example final_url: https://trendlyne.com/research-reports/stock/1127/RELIANCE/reliance-industries-ltd/
-            match = re.search(r'/stock/(\d+)/([^/]+)/([^/]+)/', final_url)
-            if not match:
-                return []
+        """Resolves the Trendlyne ID and fetches the latest news with exponential backoff."""
+        max_retries = 3
+        backoff = 2
+        for attempt in range(max_retries):
+            try:
+                # 1. Resolve ID via Redirect
+                redirect_url = f"https://trendlyne.com/research-reports/stock/{ticker}"
+                res1 = self.session.head(redirect_url, allow_redirects=True, timeout=10)
+                if res1.status_code == 429:
+                    wait = backoff ** (attempt + 1) + np.random.uniform(0, 1)
+                    time.sleep(wait)
+                    continue
+                    
+                final_url = res1.url
                 
-            stock_id = match.group(1)
-            canonical_slug = match.group(3)
-            
-            # 2. Fetch Latest News
-            news_url = f"https://trendlyne.com/latest-news/{stock_id}/{ticker}/{canonical_slug}/"
-            res2 = self.session.get(news_url, timeout=10)
-            soup = BeautifulSoup(res2.text, 'html.parser')
-            
-            # 3. Parse News
-            news = []
-            for a in soup.find_all('a', class_='newslink'):
-                title_text = re.sub(r'\s+', ' ', a.text).strip()
-                # Filter out metadata lines
-                if len(title_text) > 20 and 'Trendlyne' not in title_text and '|' not in title_text:
-                    # Parse the date from the parent card if possible
-                    card = a.find_parent('div', class_='post-body')
-                    date_str = datetime.now().isoformat() + "Z" # default
-                    if card:
-                        # Try to find date in the card
-                        date_span = card.find('span', attrs={'data-toggle': 'tooltip', 'title': True})
-                        if date_span and date_span.get('title'):
-                            try:
-                                # format: "4 Jul, 2026 at 03:49 PM"
-                                raw_title = date_span['title']
-                                dt = datetime.strptime(raw_title, "%d %b, %Y at %I:%M %p")
-                                date_str = dt.isoformat() + "Z"
-                            except: pass
-                            
-                    news.append({
-                        'title': title_text,
-                        'summary': '',
-                        'pubDate': date_str
-                    })
-            
-            # Deduplicate by title
-            seen = set()
-            unique_news = []
-            for n in news:
-                if n['title'] not in seen:
-                    seen.add(n['title'])
-                    unique_news.append(n)
-            
-            return unique_news
-        except Exception as e:
-            print(f"Trendlyne News Error for {ticker}: {e}")
-            return []
-            
+                # Example final_url: https://trendlyne.com/research-reports/stock/1127/RELIANCE/reliance-industries-ltd/
+                match = re.search(r'/stock/(\d+)/([^/]+)/([^/]+)/', final_url)
+                if not match:
+                    return []
+                    
+                stock_id = match.group(1)
+                canonical_slug = match.group(3)
+                
+                # 2. Fetch Latest News
+                news_url = f"https://trendlyne.com/latest-news/{stock_id}/{ticker}/{canonical_slug}/"
+                res2 = self.session.get(news_url, timeout=10)
+                if res2.status_code == 429:
+                    wait = backoff ** (attempt + 1) + np.random.uniform(0, 1)
+                    time.sleep(wait)
+                    continue
+                    
+                from bs4 import BeautifulSoup
+                soup = BeautifulSoup(res2.text, 'html.parser')
+                
+                # 3. Parse News
+                news = []
+                for a in soup.find_all('a', class_='newslink'):
+                    title_text = re.sub(r'\s+', ' ', a.text).strip()
+                    if len(title_text) > 20 and 'Trendlyne' not in title_text and '|' not in title_text:
+                        card = a.find_parent('div', class_='post-body')
+                        date_str = datetime.now().isoformat() + "Z"
+                        if card:
+                            date_span = card.find('span', attrs={'data-toggle': 'tooltip', 'title': True})
+                            if date_span and date_span.get('title'):
+                                try:
+                                    raw_title = date_span['title']
+                                    dt = datetime.strptime(raw_title, "%d %b, %Y at %I:%M %p")
+                                    date_str = dt.isoformat() + "Z"
+                                except: pass
+                        news.append({
+                            'title': title_text,
+                            'summary': '',
+                            'pubDate': date_str
+                        })
+                
+                seen = set()
+                unique_news = []
+                for n in news:
+                    if n['title'] not in seen:
+                        seen.add(n['title'])
+                        unique_news.append(n)
+                return unique_news
+            except Exception as e:
+                pass
+        return []
+        
     def get_broker_targets(self, ticker):
         """Fetches institutional targets directly from Trendlyne."""
         result = []
@@ -934,10 +941,28 @@ class GrowwFetcher:
                     html_price = price_match.group(1).strip() if price_match else None
                     html_change = change_match.group(1).strip() if change_match else None
                 
+                html_fundamentals = {}
+                
+                # Windows User-Agent fallback: Groww returns a 'fundamentals' list instead of a 'stats' dict.
+                # Since the scraper always uses a Windows User-Agent, this parses that list accurately 
+                # without needing a second network request or brittle HTML regex matching.
+                funds_list = stock_data.get("fundamentals", [])
+                for item in funds_list:
+                    name = item.get("name")
+                    val = str(item.get("value", ""))
+                    if not val or val == "-": continue
+                    
+                    val_clean = val.replace("₹", "").replace(",", "").replace("%", "").replace("Cr", "").replace(" ", "")
+                    try:
+                        html_fundamentals[name] = float(val_clean)
+                    except:
+                        html_fundamentals[name] = val
+                
                 return {
                     "raw_next_data": page_props,
                     "html_price": html_price,
-                    "html_change": html_change
+                    "html_change": html_change,
+                    "html_fundamentals": html_fundamentals
                 }
             except Exception as e:
                 if attempt == max_retries - 1: return None
@@ -976,6 +1001,10 @@ def extract_ticker(header):
 
 def process_stock_unified(slug, fetcher, index_map, market_breadth_map, args):
     try:
+        # Add a random jitter (0-2s) to prevent the "thundering herd" 429s on 32 concurrent requests
+        import random
+        time.sleep(random.uniform(0.0, 2.0))
+        
         # 1. Single Network Call for Metadata
         raw = fetcher.get_stock_data(slug)
         if not raw: return False
@@ -1017,6 +1046,23 @@ def process_stock_unified(slug, fetcher, index_map, market_breadth_map, args):
         
         # Merge stats and fundamentals into abs_data
         stats = stock_data.get("stats", {})
+        
+        # Inject HTML parsed fundamentals back into stats mapping
+        html_funds = raw.get("html_fundamentals", {})
+        if html_funds:
+            if "Market Cap" in html_funds: stats["marketCap"] = html_funds["Market Cap"]
+            if "P/E Ratio(TTM)" in html_funds: stats["peRatio"] = html_funds["P/E Ratio(TTM)"]
+            if "P/B Ratio" in html_funds: stats["pbRatio"] = html_funds["P/B Ratio"]
+            if "ROE" in html_funds: stats["roe"] = html_funds["ROE"]
+            if "Debt to Equity" in html_funds: stats["debtToEquity"] = html_funds["Debt to Equity"]
+            if "Dividend Yield" in html_funds: stats["divYield"] = html_funds["Dividend Yield"]
+            if "EPS(TTM)" in html_funds: stats["eps"] = html_funds["EPS(TTM)"]
+            if "Book Value" in html_funds: stats["bookValue"] = html_funds["Book Value"]
+            
+            # Make sure we fix abs_data["marketCap"] if it was pulled empty
+            if "marketCap" in stats:
+                abs_data["marketCap"] = stats["marketCap"]
+        
         for k, v in stats.items():
             if k not in abs_data: abs_data[k] = v
             
@@ -1059,32 +1105,54 @@ def process_stock_unified(slug, fetcher, index_map, market_breadth_map, args):
         return False
 
 def get_fast_market_breadth(active_buffer_path):
-    """Optimized: Calculate from existing Parquet instead of 6000 JSONs."""
+    """Optimized: Calculate from existing Parquet using native DuckDB SQL instead of Python."""
     breadth_map = {}
     if not active_buffer_path or not os.path.exists(active_buffer_path): return {}
     try:
         con = duckdb.connect(":memory:")
-        # Read absolute_data to calculate historical breadth
-        data = con.execute(f"SELECT absolute_data FROM '{active_buffer_path}'").fetchall()
+        res = con.execute(f"""
+            WITH exploded AS (
+                SELECT 
+                    slug,
+                    UNNEST(from_json(absolute_data->>'$.OHLCV', '["JSON"]')) as candle
+                FROM '{active_buffer_path}'
+            ),
+            extracted AS (
+                SELECT 
+                    slug,
+                    json_extract_string(candle, '$.Date') as dt,
+                    CAST(json_extract_string(candle, '$.Close') AS DOUBLE) as close
+                FROM exploded
+                WHERE candle IS NOT NULL
+            ),
+            moving_avgs AS (
+                SELECT 
+                    slug,
+                    dt,
+                    close,
+                    AVG(close) OVER (
+                        PARTITION BY slug 
+                        ORDER BY strptime(dt, '%d-%m-%Y') 
+                        ROWS BETWEEN 49 PRECEDING AND CURRENT ROW
+                    ) as sma50,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY slug 
+                        ORDER BY strptime(dt, '%d-%m-%Y')
+                    ) as rn
+                FROM extracted
+            )
+            SELECT 
+                dt,
+                SUM(CASE WHEN close > sma50 THEN 1 ELSE 0 END)::DOUBLE / COUNT(*) as breadth
+            FROM moving_avgs
+            WHERE rn >= 50
+            GROUP BY dt
+        """).fetchall()
         
-        breadth_counts = {}
-        for row in data:
-            try:
-                abs_json = json.loads(row[0])
-                ohlcv = abs_json.get("OHLCV", [])
-                if len(ohlcv) < 52: continue
-                closes = [c["Close"] for c in ohlcv]
-                for i in range(50, len(ohlcv)):
-                    sma50 = sum(closes[i-50:i]) / 50.0
-                    dt = ohlcv[i]["Date"]
-                    if dt not in breadth_counts: breadth_counts[dt] = [0, 0]
-                    breadth_counts[dt][0] += (1 if closes[i] > sma50 else 0)
-                    breadth_counts[dt][1] += 1
-            except: continue
-        
-        for dt, counts in breadth_counts.items():
-            breadth_map[dt] = counts[0] / counts[1] if counts[1] > 0 else 0.5
-    except: pass
+        for row in res:
+            breadth_map[row[0]] = row[1]
+    except Exception as e:
+        print("Market Breadth SQL calculation failed:", e)
     return breadth_map
 
 def main():
@@ -1124,18 +1192,23 @@ def main():
     abs_jsonl_path = os.path.join(args.target, "absolute_dataset.jsonl")
     rel_jsonl_path = os.path.join(args.target, "relative_dataset.jsonl")
     
-    with ThreadPoolExecutor(max_workers=args.workers) as executor:
-        futures = {executor.submit(process_stock_unified, s, fetcher, index_map, breadth_map, args): s for s in slugs}
-        
-        with open(abs_jsonl_path, 'w', encoding='utf-8') as f_abs, \
-             open(rel_jsonl_path, 'w', encoding='utf-8') as f_rel:
-            for f in tqdm(as_completed(futures), total=len(slugs)):
-                res = f.result()
-                if res: 
-                    s_slug, s_abs, s_rel = res
-                    f_abs.write(json.dumps({"slug": s_slug, "data": s_abs}) + "\n")
-                    f_rel.write(json.dumps({"slug": s_slug, "data": sanitize_nan(s_rel)}) + "\n")
-                    success += 1
+    try:
+        with ThreadPoolExecutor(max_workers=args.workers) as executor:
+            futures = {executor.submit(process_stock_unified, s, fetcher, index_map, breadth_map, args): s for s in slugs}
+            
+            with open(abs_jsonl_path, 'w', encoding='utf-8') as f_abs, \
+                 open(rel_jsonl_path, 'w', encoding='utf-8') as f_rel:
+                for f in tqdm(as_completed(futures), total=len(slugs)):
+                    res = f.result()
+                    if res: 
+                        s_slug, s_abs, s_rel = res
+                        f_abs.write(json.dumps({"slug": s_slug, "data": s_abs}) + "\n")
+                        f_rel.write(json.dumps({"slug": s_slug, "data": sanitize_nan(s_rel)}) + "\n")
+                        success += 1
+    except KeyboardInterrupt:
+        print("\n[!] Ctrl+C detected. Gracefully shutting down workers...")
+        executor.shutdown(wait=False, cancel_futures=True)
+        sys.exit(1)
 
     print(f"Unified Ingestion Complete. Success: {success}/{len(slugs)}")
 

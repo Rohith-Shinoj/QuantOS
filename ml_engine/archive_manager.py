@@ -36,48 +36,39 @@ def manage_archive(old_db, new_db, snapshot_dir, graveyard_file):
             print(f"Snapshot export failed: {e}")
             raise
 
-    # 2. Graveyard Management (Eliminating Survivorship Bias)
-    print(f"Analyzing graveyard entries...")
-    old_slugs = get_db_slugs(old_db)
-    new_slugs = get_db_slugs(new_db)
-    
-    dead_slugs = old_slugs - new_slugs
-    if not dead_slugs:
-        print("ℹ️ No new graveyard entries identified.")
+    # 2. Carry Forward Missing Stocks (No more graveyard)
+    if old_db == new_db:
+        print("ℹ️ Old and new DB are the same (first run). Skipping carry forward.")
         return
 
-    print(f"Found {len(dead_slugs)} missing stocks. Extracting full history...")
+    print(f"Analyzing missing entries...")
     
-    # Load existing graveyard
-    graveyard = {}
-    if os.path.exists(graveyard_file):
-        try:
-            with open(graveyard_file, 'r') as f:
-                graveyard = json.load(f)
-        except:
-            graveyard = {}
-
     try:
-        con_old = duckdb.connect(old_db, read_only=True)
-        for slug in dead_slugs:
-            # Query the full row for schema flexibility
-            row = con_old.execute("SELECT * FROM stocks WHERE slug = ?", (slug,)).fetchone()
-            # Get column names
-            cols = [d[0] for r in [con_old.execute("DESCRIBE stocks").fetchall()] for d in r]
+        con = duckdb.connect(new_db)
+        con.execute(f"ATTACH '{old_db}' AS old_db (READ_ONLY)")
+        
+        missing_count = con.execute("SELECT COUNT(*) FROM old_db.stocks WHERE slug NOT IN (SELECT slug FROM stocks)").fetchone()[0]
+        
+        if missing_count > 0:
+            print(f"Found {missing_count} missing stocks from previous run. Carrying them forward...")
+            # Dynamically get columns from new_db to avoid schema mismatch with old_db (which has extra ML columns)
+            cols = [r[0] for r in con.execute("DESCRIBE stocks").fetchall()]
+            col_str = ", ".join(cols)
             
-            if row:
-                entry = dict(zip(cols, row))
-                entry["death_timestamp"] = datetime.now().isoformat()
-                graveyard[slug] = entry
-                print(f"  - {slug} added to graveyard.")
-        con_old.close()
+            con.execute(f"""
+                INSERT INTO stocks ({col_str})
+                SELECT {col_str} FROM old_db.stocks
+                WHERE slug NOT IN (SELECT slug FROM stocks)
+            """)
+            print(f"Successfully carried forward {missing_count} stocks.")
+        else:
+            print("ℹ️ No missing stocks identified.")
+            
+        con.execute("DETACH old_db")
+        con.close()
     except Exception as e:
-        print(f"Graveyard extraction failed: {e}")
+        print(f"Failed to carry forward missing stocks: {e}")
         raise
-
-    with open(graveyard_file, 'w') as f:
-        json.dump(graveyard, f, indent=4)
-    print(f"Graveyard updated. Total records: {len(graveyard)}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Professional ML History & Survivorship Manager.")

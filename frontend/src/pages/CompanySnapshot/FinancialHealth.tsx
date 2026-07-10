@@ -26,52 +26,52 @@ export const FinancialHealth = ({ data }: { data: any }) => {
 
     // 1. Positive ROA
     const roa = Number(stats.returnOnAssets);
-    const isRoaPositive = !isNaN(roa) && roa > 0;
+    const isRoaPositive = !isNaN(roa) ? roa > 0 : null;
 
     // 2. Positive OCF
     const pToOcf = Number(stats.priceToOcf);
-    const isOcfPositive = !isNaN(pToOcf) && pToOcf > 0;
+    const isOcfPositive = !isNaN(pToOcf) ? pToOcf > 0 : null;
 
     // 3. Increasing ROE
-    let roeIncreasing = false;
+    let roeIncreasing: boolean | null = null;
     if (p_cy !== null && p_py !== null && nw_cy !== null && nw_py !== null && nw_cy !== 0 && nw_py !== 0) {
       roeIncreasing = (p_cy / nw_cy) > (p_py / nw_py);
     }
 
     // 4. Accruals (OCF > Net Profit)
     const pe = Number(stats.peRatio);
-    let ocfGreater = false;
-    if (isOcfPositive && !isNaN(pe) && pe > 0) {
-      ocfGreater = (1.0 / pToOcf) > (1.0 / pe); // OCF yield > Earnings yield
+    let ocfGreater: boolean | null = null;
+    if (isOcfPositive !== null && !isNaN(pe)) {
+      if (isOcfPositive && pe > 0) {
+        ocfGreater = (1.0 / pToOcf) > (1.0 / pe); // OCF yield > Earnings yield
+      }
     }
 
     // 5. Leverage Control (D/E < 0.5)
     const de = Number(stats.debtToEquity);
-    const leverageControl = !isNaN(de) && de < 0.5;
+    const leverageControl = !isNaN(de) ? de < 0.5 : null;
 
     // 6. Liquidity (Current Ratio > 1.5)
     const cr = Number(stats.currentRatio);
-    const liquidity = !isNaN(cr) && cr > 1.5;
+    const liquidity = !isNaN(cr) ? cr > 1.5 : null;
 
     // 7. Capital Dilution
     const mcap = Number(stats.marketCap);
     const dy = Number(stats.divYield) || 0;
-    let noDilution = false;
+    let noDilution: boolean | null = null;
     if (!isNaN(mcap) && nw_cy !== null && nw_py !== null && p_cy !== null) {
       const divPaid = !isNaN(dy) ? mcap * (dy / 100.0) : 0;
       noDilution = ((nw_cy - nw_py) - p_cy + divPaid) <= (0.05 * Math.abs(nw_py));
-    } else {
-      noDilution = true; // Give benefit of doubt if data missing
     }
 
     // 8. Margins Expansion
-    let marginExpansion = false;
+    let marginExpansion: boolean | null = null;
     if (p_cy !== null && p_py !== null && rev_cy !== null && rev_py !== null && rev_cy > 0 && rev_py > 0) {
       marginExpansion = (p_cy / rev_cy) > (p_py / rev_py);
     }
 
     // 9. Revenue Growth
-    let revenueGrowth = false;
+    let revenueGrowth: boolean | null = null;
     if (rev_cy !== null && rev_py !== null) {
       revenueGrowth = rev_cy > rev_py;
     }
@@ -118,7 +118,7 @@ export const FinancialHealth = ({ data }: { data: any }) => {
 
   // Use the exact score from backend to prevent calculation mismatches
   const backendScore = rel.health_scores?.piotroski_f_score;
-  const score = backendScore !== undefined && backendScore !== null ? Number(backendScore) : checks.filter(c => c.passed).length;
+  const score = backendScore !== undefined && backendScore !== null ? Number(backendScore) : checks.filter(c => c.passed === true).length;
   const isHealthy = score >= 7;
 
   return (
@@ -142,16 +142,23 @@ export const FinancialHealth = ({ data }: { data: any }) => {
             <div 
               key={idx} 
               className={`rounded border flex flex-col items-center justify-center p-2 text-center transition-colors relative group
-                ${check.passed 
+                ${check.passed === true
                   ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
-                  : 'bg-red-500/10 border-red-500/30 text-red-400'}
+                  : check.passed === false
+                  ? 'bg-red-500/10 border-red-500/30 text-red-400'
+                  : 'bg-surface-elevated border-border text-text-secondary'
+                }
               `}
             >
               <div className="absolute top-1 right-1">
                 <InfoTooltip text={check.desc} position="bottom" />
               </div>
               <span className="text-[10px] font-bold uppercase tracking-wider leading-tight mt-1">{check.name}</span>
-              <span className="text-2xl mt-1">{check.passed ? '✓' : '✗'}</span>
+              {check.passed === null ? (
+                <span className="text-[10px] opacity-70 mt-3 font-medium leading-tight">Insufficient<br/>Data</span>
+              ) : (
+                <span className="text-2xl mt-1">{check.passed ? '✓' : '✗'}</span>
+              )}
             </div>
           ))}
         </div>
