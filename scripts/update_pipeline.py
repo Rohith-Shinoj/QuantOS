@@ -43,6 +43,14 @@ def main():
     
     force_update = "--force" in sys.argv
     
+    workers_count = "32"
+    if "--workers" in sys.argv:
+        try:
+            idx = sys.argv.index("--workers")
+            workers_count = sys.argv[idx + 1]
+        except (IndexError, ValueError):
+            pass
+    
     # Step 0: Check Market Status
     print("Step 0: Checking if market data has updated...")
     try:
@@ -73,7 +81,7 @@ def main():
     try:
         # Step 3: Unified Data Generation
         print("\nStep 3: Running unified parallel data generation for stocks...")
-        run_cmd(["python3", "scripts/generate_datasets.py", "--target", NEW_BUFFER, "--workers", "32"])
+        run_cmd(["python3", "scripts/generate_datasets.py", "--target", NEW_BUFFER, "--workers", str(workers_count)])
         
         print("\nStep 3.5: Running data generation for mutual funds...")
         run_cmd(["python3", "scripts/generate_mf_datasets.py", "--target", NEW_BUFFER, "--full-refresh", "--extra-slugs", "mf_slugs.txt"])
