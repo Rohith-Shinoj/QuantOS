@@ -85,12 +85,23 @@ def init_db(target_dir):
         except Exception:
             continue
             
+        # Helper to ensure we don't insert string dashes ('--') into DOUBLE columns
+        def safe_float(val):
+            if val is None: return None
+            try: return float(val)
+            except (ValueError, TypeError): return None
+            
+        def safe_int(val):
+            if val is None: return None
+            try: return int(val)
+            except (ValueError, TypeError): return None
+            
         # Materialize fields
         ticker = abs_data.get("ticker") or "N/A"
         name = abs_data.get("displayName")
         market_cap_type = abs_data.get("cappedType")
-        market_cap = abs_data.get("marketCap")
-        pe_ratio = abs_data.get("peRatio")
+        market_cap = safe_float(abs_data.get("marketCap"))
+        pe_ratio = safe_float(abs_data.get("peRatio"))
         
         # Calculate true day change from OHLCV array instead of flawed API string
         day_change = "0.00 (0.00%)"
@@ -110,11 +121,11 @@ def init_db(target_dir):
         
         # Extract from relative data
         industry = rel_data.get("meta_features", {}).get("industry_name")
-        inst_accum = rel_data.get("shareholding_momentum_vectors", {}).get("institutional_accumulation_qoq")
-        v_squeeze = rel_data.get("risk_and_forensic_signals", {}).get("volatility_squeeze_index")
-        qes_flag = rel_data.get("risk_and_forensic_signals", {}).get("qes_forensic_red_flag")
-        tax_div = rel_data.get("risk_and_forensic_signals", {}).get("tax_profit_divergence")
-        pledge_d = rel_data.get("shareholding_momentum_vectors", {}).get("promoter_pledge_delta")
+        inst_accum = safe_float(rel_data.get("shareholding_momentum_vectors", {}).get("institutional_accumulation_qoq"))
+        v_squeeze = safe_float(rel_data.get("risk_and_forensic_signals", {}).get("volatility_squeeze_index"))
+        qes_flag = safe_int(rel_data.get("risk_and_forensic_signals", {}).get("qes_forensic_red_flag"))
+        tax_div = safe_float(rel_data.get("risk_and_forensic_signals", {}).get("tax_profit_divergence"))
+        pledge_d = safe_float(rel_data.get("shareholding_momentum_vectors", {}).get("promoter_pledge_delta"))
 
         insert_data.append((
             slug, ticker, name, market_cap_type, market_cap, pe_ratio, 

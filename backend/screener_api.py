@@ -145,7 +145,7 @@ STOCK_METRICS: dict[str, tuple] = {
     "free_float":    ("TRY_CAST(json_extract_string(relative_data,'$.shareholding_momentum_vectors.free_float_pct') AS DOUBLE)","Free Float %",       "Shareholding", "numeric", ""),
 
     # ── HEALTH SCORES (pre-computed in ML pipeline) ───────────────────────
-    "piotroski_f":   ("TRY_CAST(json_extract_string(relative_data,'$.health_scores.piotroski_f_score') AS DOUBLE)",  "Piotroski F-Score (0–9)","Health Scores", "numeric", ""),
+    "piotroski_f":   ("TRY_CAST(json_extract_string(json_extract_string(relative_data,'$.health_scores.piotroski_f_score'), '$.total_score') AS DOUBLE)",  "Piotroski F-Score (0–9)","Health Scores", "numeric", ""),
     "graham_number": ("TRY_CAST(json_extract_string(relative_data,'$.health_scores.graham_number_value') AS DOUBLE)","Graham Number (₹)",      "Health Scores", "numeric", ""),
     "altman_z":      ("TRY_CAST(json_extract_string(relative_data,'$.health_scores.altman_z_proxy') AS DOUBLE)",     "Altman Z-Score Proxy",   "Health Scores", "numeric", ""),
 

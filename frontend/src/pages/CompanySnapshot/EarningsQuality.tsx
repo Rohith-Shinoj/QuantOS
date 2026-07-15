@@ -14,7 +14,7 @@ export const EarningsQuality = ({ data }: { data: any }) => {
   
   // Calculate TTM figures
   const ttmProfit = pe > 0 ? marketCap / pe : 0;
-  const ttmOcf = pOcf !== 0 ? marketCap / pOcf : 0;
+  const ttmOcf = abs.operatingCashFlow || (pOcf !== 0 ? marketCap / pOcf : 0);
   
   const qesFlag = rel.risk_and_forensic_signals?.qes_forensic_red_flag === 1;
   

@@ -82,6 +82,7 @@ def sanitize_nan(obj):
 class MLDatasetEngineer:
     def __init__(self, raw_data, ohlcv, ref_idx=-1, index_map=None, market_breadth_map=None, fetcher_session=None, precomputed_dfs=None):
         self.raw = raw_data.get("raw_next_data", {})
+        self.html_fundamentals = raw_data.get("html_fundamentals", {})
         self.stock_data = self.raw.get("stockData", {})
         self.ohlcv = ohlcv or []
         self.index_map = index_map or {}
@@ -677,43 +678,105 @@ class MLDatasetEngineer:
             return None, None
 
         f_score = 0
-        roa = clean_float(stats.get("returnOnAssets"))
-        if not np.isnan(roa) and roa > 0: f_score += 1
+        checks = {
+            "increasing_roa": False,
+            "positive_ocf": False,
+            "increasing_current_ratio": False,
+            "increasing_margin": False,
+            "increasing_revenue": False,
+            "decreasing_leverage": False,
+            "no_dilution": None,
+            "positive_roa": False,
+            "quality_of_earnings": False
+        }
+
+        # 1. Positive ROA
+        net_profit_cy, net_profit_py = get_yearly("Net Profit")
+        if net_profit_cy is None and net_profit_py is None:
+            net_profit_cy, net_profit_py = get_yearly("Profit")
             
-        price_to_ocf = clean_float(stats.get("priceToOcf"))
-        if not np.isnan(price_to_ocf) and price_to_ocf > 0: f_score += 1
+        total_assets = self.html_fundamentals.get("Total Assets")
+        roa = np.nan
+        if net_profit_cy is not None and total_assets and total_assets > 0:
+            roa = net_profit_cy / total_assets
             
-        p_cy, p_py = get_yearly("Profit")
+        if not np.isnan(roa) and roa > 0: 
+            f_score += 1
+            checks["positive_roa"] = True
+            
+        # 2. Positive Operating Cash Flow
+        ocf = self.html_fundamentals.get("Operating Cash Flow")
+        if ocf is not None and ocf > 0:
+            f_score += 1
+            checks["positive_ocf"] = True
+            
+        # 3. Increasing ROA (ROA Current > ROA Previous)
+        # Using (Profit / Net Worth) as a proxy for historical ROA growth
         nw_cy, nw_py = get_yearly("Net Worth")
-        rev_cy, rev_py = get_yearly("Revenue")
-        
-        if p_cy is not None and p_py is not None and nw_cy and nw_py:
-            if (p_cy / nw_cy) > (p_py / nw_py): f_score += 1
+        if net_profit_cy is not None and net_profit_py is not None and nw_cy and nw_py:
+            if (net_profit_cy / nw_cy) > (net_profit_py / nw_py):
+                f_score += 1
+                checks["increasing_roa"] = True
                 
-        pe = clean_float(stats.get("peRatio"))
-        if not np.isnan(price_to_ocf) and price_to_ocf > 0 and not np.isnan(pe) and pe > 0:
-            if (1.0 / price_to_ocf) > (1.0 / pe): f_score += 1
+        # 4. Quality of Earnings (OCF > Net Income)
+        if ocf is not None and net_profit_cy is not None:
+            if ocf > net_profit_cy:
+                f_score += 1
+                checks["quality_of_earnings"] = True
                 
+        # 5. Decreasing Leverage (Long Term Debt / Total Assets)
+        # Or proxy: debt to equity < 0.5
         de = clean_float(stats.get("debtToEquity"))
-        if not np.isnan(de) and de < 0.5: f_score += 1
+        if not np.isnan(de) and de < 0.5:
+            f_score += 1
+            checks["decreasing_leverage"] = True
             
-        cr = clean_float(stats.get("currentRatio"))
-        if not np.isnan(cr) and cr > 1.5: f_score += 1
+        # 6. Increasing Current Ratio
+        ca = self.html_fundamentals.get("Current Assets")
+        cl = self.html_fundamentals.get("Current Liabilities")
+        cr = np.nan
+        if ca and cl and cl > 0:
+            cr = ca / cl
+        else:
+            cr = clean_float(stats.get("currentRatio"))
             
-        mcap = clean_float(stats.get("marketCap"))
-        dy = clean_float(stats.get("divYield"))
-        if not np.isnan(mcap) and nw_cy is not None and nw_py is not None and p_cy is not None:
-            div_paid = mcap * (dy / 100.0) if not np.isnan(dy) else 0
-            if ((nw_cy - nw_py) - p_cy + div_paid) <= (0.05 * abs(nw_py)): f_score += 1
+        if not np.isnan(cr) and cr > 1.5: 
+            f_score += 1
+            checks["increasing_current_ratio"] = True
+            
+        # 7. No Dilution
+        eps_cy = self.html_fundamentals.get("EPS CY")
+        eps_py = self.html_fundamentals.get("EPS PY")
+        if net_profit_cy is not None and net_profit_py is not None and eps_cy is not None and eps_py is not None and eps_cy > 0 and eps_py > 0:
+            shares_cy = net_profit_cy / eps_cy
+            shares_py = net_profit_py / eps_py
+            # Allow 1% variance due to float rounding
+            if shares_cy <= shares_py * 1.01:
+                f_score += 1
+                checks["no_dilution"] = True
+        else:
+            checks["no_dilution"] = None # Fallback to None since it's strictly unknown 
                 
-        if p_cy is not None and p_py is not None and rev_cy and rev_py:
-            if (p_cy / rev_cy) > (p_py / rev_py): f_score += 1
+        # 8. Increasing Margin
+        rev_cy, rev_py = get_yearly("Revenue")
+        if net_profit_cy is not None and net_profit_py is not None and rev_cy and rev_py:
+            if (net_profit_cy / rev_cy) > (net_profit_py / rev_py):
+                f_score += 1
+                checks["increasing_margin"] = True
                 
+        # 9. Increasing Asset Turnover
         if rev_cy is not None and rev_py is not None:
-            if rev_cy > rev_py: f_score += 1
+            if rev_cy > rev_py:
+                f_score += 1
+                checks["increasing_revenue"] = True
             
+        piotroski_obj = json.dumps({
+            "total_score": f_score,
+            "checks": checks
+        })
+        
         return {
-            "piotroski_f_score": self.track(f_score),
+            "piotroski_f_score": piotroski_obj,
             "graham_number_value": self.track(graham_num),
             "altman_z_proxy": self.track(altman_proxy)
         }
@@ -895,6 +958,46 @@ class GrowwFetcher:
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         })
 
+    def _fetch_financial_page(self, slug, page_type):
+        url = f"https://groww.in/stocks/{slug}/company-financial/{page_type}"
+        try:
+            resp = self.session.get(url, timeout=10)
+            if resp.status_code == 200:
+                match = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', resp.text, re.DOTALL)
+                if match:
+                    data = json.loads(match.group(1))
+                    return data.get("props", {}).get("pageProps", {}).get("stockFinancialData", {}).get("statements", [])
+        except:
+            pass
+        return []
+
+    def _extract_latest_value(self, statements, target_statement_title, target_row_titles):
+        target_statement = next((s for s in statements if s.get("title") == target_statement_title), None)
+        if not target_statement: return None
+
+        annually = target_statement.get("consolidatedAnnually")
+        if not annually or not annually.get("financial"):
+            annually = target_statement.get("standaloneAnnually")
+        
+        if not annually or not annually.get("financial"): return None
+
+        def search_rows(rows):
+            for row in rows:
+                if row.get("title") in target_row_titles:
+                    vals = row.get("value", [])
+                    if vals:
+                        for v in reversed(vals):
+                            try:
+                                return float(v)
+                            except:
+                                pass
+                if "childItems" in row:
+                    res = search_rows(row["childItems"])
+                    if res is not None: return res
+            return None
+        
+        return search_rows(annually.get("financial", []))
+
     def get_stock_data(self, slug):
         """Unified fetch for all metadata with exponential backoff for 429s."""
         KNOWN_INDICES = ["nifty", "india-vix", "sp-bse-sensex", "nifty-smallcap-100", "nifty-midcap", "nifty-total-market-index", "nifty-metal", "nifty-it", "nifty-bank", "nifty-next", "nifty-midcap-150", "nifty-pharma", "nifty-218500", "nifty-auto", "nifty-financial-services", "nifty-realty", "nifty-psu-bank", "nifty-fmcg", "nifty-pvt-bank"]
@@ -966,6 +1069,41 @@ class GrowwFetcher:
                         html_fundamentals[name] = float(val_clean)
                     except:
                         html_fundamentals[name] = val
+
+                # Fetch Deep Financials to augment missing fields (Strictly gathered during pipeline execution)
+                statements = self._fetch_financial_page(slug, "income-statement")
+                
+                if statements:
+                    ta = self._extract_latest_value(statements, "Balance Sheet", ["Total Assets"])
+                    if ta is not None: html_fundamentals["Total Assets"] = ta
+                    
+                    ca = self._extract_latest_value(statements, "Balance Sheet", ["Current Assets"])
+                    if ca is not None: html_fundamentals["Current Assets"] = ca
+                    
+                    cl = self._extract_latest_value(statements, "Balance Sheet", ["Current Liabilities"])
+                    if cl is not None: html_fundamentals["Current Liabilities"] = cl
+                    
+                    ltd = self._extract_latest_value(statements, "Balance Sheet", ["Total Debt", "Long Term Debt"])
+                    if ltd is not None: html_fundamentals["Long Term Debt"] = ltd
+                
+                    ocf = self._extract_latest_value(statements, "Cash Flow", ["Cash Flow From Operating Activities"])
+                    if ocf is not None: html_fundamentals["Operating Cash Flow"] = ocf
+                    
+                    def extract_eps(sts):
+                        target = next((s for s in sts if s.get("title") == "Income Statement"), None)
+                        if not target: return None, None
+                        annually = target.get("consolidatedAnnually") or target.get("standaloneAnnually")
+                        if not annually or not annually.get("ratio"): return None, None
+                        for r in annually["ratio"]:
+                            if r.get("title") == "Earning Per Share (Diluted)":
+                                vals = r.get("value", [])
+                                if len(vals) >= 2:
+                                    return vals[-1], vals[-2]
+                        return None, None
+                    
+                    eps_cy, eps_py = extract_eps(statements)
+                    if eps_cy is not None: html_fundamentals["EPS CY"] = eps_cy
+                    if eps_py is not None: html_fundamentals["EPS PY"] = eps_py
                 
                 return {
                     "raw_next_data": page_props,
@@ -1066,8 +1204,7 @@ def process_stock_unified(slug, fetcher, index_map, market_breadth_map, precompu
             if "Dividend Yield" in html_funds: stats["divYield"] = html_funds["Dividend Yield"]
             if "EPS(TTM)" in html_funds: stats["eps"] = html_funds["EPS(TTM)"]
             if "Book Value" in html_funds: stats["bookValue"] = html_funds["Book Value"]
-            
-            # Make sure we fix abs_data["marketCap"] if it was pulled empty
+            if "Operating Cash Flow" in html_funds: stats["operatingCashFlow"] = html_funds["Operating Cash Flow"]
             if "marketCap" in stats:
                 abs_data["marketCap"] = stats["marketCap"]
         
@@ -1095,7 +1232,7 @@ def process_stock_unified(slug, fetcher, index_map, market_breadth_map, precompu
         # No broker ledger processing inline anymore; UI scrapes on the fly
         # --- B. RELATIVE DATASET LOGIC ---
         rel_engineer = MLDatasetEngineer(
-            {"raw_next_data": page_props, "live_price": clean_float(raw["html_price"])}, 
+            {"raw_next_data": page_props, "live_price": clean_float(raw["html_price"]), "html_fundamentals": raw.get("html_fundamentals", {})}, 
             ohlcv_converted, 
             index_map=index_map, 
             market_breadth_map=market_breadth_map,
