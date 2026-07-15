@@ -16,6 +16,9 @@ from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from bs4 import BeautifulSoup
+import pandas as pd
+import random
+import traceback
 
 # Initialize SIA once
 sia = SentimentIntensityAnalyzer()
@@ -77,13 +80,14 @@ def sanitize_nan(obj):
 # --- ENGINEERING ---
 
 class MLDatasetEngineer:
-    def __init__(self, raw_data, ohlcv, ref_idx=-1, index_map=None, market_breadth_map=None, fetcher_session=None):
+    def __init__(self, raw_data, ohlcv, ref_idx=-1, index_map=None, market_breadth_map=None, fetcher_session=None, precomputed_dfs=None):
         self.raw = raw_data.get("raw_next_data", {})
         self.stock_data = self.raw.get("stockData", {})
         self.ohlcv = ohlcv or []
         self.index_map = index_map or {}
         self.market_breadth_map = market_breadth_map or {}
         self.fetcher_session = fetcher_session
+        self.precomputed_dfs = precomputed_dfs or {}
         
         if not self.ohlcv:
             self.ref_idx = 0
@@ -316,8 +320,6 @@ class MLDatasetEngineer:
             }
 
         try:
-            import pandas as pd
-            
             # Convert to DataFrames
             df_s = pd.DataFrame(stock)
             df_s['Date'] = pd.to_datetime(df_s['Date'], format='%d-%m-%Y', errors='coerce')
@@ -325,16 +327,24 @@ class MLDatasetEngineer:
             df_s.sort_index(inplace=True)
             df_s = df_s.tail(756)
             
-            df_n = pd.DataFrame(nifty)
-            df_n['Date'] = pd.to_datetime(df_n['Date'], format='%d-%m-%Y', errors='coerce')
-            df_n.set_index('Date', inplace=True)
-            df_n.sort_index(inplace=True)
+            df_n = self.precomputed_dfs.get("NIFTY")
+            if df_n is not None:
+                df_n = df_n[df_n.index <= pd.Timestamp(self.ref_time.date())].copy()
+            else:
+                df_n = pd.DataFrame(nifty)
+                df_n['Date'] = pd.to_datetime(df_n['Date'], format='%d-%m-%Y', errors='coerce')
+                df_n.set_index('Date', inplace=True)
+                df_n.sort_index(inplace=True)
             df_n = df_n.tail(756)
             
-            df_v = pd.DataFrame(vix)
-            df_v['Date'] = pd.to_datetime(df_v['Date'], format='%d-%m-%Y', errors='coerce')
-            df_v.set_index('Date', inplace=True)
-            df_v.sort_index(inplace=True)
+            df_v = self.precomputed_dfs.get("INDIAVIX")
+            if df_v is not None:
+                df_v = df_v[df_v.index <= pd.Timestamp(self.ref_time.date())].copy()
+            else:
+                df_v = pd.DataFrame(vix)
+                df_v['Date'] = pd.to_datetime(df_v['Date'], format='%d-%m-%Y', errors='coerce')
+                df_v.set_index('Date', inplace=True)
+                df_v.sort_index(inplace=True)
             df_v = df_v.tail(756)
             
             # Monthly Resampling for Beta & Capture Ratios
@@ -719,9 +729,9 @@ class TrendlyneFetcher:
             self.session.mount('https://', adapter)
             self.session.mount('http://', adapter)
             
-        self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        })
+            self.session.headers.update({
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            })
         
     def get_news(self, ticker):
         """Resolves the Trendlyne ID and fetches the latest news with exponential backoff."""
@@ -799,7 +809,6 @@ class TrendlyneFetcher:
             mc_link = f"https://trendlyne.com/research-reports/stock/{search_query}"
             
             page_res = None
-            import random
             for attempt in range(3):
                 with _TRENDLYNE_SEMAPHORE:
                     time.sleep(random.uniform(0.5, 1.5)) # Prevent burst requests
@@ -999,10 +1008,9 @@ def extract_ticker(header):
         if val: return str(val).strip()
     return None
 
-def process_stock_unified(slug, fetcher, index_map, market_breadth_map, args):
+def process_stock_unified(slug, fetcher, index_map, market_breadth_map, precomputed_dfs, args):
     try:
         # Add a random jitter (0-2s) to prevent the "thundering herd" 429s on 32 concurrent requests
-        import random
         time.sleep(random.uniform(0.0, 2.0))
         
         # 1. Single Network Call for Metadata
@@ -1091,7 +1099,8 @@ def process_stock_unified(slug, fetcher, index_map, market_breadth_map, args):
             ohlcv_converted, 
             index_map=index_map, 
             market_breadth_map=market_breadth_map,
-            fetcher_session=fetcher.session # pass shared session
+            fetcher_session=fetcher.session, # pass shared session
+            precomputed_dfs=precomputed_dfs
         )
         rel_data = rel_engineer.derive_all()
         
@@ -1099,7 +1108,6 @@ def process_stock_unified(slug, fetcher, index_map, market_breadth_map, args):
         
     except Exception as e:
         print(f"Error processing {slug}: {str(e)}")
-        import traceback
         traceback.print_exc()
         time.sleep(1) # Backoff on failure
         return False
@@ -1186,6 +1194,22 @@ def main():
                 index_map[t].append({"Timestamp": ts, "Date": datetime.fromtimestamp(ts).strftime('%d-%m-%Y'), "Close": x[4]})
 
     print(f"Starting Unified Update with {args.workers} workers...")
+    
+    precomputed_dfs = {}
+    if "NIFTY" in index_map and index_map["NIFTY"]:
+        df_n = pd.DataFrame(index_map["NIFTY"])
+        df_n['Date'] = pd.to_datetime(df_n['Date'], format='%d-%m-%Y', errors='coerce')
+        df_n.set_index('Date', inplace=True)
+        df_n.sort_index(inplace=True)
+        precomputed_dfs["NIFTY"] = df_n
+        
+    if "INDIAVIX" in index_map and index_map["INDIAVIX"]:
+        df_v = pd.DataFrame(index_map["INDIAVIX"])
+        df_v['Date'] = pd.to_datetime(df_v['Date'], format='%d-%m-%Y', errors='coerce')
+        df_v.set_index('Date', inplace=True)
+        df_v.sort_index(inplace=True)
+        precomputed_dfs["INDIAVIX"] = df_v
+
     success = 0
     
     # We write directly to .jsonl shards to bypass NTFS small-file thrashing
@@ -1194,7 +1218,7 @@ def main():
     
     try:
         with ThreadPoolExecutor(max_workers=args.workers) as executor:
-            futures = {executor.submit(process_stock_unified, s, fetcher, index_map, breadth_map, args): s for s in slugs}
+            futures = {executor.submit(process_stock_unified, s, fetcher, index_map, breadth_map, precomputed_dfs, args): s for s in slugs}
             
             with open(abs_jsonl_path, 'w', encoding='utf-8') as f_abs, \
                  open(rel_jsonl_path, 'w', encoding='utf-8') as f_rel:
