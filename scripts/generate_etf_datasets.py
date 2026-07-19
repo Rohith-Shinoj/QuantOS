@@ -149,7 +149,7 @@ def fetch_all_etfs(target_dir, slugs_file):
     session.headers.update({"User-Agent": "Mozilla/5.0"})
     
     results = []
-    with ThreadPoolExecutor(max_workers=16) as executor:
+    with ThreadPoolExecutor(max_workers=32) as executor:
         futures = {executor.submit(process_etf, slug, session): slug for slug in etf_slugs}
         for future in tqdm(as_completed(futures), total=len(etf_slugs), desc="Scraping ETFs"):
             res = future.result()

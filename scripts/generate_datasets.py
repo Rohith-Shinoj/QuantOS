@@ -19,6 +19,15 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import random
 import traceback
+import threading
+
+# Thread-Local Storage for Session Management
+thread_local = threading.local()
+
+def get_thread_fetcher():
+    if not hasattr(thread_local, "fetcher"):
+        thread_local.fetcher = GrowwFetcher()
+    return thread_local.fetcher
 
 # Initialize SIA once
 sia = SentimentIntensityAnalyzer()
@@ -1181,8 +1190,9 @@ def extract_ticker(header):
         if val: return str(val).strip()
     return None
 
-def process_stock_unified(slug, fetcher, index_map, market_breadth_map, precomputed_dfs, args):
+def process_stock_unified(slug, index_map, market_breadth_map, precomputed_dfs, args):
     try:
+        fetcher = get_thread_fetcher()
         # Add a random jitter (0-2s) to prevent the "thundering herd" 429s on 32 concurrent requests
         time.sleep(random.uniform(0.0, 2.0))
         
@@ -1392,7 +1402,7 @@ def main():
     
     try:
         with ThreadPoolExecutor(max_workers=args.workers) as executor:
-            futures = {executor.submit(process_stock_unified, s, fetcher, index_map, breadth_map, precomputed_dfs, args): s for s in slugs}
+            futures = {executor.submit(process_stock_unified, s, index_map, breadth_map, precomputed_dfs, args): s for s in slugs}
             
             with open(abs_jsonl_path, 'w', encoding='utf-8') as f_abs, \
                  open(rel_jsonl_path, 'w', encoding='utf-8') as f_rel:
