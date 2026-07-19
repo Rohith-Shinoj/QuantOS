@@ -27,6 +27,16 @@ export const fetchAllStocks = async () => {
   return response.data;
 };
 
+export const fetchETFs = async () => {
+  const response = await axios.get(`${API_BASE_URL}/etfs`);
+  return response.data;
+};
+
+export const fetchETFData = async (slug: string) => {
+  const response = await axios.get(`${API_BASE_URL}/etfs/${slug}`);
+  return response.data;
+};
+
 export const fetchBatchStockData = async (slugs: string[]) => {
   const response = await axios.post(`${API_BASE_URL}/stocks/batch`, { slugs });
   return response.data;
@@ -117,6 +127,8 @@ export const fetchMutualFundByCode = async (schemeCode: string) => {
   const response = await axios.get(`${API_BASE_URL}/mutual_funds/${schemeCode}`);
   return response.data;
 };
+
+
 
 export interface LiveQuote {
   slug: string;

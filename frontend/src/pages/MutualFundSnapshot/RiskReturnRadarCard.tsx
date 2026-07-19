@@ -84,10 +84,10 @@ export const RiskReturnRadarCard = ({ fund }: { fund: any }) => {
   ];
 
   return (
-    <div className="bg-[#111114] border border-white/5 p-5 rounded-xl flex flex-col justify-between h-full overflow-hidden">
+    <div className="bg-surface border border-border p-5 rounded-xl flex flex-col justify-between h-full overflow-hidden">
       <h3 className="text-sm font-semibold text-text-primary mb-2 flex items-center gap-1.5 shrink-0 group relative w-fit cursor-help">
-        Risk-Return Radar <HelpCircle size={14} className="text-text-secondary hover:text-white transition-colors" />
-        <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-64 bg-[#1a1a24] text-white text-[10px] p-2 rounded shadow-xl z-50 normal-case tracking-normal border border-white/10 font-normal leading-relaxed">
+        Risk-Return Radar <HelpCircle size={14} className="text-text-secondary hover:text-text-primary transition-colors" />
+        <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-64 bg-surface-hover text-text-primary text-[10px] p-2 rounded shadow-xl z-50 normal-case tracking-normal border border-border font-normal leading-relaxed">
           Plots complex institutional risk metrics on a 5-point radar web. Larger polygon area generally indicates superior risk-adjusted efficiency compared to category peers.
         </div>
       </h3>

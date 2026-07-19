@@ -21,7 +21,7 @@ export const AbsorptionHeatmap = ({ data }: { data: any[] }) => {
           return (
             <Link 
               key={stock.slug} 
-              to={`/stock/${stock.slug}`}
+              to={`/stocks/${stock.slug}`}
               className="group relative p-4 rounded border border-border bg-canvas hover:border-alpha transition-all"
             >
               <div className="flex justify-between items-start gap-2">

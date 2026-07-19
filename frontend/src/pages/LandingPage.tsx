@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, ChevronRight, BarChart2, Info, TrendingUp, TrendingDown, ArrowRight, Activity, ArrowUpRight, BrainCircuit, RefreshCw, Calendar } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchAllStocks, fetchStockData, fetchMacroData, fetchBatchLiveQuotes, fetchBatchStockData, fetchMutualFunds } from '../api';
+import { fetchAllStocks, fetchStockData, fetchMacroData, fetchBatchLiveQuotes, fetchBatchStockData, fetchMutualFunds, fetchETFs } from '../api';
 import Chart from 'react-apexcharts';
 import { StockLogo } from '../components/StockLogo';
 import { GlobalSearch } from '../components/GlobalSearch';
@@ -111,20 +111,7 @@ const parseDayChange = (str: string) => {
   };
 };
 
-const computeFallbackChange = (seriesData: {x: number, y: number}[], existingChange: any) => {
-  if (existingChange.abs === '0.00' && seriesData.length >= 2) {
-    const latest = seriesData[seriesData.length - 1].y;
-    const prev = seriesData[seriesData.length - 2].y;
-    const absDiff = latest - prev;
-    const pctDiff = (absDiff / prev) * 100;
-    return {
-      abs: Math.abs(absDiff).toFixed(2),
-      pct: Math.abs(pctDiff).toFixed(2) + '%',
-      isPositive: absDiff >= 0
-    };
-  }
-  return existingChange;
-};
+// Fallback removed per strict data integrity rules
 
 const formatMCap = (mcap: number) => {
   if (!mcap) return '---';
@@ -151,7 +138,7 @@ const HorizontalStockCards = ({ title, stocks }: { title: string, stocks: any[] 
         {stocks.map(s => {
           const change = parseDayChange(s.day_change);
           return (
-            <Link key={s.slug} to={`/terminal/${s.slug}`} className="min-w-[240px] bg-surface border border-border rounded-xl p-4 hover:border-alpha/50 transition-colors flex flex-col justify-between group">
+            <Link key={s.slug} to={`/stocks/${s.slug}`} className="min-w-[240px] bg-surface border border-border rounded-xl p-4 hover:border-alpha/50 transition-colors flex flex-col justify-between group">
               <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-3">
                   <StockLogo ticker={s.ticker} className="w-8 h-8" textClass="text-xs" fallbackClass="bg-canvas border border-border text-alpha" />
@@ -215,12 +202,7 @@ const MarketSummaryChart = ({ slug }: { slug: string }) => {
   const seriesData = ohlcv
     .filter((d: any) => d && d.Date)
     .map((d: any) => {
-      const parts = d.Date.split('-');
-      if (parts.length === 3) {
-        const [day, month, year] = parts;
-        return { x: new Date(`${year}-${month}-${day}`).getTime(), y: d.Close };
-      }
-      return { x: 0, y: d.Close };
+      return { x: new Date(d.Date).getTime(), y: d.Close };
     });
 
   const { filtered: chartData, min: yMin, max: yMax } = filterSeriesByTimeframe(seriesData, timeframe, customRange);
@@ -228,8 +210,21 @@ const MarketSummaryChart = ({ slug }: { slug: string }) => {
   const isPositive = chartData.length > 1 ? chartData[chartData.length - 1].y >= chartData[0].y : true;
   const color = isPositive ? '#10b981' : '#ef4444'; 
 
-  const rawChangeStr = stockData?.absolute?.day_change || '';
-  const changeObj = computeFallbackChange(seriesData, parseDayChange(rawChangeStr));
+  let changeObj = { abs: '0.00', pct: '0.00%', isPositive: true };
+  if (chartData.length > 1) {
+    const firstPrice = chartData[0].y;
+    const lastPrice = chartData[chartData.length - 1].y;
+    const diff = lastPrice - firstPrice;
+    const pct = firstPrice > 0 ? (diff / firstPrice) * 100 : 0;
+    changeObj = {
+      abs: Math.abs(diff).toFixed(2),
+      pct: Math.abs(pct).toFixed(2) + '%',
+      isPositive: diff >= 0
+    };
+  } else {
+    const rawChangeStr = stockData?.absolute?.day_change || stockData?.absolute?.['day change'] || '';
+    changeObj = parseDayChange(rawChangeStr);
+  }
 
   const options: ApexOptions = {
     chart: { type: 'area', toolbar: { show: false }, background: 'transparent', animations: { enabled: false }, sparkline: { enabled: true } },
@@ -302,18 +297,13 @@ const ComplexMarketCard = ({ stock }: { stock: any }) => {
   const seriesData = ohlcv
     .filter((d: any) => d && d.Date)
     .map((d: any) => {
-      const parts = d.Date.split('-');
-      if (parts.length === 3) {
-        const [day, month, year] = parts;
-        return { x: new Date(`${year}-${month}-${day}`).getTime(), y: d.Close };
-      }
-      return { x: 0, y: d.Close };
+      return { x: new Date(d.Date).getTime(), y: d.Close };
     });
 
   const { filtered: chartData, min: yMin, max: yMax } = filterSeriesByTimeframe(seriesData, timeframe, customRange);
 
   const rawChange = parseDayChange(stock.day_change);
-  const change = computeFallbackChange(seriesData, rawChange);
+  const change = rawChange;
   const color = change.isPositive ? '#10b981' : '#ef4444';
 
   const options: ApexOptions = {
@@ -330,7 +320,7 @@ const ComplexMarketCard = ({ stock }: { stock: any }) => {
   const displayColor = change.isPositive ? 'text-alpha' : 'text-beta';
 
   return (
-    <Link to={`/terminal/${slug}`} className="bg-surface border border-border rounded-xl flex flex-col h-[380px] overflow-hidden group">
+    <Link to={`/stocks/${slug}`} className="bg-surface border border-border rounded-xl flex flex-col h-[380px] overflow-hidden group">
       <div className="p-4 flex-1 flex flex-col border-b border-border cursor-pointer hover:bg-surface-hover transition-colors">
         <div className="flex justify-between items-start">
           <div className="flex items-center gap-2 overflow-hidden pr-2">
@@ -354,10 +344,7 @@ const ComplexMarketCard = ({ stock }: { stock: any }) => {
       <div className="p-4 h-[160px] bg-canvas/30">
         <div className="flex flex-col h-full justify-between">
           <div className="text-[10px] font-bold text-text-secondary mb-2 uppercase">{stock.industry || 'General'} Metrics</div>
-          <div className="flex justify-between items-center py-1 border-b border-border/50">
-            <span className="text-[10px] font-bold text-text-primary">AI Alpha Score</span>
-            <span className={`text-[10px] font-bold ${Math.max(stock.alpha_score_conservative || 0, stock.alpha_score_moonshot || 0) > 0 ? 'text-alpha' : 'text-beta'}`}>{(Math.max(stock.alpha_score_conservative || 0, stock.alpha_score_moonshot || 0) * 100).toFixed(2)}%</span>
-          </div>
+
           <div className="flex justify-between items-center py-1 border-b border-border/50">
             <span className="text-[10px] font-bold text-text-primary">Inst. Flow Rate</span>
             <span className={`text-[10px] font-bold ${stock.inst_accum > 0 ? 'text-alpha' : 'text-beta'}`}>{stock.inst_accum?.toFixed(2)}%</span>
@@ -403,18 +390,13 @@ const MiniSectorCard = ({ stock, stockData, isLoading }: { stock: any, stockData
   const seriesData = ohlcv
     .filter((d: any) => d && d.Date)
     .map((d: any) => {
-      const parts = d.Date.split('-');
-      if (parts.length === 3) {
-        const [day, month, year] = parts;
-        return { x: new Date(`${year}-${month}-${day}`).getTime(), y: d.Close };
-      }
-      return { x: 0, y: d.Close };
+      return { x: new Date(d.Date).getTime(), y: d.Close };
     });
 
   const { filtered: chartData, min: yMin, max: yMax } = filterSeriesByTimeframe(seriesData, timeframe, customRange);
 
   const rawChange = parseDayChange(stock.day_change);
-  const change = computeFallbackChange(seriesData, rawChange);
+  const change = rawChange;
   const color = change.isPositive ? '#10b981' : '#ef4444';
   const displayColor = change.isPositive ? 'text-alpha' : 'text-beta';
 
@@ -482,18 +464,13 @@ const CommodityRowCard = ({ stock }: { stock: any }) => {
   const seriesData = ohlcv
     .filter((d: any) => d && d.Date)
     .map((d: any) => {
-      const parts = d.Date.split('-');
-      if (parts.length === 3) {
-        const [day, month, year] = parts;
-        return { x: new Date(`${year}-${month}-${day}`).getTime(), y: d.Close };
-      }
-      return { x: 0, y: d.Close };
+      return { x: new Date(d.Date).getTime(), y: d.Close };
     });
 
   const { filtered: chartData, min: yMin, max: yMax } = filterSeriesByTimeframe(seriesData, timeframe, customRange);
 
   const rawChange = parseDayChange(stock.day_change);
-  const change = computeFallbackChange(seriesData, rawChange);
+  const change = rawChange;
   const color = change.isPositive ? '#10b981' : '#ef4444';
   const displayColor = change.isPositive ? 'text-alpha' : 'text-beta';
 
@@ -570,18 +547,13 @@ const IndexMarketCard = ({ stock, isActive, stockData, isLoading }: { stock: any
   const seriesData = ohlcv
     .filter((d: any) => d && d.Date)
     .map((d: any) => {
-      const parts = d.Date.split('-');
-      if (parts.length === 3) {
-        const [day, month, year] = parts;
-        return { x: new Date(`${year}-${month}-${day}`).getTime(), y: d.Close };
-      }
-      return { x: 0, y: d.Close };
+      return { x: new Date(d.Date).getTime(), y: d.Close };
     });
 
   const { filtered: chartData, min: yMin, max: yMax } = filterSeriesByTimeframe(seriesData, timeframe, customRange);
 
   const rawChange = parseDayChange(stock.day_change);
-  const change = computeFallbackChange(seriesData, rawChange);
+  const change = rawChange;
   const color = change.isPositive ? '#10b981' : '#ef4444';
 
   const options: ApexOptions = {
@@ -696,14 +668,14 @@ const MarketSectors = ({ macro, stocks }: { macro: any, stocks: any[] }) => {
 
       {expandedSector && (
         <div className="mt-4 p-6 bg-surface border border-alpha/30 rounded-xl animate-in slide-in-from-top-2 fade-in duration-200">
-           <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+           <h3 className="text-lg font-bold text-text-primary mb-6 flex items-center gap-2">
              <div className="w-2 h-2 bg-alpha rounded-full"></div> {expandedSector} Constituents
            </h3>
            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
              {sectorStocks.map(s => {
                const change = parseDayChange(s.day_change);
                return (
-                 <Link key={s.slug} to={`/terminal/${s.slug}`} className="bg-canvas border border-border p-4 rounded-lg hover:border-alpha/50 group transition-colors flex justify-between items-center">
+                 <Link key={s.slug} to={`/stocks/${s.slug}`} className="bg-canvas border border-border p-4 rounded-lg hover:border-alpha/50 group transition-colors flex justify-between items-center">
                    <div className="flex items-center gap-3 overflow-hidden">
                      <StockLogo ticker={s.ticker} className="w-8 h-8" textClass="text-[10px]" fallbackClass="bg-surface border border-border text-alpha" />
                      <div className="overflow-hidden">
@@ -733,8 +705,6 @@ const StockListGrid = ({ stocks }: { stocks: any[] }) => {
   const highestVolume = [...validStocks].sort((a, b) => (b.inst_accum || 0) - (a.inst_accum || 0)).slice(0, 5);
   const mostVolatile = [...validStocks].sort((a, b) => (b.rs_rating || 0) - (a.rs_rating || 0)).slice(0, 5);
   
-  const topCompounders = [...stocks].sort((a, b) => (b.alpha_score_conservative || 0) - (a.alpha_score_conservative || 0)).slice(0, 5);
-  const topMoonshots = [...stocks].sort((a, b) => (b.alpha_score_moonshot || 0) - (a.alpha_score_moonshot || 0)).slice(0, 5);
 
   const List = ({ title, tooltip, data, metricFormat, metricColor, subtextFormat, stockTooltip }: any) => (
     <div>
@@ -753,7 +723,7 @@ const StockListGrid = ({ stocks }: { stocks: any[] }) => {
         {data.map((s: any) => {
           const change = parseDayChange(s.day_change);
           return (
-            <Link key={s.slug} to={`/terminal/${s.slug}`} className="flex justify-between items-center p-3 hover:bg-surface border-b border-border/30 last:border-0 rounded-lg group transition-colors">
+            <Link key={s.slug} to={`/stocks/${s.slug}`} className="flex justify-between items-center p-3 hover:bg-surface border-b border-border/30 last:border-0 rounded-lg group transition-colors">
               <div className="flex items-center gap-4">
                 <StockLogo ticker={s.ticker} className="w-8 h-8 group-hover:opacity-80 transition-opacity" textClass="text-[10px]" fallbackClass="bg-surface border border-border text-alpha group-hover:bg-alpha/10 transition-colors" />
                 <div className="overflow-hidden">
@@ -810,11 +780,11 @@ const StockListGrid = ({ stocks }: { stocks: any[] }) => {
         )}
       />
       <List 
-        title="Highest Momentum" 
+        title="Highest CANSLIM Momentum" 
         tooltip="Ranks stocks by Relative Score (RS) over a 52-week rolling basis. A stock scoring RS 99 is in the top 1% of structural momentum, regardless of today's price change."
         data={mostVolatile} 
         metricColor="bg-warning/10 text-warning"
-        metricFormat={(s: any) => `${s.rs_rating?.toFixed(0)}th Pctile`}
+        metricFormat={(s: any) => `Relative Score ${s.rs_rating?.toFixed(0)}`}
         stockTooltip={(s: any) => (
           <div className="flex flex-col gap-2">
             <div className="font-bold text-sm text-warning border-b border-border/50 pb-2 mb-1">Relative Strength Rating</div>
@@ -822,50 +792,7 @@ const StockListGrid = ({ stocks }: { stocks: any[] }) => {
           </div>
         )}
       />
-      <List 
-        title={
-          <span className="flex items-center gap-2">
-            Steady Compounders
-            <span className="bg-yellow-500/20 text-yellow-500 text-[10px] px-1.5 py-0.5 rounded-sm uppercase tracking-wider font-bold">AI</span>
-          </span>
-        }
-        tooltip="Conservative track: Maximize capital preservation, CAGR > 25%, MDD < 20%, Size >= 5000Cr, ADTV >= 1Cr."
-        data={topCompounders} 
-        metricColor="bg-alpha/10 text-alpha"
-        metricFormat={(s: any) => `${(s.alpha_score_conservative * 100)?.toFixed(1)}% AI Prob`}
-        subtextFormat={(s: any) => s.shap_reason_1 ? <span className="text-text-secondary">Top Driver: {s.shap_reason_1.split(' (')[0]}</span> : null}
-        stockTooltip={(s: any) => (
-          <div className="flex flex-col gap-2">
-            <div className="font-bold text-sm text-alpha border-b border-border/50 pb-2 mb-1">AI Alpha Probability: {(s.alpha_score_conservative * 100)?.toFixed(1)}%</div>
-            <div className="text-text-secondary mb-2">This stock has a {(s.alpha_score_conservative * 100)?.toFixed(1)}% mathematical probability of outperforming the Nifty 50 over the next 12 months with low downside risk.</div>
-            {s.shap_reason_1 && <div className="text-alpha text-xs font-mono bg-alpha/10 p-1.5 rounded truncate">🟩 {s.shap_reason_1}</div>}
-            {s.shap_reason_2 && <div className="text-alpha text-xs font-mono bg-alpha/10 p-1.5 rounded truncate">🟩 {s.shap_reason_2}</div>}
-            {s.shap_reason_3 && <div className="text-alpha text-xs font-mono bg-alpha/10 p-1.5 rounded truncate">🟩 {s.shap_reason_3}</div>}
-          </div>
-        )}
-      />
-      <List 
-        title={
-          <span className="flex items-center gap-2">
-            High Growth Fundamentals
-            <span className="bg-yellow-500/20 text-yellow-500 text-[10px] px-1.5 py-0.5 rounded-sm uppercase tracking-wider font-bold">AI</span>
-          </span>
-        }
-        tooltip="Moonshot track: Maximize explosive returns, Size <= 5000Cr, ADTV >= 25L, Revenue YoY > 35%."
-        data={topMoonshots} 
-        metricColor="bg-[#8A2BE2]/10 text-[#8A2BE2]"
-        metricFormat={(s: any) => `${(s.alpha_score_moonshot * 100)?.toFixed(1)}% AI Prob`}
-        subtextFormat={(s: any) => s.shap_reason_1 ? <span className="text-text-secondary">Top Driver: {s.shap_reason_1.split(' (')[0]}</span> : null}
-        stockTooltip={(s: any) => (
-          <div className="flex flex-col gap-2">
-            <div className="font-bold text-sm text-[#8A2BE2] border-b border-border/50 pb-2 mb-1">AI Moonshot Probability: {(s.alpha_score_moonshot * 100)?.toFixed(1)}%</div>
-            <div className="text-text-secondary mb-2">This micro-cap stock has a {(s.alpha_score_moonshot * 100)?.toFixed(1)}% mathematical probability of explosive asymmetric returns (&gt;100% upside) over the next 12 months.</div>
-            {s.shap_reason_1 && <div className="text-[#8A2BE2] text-xs font-mono bg-[#8A2BE2]/10 p-1.5 rounded truncate">🚀 {s.shap_reason_1}</div>}
-            {s.shap_reason_2 && <div className="text-[#8A2BE2] text-xs font-mono bg-[#8A2BE2]/10 p-1.5 rounded truncate">🚀 {s.shap_reason_2}</div>}
-            {s.shap_reason_3 && <div className="text-[#8A2BE2] text-xs font-mono bg-[#8A2BE2]/10 p-1.5 rounded truncate">🚀 {s.shap_reason_3}</div>}
-          </div>
-        )}
-      />
+
     </div>
   );
 };
@@ -894,7 +821,7 @@ const TickerTapeItem = ({ asset }: { asset: any }) => {
     }
   }
 
-  const change = asset.is_mf ? rawChange : computeFallbackChange(seriesData, rawChange);
+  const change = rawChange;
   
   const isIndex = asset.slug.includes('nifty') || asset.slug.includes('sensex') || asset.slug.includes('vix');
   let cleanPrice = livePrice?.includes('₹') 
@@ -907,8 +834,8 @@ const TickerTapeItem = ({ asset }: { asset: any }) => {
 
   return (
     <div 
-      className="inline-flex items-center justify-between w-[22rem] px-8 border-r border-white/10 cursor-pointer hover:bg-surface-hover transition-colors h-8 shrink-0"
-      onClick={() => navigate(asset.is_mf ? `/mutual-funds/${asset.slug}` : `/terminal/${asset.slug}`)}
+      className="inline-flex items-center justify-between w-[18rem] px-6 border-r border-border cursor-pointer hover:bg-surface-hover transition-colors h-8 shrink-0"
+      onClick={() => navigate(asset.is_mf ? `/mutual-funds/${asset.slug}` : `/stocks/${asset.slug}`)}
     >
       <div className="flex items-center gap-3">
         {asset.is_mf && asset.logo_url ? (
@@ -916,7 +843,7 @@ const TickerTapeItem = ({ asset }: { asset: any }) => {
         ) : (
            <StockLogo ticker={asset.ticker} className="w-5 h-5 border-white/20" textClass="text-[9px]" />
         )}
-        <span className="font-bold text-[11px] text-text-primary uppercase tracking-wider truncate w-28">{displayName}</span>
+        <span className="font-bold text-[11px] text-text-primary uppercase tracking-wider truncate max-w-[130px]">{displayName}</span>
       </div>
       <div className="flex items-center gap-2">
         <span className={`font-bold text-xs ${asset.is_mf ? 'text-text-primary' : (change.isPositive ? 'text-alpha' : 'text-beta')}`}>{priceDisplay}</span>
@@ -994,8 +921,18 @@ export const LandingPage = () => {
     is_mf: true
   }));
 
-  const [tickerMode, setTickerMode] = useState<'stocks' | 'indices' | 'funds'>('stocks');
-  const activeTickerItems = tickerMode === 'stocks' ? majorStocks.slice(0, 10) : (tickerMode === 'indices' ? indexAssets : topFunds);
+  const { data: etfsResp } = useQuery({ queryKey: ['allETFs'], queryFn: fetchETFs, staleTime: Infinity });
+  const topETFs = (etfsResp || []).sort((a: any, b: any) => (b.marketCap || 0) - (a.marketCap || 0)).slice(0, 10).map((etf: any) => ({
+    slug: etf.slug,
+    ticker: etf.ticker,
+    name: etf.name,
+    livePrice: etf.livePrice ? String(etf.livePrice) : '0',
+    day_change: etf.dayChange || '0.00 (0.00%)',
+    logo_url: etf.header?.logoUrl
+  }));
+
+  const [tickerMode, setTickerMode] = useState<'stocks' | 'etfs' | 'indices' | 'funds'>('stocks');
+  const activeTickerItems = tickerMode === 'stocks' ? majorStocks.slice(0, 10) : (tickerMode === 'etfs' ? topETFs : (tickerMode === 'indices' ? indexAssets : topFunds));
 
   const handleSyncMarket = async () => {
     setIsSyncing(true);
@@ -1080,21 +1017,27 @@ export const LandingPage = () => {
         <div className="flex items-center gap-1 bg-canvas rounded-md p-0.5 shadow-inner border border-border/50">
            <button 
              onClick={() => setTickerMode('stocks')}
-             className={`text-[8px] font-bold px-4 py-0.5 rounded transition-all tracking-widest ${tickerMode === 'stocks' ? 'text-white bg-surface-hover shadow-sm border border-border' : 'text-text-secondary hover:text-white border border-transparent'}`}
+             className={`text-[8px] font-bold px-4 py-0.5 rounded transition-all tracking-widest ${tickerMode === 'stocks' ? 'text-text-primary bg-surface-hover shadow-sm border border-border' : 'text-text-secondary hover:text-text-primary border border-transparent'}`}
            >
              STOCKS
            </button>
            <button 
-             onClick={() => setTickerMode('indices')}
-             className={`text-[8px] font-bold px-4 py-0.5 rounded transition-all tracking-widest ${tickerMode === 'indices' ? 'text-white bg-surface-hover shadow-sm border border-border' : 'text-text-secondary hover:text-white border border-transparent'}`}
+             onClick={() => setTickerMode('etfs')}
+             className={`text-[8px] font-bold px-4 py-0.5 rounded transition-all tracking-widest ${tickerMode === 'etfs' ? 'text-text-primary bg-surface-hover shadow-sm border border-border' : 'text-text-secondary hover:text-text-primary border border-transparent'}`}
            >
-             INDICES
+             ETFS
            </button>
            <button 
              onClick={() => setTickerMode('funds')}
-             className={`text-[8px] font-bold px-4 py-0.5 rounded transition-all tracking-widest ${tickerMode === 'funds' ? 'text-white bg-surface-hover shadow-sm border border-border' : 'text-text-secondary hover:text-white border border-transparent'}`}
+             className={`text-[8px] font-bold px-4 py-0.5 rounded transition-all tracking-widest ${tickerMode === 'funds' ? 'text-text-primary bg-surface-hover shadow-sm border border-border' : 'text-text-secondary hover:text-text-primary border border-transparent'}`}
            >
              MUTUAL FUNDS
+           </button>
+           <button 
+             onClick={() => setTickerMode('indices')}
+             className={`text-[8px] font-bold px-4 py-0.5 rounded transition-all tracking-widest ${tickerMode === 'indices' ? 'text-text-primary bg-surface-hover shadow-sm border border-border' : 'text-text-secondary hover:text-text-primary border border-transparent'}`}
+           >
+             INDICES
            </button>
         </div>
       </div>
@@ -1143,13 +1086,13 @@ export const LandingPage = () => {
                     <Link 
                       key={s.slug} 
                       className={`flex justify-between items-center p-3 rounded-lg cursor-pointer transition-colors mb-1 hover:bg-canvas border border-transparent`}
-                      to={`/terminal/${s.slug}`}
+                      to={`/stocks/${s.slug}`}
                     >
                       <div className="flex items-center gap-3 overflow-hidden pr-2">
                         <StockLogo 
                         ticker={s.ticker} 
                         className={`w-8 h-8 ${activeSlug === s.slug ? 'ring-2 ring-alpha ring-offset-2 ring-offset-surface' : ''}`}
-                        fallbackClass={activeSlug === s.slug ? 'bg-alpha text-white' : 'bg-surface-hover text-text-primary'} 
+                        fallbackClass={activeSlug === s.slug ? 'bg-alpha text-text-primary' : 'bg-surface-hover text-text-primary'} 
                       />
                         <div className="overflow-hidden flex-1 min-w-0">
                           <div className="font-bold text-sm text-text-primary truncate">{s.name}</div>
@@ -1173,8 +1116,8 @@ export const LandingPage = () => {
           </div>
 
           {/* Row 2: Secondary Indicators */}
-          {coreAssets.map((asset: any) => (
-            <Link key={asset.slug} to={`/terminal/${asset.slug}`} className="col-span-12 md:col-span-4 min-w-0 min-h-0 block cursor-pointer transition-transform hover:-translate-y-1">
+          {coreAssets.slice(0, 3).map((asset: any) => (
+            <Link key={asset.slug} to={`/stocks/${asset.slug}`} className="col-span-12 md:col-span-4 min-w-0 min-h-0 block cursor-pointer transition-transform hover:-translate-y-1">
               <IndexMarketCard stock={asset} isActive={false} stockData={batchStockData?.[asset.slug]} isLoading={isBatchLoading} />
             </Link>
           ))}

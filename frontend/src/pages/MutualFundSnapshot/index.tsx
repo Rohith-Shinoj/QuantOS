@@ -23,8 +23,8 @@ const MetricBox = ({ label, value, subtext, color = 'text-text-primary', tooltip
       {label}
       {tooltipDesc && (
         <>
-          <HelpCircle size={14} className="text-text-secondary hover:text-white transition-colors" />
-          <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-48 bg-[#1a1a24] text-white text-[10px] p-2 rounded shadow-xl z-50 normal-case tracking-normal border border-white/10 font-normal leading-relaxed">
+          <HelpCircle size={14} className="text-text-secondary hover:text-text-primary transition-colors" />
+          <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-48 bg-surface-hover text-text-primary text-[10px] p-2 rounded shadow-xl z-50 normal-case tracking-normal border border-border font-normal leading-relaxed">
             {tooltipDesc}
           </div>
         </>
@@ -40,7 +40,7 @@ const MetricBox = ({ label, value, subtext, color = 'text-text-primary', tooltip
 import { Skeleton } from '../../components/Skeleton';
 
 export const MutualFundSnapshot = () => {
-  const { code } = useParams();
+  const { slug: code } = useParams();
   const [isAIOverlayOpen, setIsAIOverlayOpen] = useState(false);
   
   const { data: fund, isLoading } = useQuery({
@@ -98,7 +98,7 @@ export const MutualFundSnapshot = () => {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col h-full bg-[#131722] overflow-auto">
+      <div className="flex flex-col h-full bg-canvas overflow-auto">
         <div className="p-6 md:p-8 max-w-[1600px] mx-auto w-full flex-1">
           <Skeleton className="h-4 w-24 mb-6" />
           <div className="bg-surface border border-border rounded-lg p-6 mb-6">
@@ -139,12 +139,12 @@ export const MutualFundSnapshot = () => {
   };
 
   return (
-    <div className="flex flex-col w-full bg-[#0a0a0b] text-text-primary text-sm">
+    <div className="flex flex-col w-full bg-canvas text-text-primary text-sm">
 
       <div className="p-6 flex flex-col gap-6 w-full pb-24 overflow-y-auto custom-scrollbar">
 
         {/* Hero Chart */}
-        <div className="h-[600px] w-full bg-[#111114] border border-white/5 rounded-xl overflow-hidden shrink-0">
+        <div className="h-[600px] w-full bg-surface border border-border rounded-xl overflow-hidden shrink-0">
           <MutualFundPriceChart fund={fund} setIsAIOverlayOpen={setIsAIOverlayOpen} />
         </div>
 
@@ -161,10 +161,10 @@ export const MutualFundSnapshot = () => {
           <HoldingsConcentrationCard fund={fund} />
           
           {/* Rolling Returns (Card 5) */}
-          <div className="bg-[#111114] border border-white/5 p-5 rounded-xl flex flex-col h-full min-h-0 relative overflow-hidden">
+          <div className="bg-surface border border-border p-5 rounded-xl flex flex-col h-full min-h-0 relative overflow-hidden">
              <h3 className="text-sm font-semibold text-text-primary mb-4 flex items-center gap-1.5 shrink-0 group relative w-fit cursor-help">
-              3-Year Rolling Returns <HelpCircle size={14} className="text-text-secondary hover:text-white transition-colors" />
-              <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-64 bg-[#1a1a24] text-white text-[10px] p-2 rounded shadow-xl z-50 normal-case tracking-normal border border-white/10 font-normal leading-relaxed">
+              3-Year Rolling Returns <HelpCircle size={14} className="text-text-secondary hover:text-text-primary transition-colors" />
+              <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-64 bg-surface-hover text-text-primary text-[10px] p-2 rounded shadow-xl z-50 normal-case tracking-normal border border-border font-normal leading-relaxed">
                 Measures consistency. Instead of a single 3-year return from today, this calculates the 3-year return for every single day over the past 5 years.
               </div>
             </h3>

@@ -79,31 +79,21 @@ def main():
     os.makedirs(NEW_BUFFER, exist_ok=True)
     
     try:
-        # Step 3: Unified Data Generation
-        print("\nStep 3: Running unified parallel data generation for stocks...")
+        print("\\nStep 3: Running unified parallel data generation for stocks...")
         run_cmd(["python3", "scripts/generate_datasets.py", "--target", NEW_BUFFER, "--workers", str(workers_count)])
         
-        print("\nStep 3.5: Running data generation for mutual funds...")
+        print("\\nStep 3.2: Running data generation for ETFs...")
+        run_cmd(["python3", "scripts/generate_etf_datasets.py", "--target", NEW_BUFFER])
+        
+        print("\\nStep 3.5: Running data generation for mutual funds...")
         run_cmd(["python3", "scripts/generate_mf_datasets.py", "--target", NEW_BUFFER, "--full-refresh", "--extra-slugs", "mf_slugs.txt"])
         
         # Step 4: Shadow Ingestion
         print("\nStep 4: Compiling Parquet file...")
         run_cmd(["python3", "backend/data_loader.py", "--target", NEW_BUFFER])
         
-        # Step 6: History & Graveyard Management
-        print("\nStep 6: Archiving snapshot and managing graveyard...")
-        # Point to the active symlink to grab history rather than relying on stale copied paths
-        old_db_path = f"{ACTIVE_LINK}/market_data.duckdb"
         new_db_path = f"{NEW_BUFFER}/market_data.duckdb"
-        if os.path.exists(old_db_path):
-            run_cmd(["python3", "ml_engine/archive_manager.py", "--old-db", old_db_path, "--new-db", new_db_path])
-        else:
-            run_cmd(["python3", "ml_engine/archive_manager.py", "--old-db", new_db_path, "--new-db", new_db_path])
-            
-        # Step 7: Predictive Intelligence Inference
-        print("\nStep 7: Running dual-engine inference and SHAP explainability...")
-        run_cmd(["python3", "ml_engine/predictor_2.py", "--db", new_db_path, "--parquet", f"{NEW_BUFFER}/market_data.parquet"])
-        
+
         # Step 8: Atomic Swap
         print("\nStep 8: Swapping symlink to new buffer...")
         

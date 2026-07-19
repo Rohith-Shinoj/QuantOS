@@ -31,7 +31,7 @@ export const BrokerTargets: React.FC<BrokerTargetsProps> = ({ slug }) => {
       <div className="lg:col-span-3 h-[180px] bg-surface border border-border rounded-xl p-5 flex items-center justify-center">
         <div className="animate-pulse flex items-center gap-2 text-text-secondary">
           <Target size={16} className="animate-spin" />
-          <span className="text-sm font-semibold tracking-wider">FETCHING INSTITUTIONAL TARGETS...</span>
+          <span className="text-[10px] font-bold uppercase tracking-wider">FETCHING INSTITUTIONAL TARGETS...</span>
         </div>
       </div>
     );
@@ -41,7 +41,7 @@ export const BrokerTargets: React.FC<BrokerTargetsProps> = ({ slug }) => {
     return (
       <div className="lg:col-span-3 h-[180px] bg-surface border border-border rounded-xl p-5 flex flex-col items-center justify-center">
         <Target size={24} className="text-text-secondary mb-2 opacity-50" />
-        <span className="text-sm font-semibold text-text-secondary tracking-wider">NO INSTITUTIONAL COVERAGE FOUND</span>
+        <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">NO INSTITUTIONAL COVERAGE FOUND</span>
       </div>
     );
   }
@@ -55,8 +55,8 @@ export const BrokerTargets: React.FC<BrokerTargetsProps> = ({ slug }) => {
 
   return (
     <div className="lg:col-span-3 bg-surface border border-border rounded-xl p-5 flex flex-col relative overflow-hidden" style={{ minHeight: containerHeight }}>
-      <h3 className="text-sm font-bold text-text-primary mb-4 flex items-center gap-1.5 uppercase tracking-wider shrink-0">
-        <Target size={14} className="text-blue-400" />
+      <h3 className="text-sm font-semibold text-text-primary mb-6 flex items-center gap-1.5 shrink-0">
+        <Target size={14} className="text-text-secondary" />
         Institutional Targets
       </h3>
       
@@ -67,7 +67,7 @@ export const BrokerTargets: React.FC<BrokerTargetsProps> = ({ slug }) => {
             const isSell = target.action === 'SELL';
             
             return (
-              <div key={idx} className={`bg-canvas border border-border/50 rounded-lg p-4 flex flex-col justify-between hover:border-border transition-colors group`}>
+              <div key={idx} className={`bg-white/5 border border-border rounded-lg p-4 flex flex-col justify-between hover:bg-white/10 transition-colors group`}>
                 <div className="flex justify-between items-start mb-3">
                   <div>
                     <h4 className="font-bold text-text-primary text-sm truncate max-w-[150px]" title={target.broker}>
@@ -98,7 +98,7 @@ export const BrokerTargets: React.FC<BrokerTargetsProps> = ({ slug }) => {
                     <span className={`px-2 py-1 rounded text-[10px] font-bold flex items-center gap-1 uppercase tracking-wider
                       ${isBuy ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 
                         isSell ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 
-                        'bg-gray-500/10 text-gray-400 border border-gray-500/20'}
+                        'bg-gray-500/10 text-text-secondary border border-gray-500/20'}
                     `}>
                       {isBuy ? <TrendingUp size={10} /> : isSell ? <TrendingDown size={10} /> : <Minus size={10} />}
                       {target.action}
@@ -106,10 +106,10 @@ export const BrokerTargets: React.FC<BrokerTargetsProps> = ({ slug }) => {
                   </div>
                 </div>
                 
-                <div className="flex items-end justify-between mt-2 pt-2 border-t border-border/30">
+                <div className="flex items-end justify-between mt-2 pt-2 border-t border-border">
                   <div className="flex flex-col">
                     <span className="text-[10px] text-text-secondary font-semibold uppercase tracking-wider mb-0.5">Target</span>
-                    <span className="text-lg font-black tracking-tight text-white group-hover:text-blue-400 transition-colors">
+                    <span className="text-lg font-black tracking-tight text-text-primary group-hover:text-blue-400 transition-colors">
                       ₹{target.target_price.toLocaleString()}
                     </span>
                   </div>
@@ -117,7 +117,7 @@ export const BrokerTargets: React.FC<BrokerTargetsProps> = ({ slug }) => {
                   {target.price_at_reco && (
                     <div className="flex flex-col text-right">
                       <span className="text-[9px] text-text-secondary font-semibold uppercase tracking-wider mb-0.5">Price at Reco</span>
-                      <span className="text-[13px] font-bold text-text-primary/90">
+                      <span className="text-[13px] font-bold text-text-primary">
                         ₹{target.price_at_reco.toLocaleString()}
                       </span>
                     </div>
@@ -129,7 +129,7 @@ export const BrokerTargets: React.FC<BrokerTargetsProps> = ({ slug }) => {
         </div>
       </div>
 
-      <div className="mt-4 pt-3 border-t border-border/50 flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] text-text-secondary uppercase tracking-wider font-semibold shrink-0">
+      <div className="mt-4 pt-3 border-t border-border flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] text-text-secondary uppercase tracking-wider font-semibold shrink-0">
         <span className="flex items-center gap-1"><TrendingUp size={10} className="text-emerald-500" /> Target: Increased target price</span>
         <span className="flex items-center gap-1"><TrendingDown size={10} className="text-red-500" /> Target: Reduced target price</span>
         <span className="flex items-center gap-1"><TrendingUp size={10} className="text-emerald-500" /> Reco: Upgraded rating</span>

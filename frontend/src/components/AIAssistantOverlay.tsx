@@ -104,20 +104,20 @@ export const AIAssistantOverlay: React.FC<Props> = ({ ticker, isOpen, onClose, d
   };
 
   return (
-    <div className="absolute top-4 right-4 w-[500px] h-[80vh] bg-black/80 backdrop-blur-xl border border-indigo-500/30 rounded-xl shadow-[0_0_40px_rgba(0,0,0,0.8)] flex flex-col z-50 overflow-hidden">
+    <div className="absolute top-4 right-4 w-[500px] h-[80vh] bg-black/90 backdrop-blur-2xl border border-indigo-500/30 rounded-xl shadow-[0_0_40px_rgba(0,0,0,0.8)] flex flex-col z-[100] overflow-hidden">
       
       {/* Header */}
       <div className="bg-indigo-900/20 px-4 py-3 border-b border-indigo-500/30 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
           <BrainCircuit className="text-indigo-400 w-5 h-5" />
-          <span className="font-bold text-white tracking-tight text-sm">AI breakdown</span>
+          <span className="font-bold text-text-primary tracking-tight text-sm">AI breakdown</span>
           {(displayName || ticker) && <span className="text-xs px-2 py-0.5 bg-indigo-500/20 text-indigo-300 rounded border border-indigo-500/30 truncate max-w-[200px]">{displayName || ticker}</span>}
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/ai-research')} className="text-gray-400 hover:text-white transition-colors" title="Open Full Dashboard">
+          <button onClick={() => navigate('/ai-research')} className="text-text-secondary hover:text-text-primary transition-colors" title="Open Full Dashboard">
             <Maximize2 size={16} />
           </button>
-          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
+          <button onClick={onClose} className="text-text-secondary hover:text-text-primary transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -125,20 +125,20 @@ export const AIAssistantOverlay: React.FC<Props> = ({ ticker, isOpen, onClose, d
 
       {/* State Transition Indicators */}
       {(isProcessing || agentHistory.length > 0) && (
-        <div className="flex justify-center items-center py-4 bg-black/40 border-b border-gray-800 shrink-0">
+        <div className="flex justify-center items-center py-4 bg-black/40 border-b border-border shrink-0">
           <div className={`flex flex-col items-center transition-opacity ${isQuantRunning ? 'opacity-100' : 'opacity-40'}`}>
-            <Database className={`w-4 h-4 mb-1 ${isQuantRunning ? 'text-blue-400 animate-pulse' : 'text-gray-500'}`} />
-            <div className={`h-1 w-8 rounded-full ${isQuantRunning ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]' : 'bg-gray-800'}`}></div>
+            <Database className={`w-4 h-4 mb-1 ${isQuantRunning ? 'text-blue-400 animate-pulse' : 'text-text-secondary'}`} />
+            <div className={`h-1 w-8 rounded-full ${isQuantRunning ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]' : 'bg-surface-hover'}`}></div>
           </div>
-          <div className="w-8 border-t border-dashed border-gray-700 mx-1"></div>
+          <div className="w-8 border-t border-dashed border-border mx-1"></div>
           <div className={`flex flex-col items-center transition-opacity ${isMacroRunning ? 'opacity-100' : 'opacity-40'}`}>
-            <Globe className={`w-4 h-4 mb-1 ${isMacroRunning ? 'text-emerald-400 animate-pulse' : 'text-gray-500'}`} />
-            <div className={`h-1 w-8 rounded-full ${isMacroRunning ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-gray-800'}`}></div>
+            <Globe className={`w-4 h-4 mb-1 ${isMacroRunning ? 'text-emerald-400 animate-pulse' : 'text-text-secondary'}`} />
+            <div className={`h-1 w-8 rounded-full ${isMacroRunning ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-surface-hover'}`}></div>
           </div>
-          <div className="w-8 border-t border-dashed border-gray-700 mx-1"></div>
+          <div className="w-8 border-t border-dashed border-border mx-1"></div>
           <div className={`flex flex-col items-center transition-opacity ${isSynthesizing ? 'opacity-100' : 'opacity-40'}`}>
-            <BrainCircuit className={`w-4 h-4 mb-1 ${isSynthesizing ? 'text-purple-400 animate-pulse' : 'text-gray-500'}`} />
-            <div className={`h-1 w-8 rounded-full ${isSynthesizing ? 'bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.8)]' : 'bg-gray-800'}`}></div>
+            <BrainCircuit className={`w-4 h-4 mb-1 ${isSynthesizing ? 'text-purple-400 animate-pulse' : 'text-text-secondary'}`} />
+            <div className={`h-1 w-8 rounded-full ${isSynthesizing ? 'bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.8)]' : 'bg-surface-hover'}`}></div>
           </div>
         </div>
       )}
@@ -149,16 +149,16 @@ export const AIAssistantOverlay: React.FC<Props> = ({ ticker, isOpen, onClose, d
           <div className="flex flex-col space-y-6">
             {memoHistory.map((msg, idx) => (
               <div key={idx} className={`w-full flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`${msg.role === 'user' ? 'bg-indigo-500/20 border border-indigo-500/30 px-4 py-2 rounded-xl text-indigo-100 max-w-[85%]' : 'w-full prose prose-invert prose-sm max-w-none'}`}>
+                <div className={`${msg.role === 'user' ? 'bg-indigo-500/20 border border-indigo-500/30 px-4 py-2 rounded-xl text-indigo-100 max-w-[85%]' : 'w-full bg-surface/90 backdrop-blur-md border border-border/80 rounded-xl p-6 shadow-xl prose prose-invert prose-sm max-w-none'}`}>
                   {msg.role === 'user' ? (
                     msg.content
                   ) : (
                     <ReactMarkdown
                       components={{
                         h2: ({node, ...props}) => <h2 className="text-base font-bold text-indigo-400 mt-8 mb-3 pb-2 border-b border-indigo-500/30 uppercase tracking-wider" {...props} />,
-                        h3: ({node, ...props}) => <h3 className="text-sm font-bold text-gray-200 mt-5 mb-2" {...props} />,
-                        p: ({node, ...props}) => <p className="text-gray-300 leading-relaxed mb-4 text-[13px]" {...props} />,
-                        ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-4 space-y-2 text-gray-300 text-[13px]" {...props} />,
+                        h3: ({node, ...props}) => <h3 className="text-sm font-bold text-text-primary mt-5 mb-2" {...props} />,
+                        p: ({node, ...props}) => <p className="text-text-primary leading-relaxed mb-4 text-[13px]" {...props} />,
+                        ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-4 space-y-2 text-text-primary text-[13px]" {...props} />,
                         li: ({node, ...props}) => <li className="marker:text-indigo-500" {...props} />,
                         strong: ({node, ...props}) => <strong className="text-indigo-200 font-semibold" {...props} />,
                       }}
@@ -180,7 +180,7 @@ export const AIAssistantOverlay: React.FC<Props> = ({ ticker, isOpen, onClose, d
             <div ref={messagesEndRef} />
           </div>
         ) : (
-          <div className="h-full flex flex-col items-center justify-center text-gray-500">
+          <div className="h-full flex flex-col items-center justify-center text-text-secondary">
             <BrainCircuit className="w-12 h-12 text-indigo-500/30 mb-4" />
             <p className="mb-6 text-center px-4">Ready to analyze {displayName || ticker}.</p>
             <button
@@ -191,7 +191,7 @@ export const AIAssistantOverlay: React.FC<Props> = ({ ticker, isOpen, onClose, d
                 const dPrompt = `Conduct an expert analysis of ${dName}.`;
                 triggerAgent(ticker, dPrompt, iPrompt);
               }}
-              className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white font-semibold rounded-md transition-colors shadow-lg shadow-indigo-500/20"
+              className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-text-primary font-semibold rounded-md transition-colors shadow-lg shadow-indigo-500/20"
             >
               Give me a detailed breakdown
             </button>
@@ -200,7 +200,7 @@ export const AIAssistantOverlay: React.FC<Props> = ({ ticker, isOpen, onClose, d
       </div>
 
       {/* Input Bar */}
-      <div className="p-4 bg-black/60 border-t border-gray-800 shrink-0">
+      <div className="p-4 bg-black/60 border-t border-border shrink-0">
         <div className="relative flex items-center">
           <input
             type="text"
@@ -208,7 +208,7 @@ export const AIAssistantOverlay: React.FC<Props> = ({ ticker, isOpen, onClose, d
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
             placeholder="Enter questions regarding this stock..."
-            className="w-full bg-surface-hover border border-border focus:border-indigo-500/50 rounded-lg pl-4 pr-10 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none transition-colors"
+            className="w-full bg-surface-hover border border-border focus:border-indigo-500/50 rounded-lg pl-4 pr-10 py-2.5 text-sm text-text-primary placeholder-gray-500 focus:outline-none transition-colors"
           />
           <button 
             onClick={handleSend}

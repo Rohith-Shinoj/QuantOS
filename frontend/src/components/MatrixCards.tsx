@@ -60,7 +60,7 @@ export const MatrixCards = ({ mode, data, defenseMetrics = {}, yieldValuation = 
               <span className="absolute top-1.5 right-1.5 text-[8px] bg-amber-500/10 text-amber-400 px-1 rounded">vs Market</span>
               <span className="text-[9px] text-text-secondary uppercase font-bold tracking-widest block mb-0.5">Aggregate P/E</span>
               <div className="flex items-baseline gap-2">
-                <span className="text-xl font-bold font-mono text-white">{yieldValuation?.aggPE || 'N/A'}x</span>
+                <span className="text-xl font-bold font-mono text-text-primary">{yieldValuation?.aggPE || 'N/A'}x</span>
                 <span className={`text-[10px] font-bold ${yieldValuation?.pePremium > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
                   {yieldValuation?.pePremium > 0 ? '+' : ''}{yieldValuation?.pePremium || 0}%
                 </span>
@@ -91,7 +91,7 @@ export const MatrixCards = ({ mode, data, defenseMetrics = {}, yieldValuation = 
               </div>
               <div className="p-2 bg-surface/50 rounded border border-border">
                  <span className="text-[8px] text-text-secondary uppercase font-bold tracking-wider block mb-0.5">Large Cap Allocation</span>
-                 <span className="text-base font-bold font-mono text-white">{regime_alignment?.large_cap_weight || 0}%</span>
+                 <span className="text-base font-bold font-mono text-text-primary">{regime_alignment?.large_cap_weight || 0}%</span>
               </div>
               <div className="mt-auto text-[9px] font-bold text-amber-400 bg-amber-500/10 p-1.5 rounded border border-amber-500/20">
                  {regime_alignment?.alignment || 'Unknown'}
@@ -104,7 +104,7 @@ export const MatrixCards = ({ mode, data, defenseMetrics = {}, yieldValuation = 
                 <span className="absolute top-1 right-1 text-[7px] bg-indigo-500/10 text-indigo-400 px-1 rounded uppercase">vs Nifty 50</span>
                 <div className="text-[8px] text-text-secondary font-bold tracking-widest mb-0.5">VALUE (P/E)</div>
                 <div className="flex items-baseline gap-1.5">
-                  <span className="font-mono text-white font-bold text-sm">{factor_exposure?.value_score || 0}x</span>
+                  <span className="font-mono text-text-primary font-bold text-sm">{factor_exposure?.value_score || 0}x</span>
                   <span className="text-[8px] text-indigo-400">Z: {factor_exposure?.value_z > 0 ? '+' : ''}{factor_exposure?.value_z || 0}</span>
                 </div>
               </div>
@@ -222,7 +222,7 @@ export const MatrixCards = ({ mode, data, defenseMetrics = {}, yieldValuation = 
             <>
               <div className="p-2 bg-surface/50 rounded border border-border text-center">
                  <span className="text-[8px] text-text-secondary uppercase font-bold tracking-wider block mb-0.5">VIX Z-Score Profiler</span>
-                 <span className="text-lg font-bold font-mono text-white">{volatility_regime?.z_score || 0} <span className="text-xs text-text-secondary">(VIX {volatility_regime?.current_vix})</span></span>
+                 <span className="text-lg font-bold font-mono text-text-primary">{volatility_regime?.z_score || 0} <span className="text-xs text-text-secondary">(VIX {volatility_regime?.current_vix})</span></span>
               </div>
               <div className="mt-auto text-[10px] font-bold text-emerald-400 bg-emerald-500/10 p-1.5 rounded border border-emerald-500/20 text-center">
                  {volatility_regime?.current_regime || 'Unknown'}

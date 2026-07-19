@@ -30,7 +30,7 @@ export const RelatedStocks = ({ slug }: { slug: string }) => {
           {related?.map((stock: any) => (
             <Link 
               key={stock.slug} 
-              to={`/stock/${stock.slug}`}
+              to={`/stocks/${stock.slug}`}
               className="flex justify-between items-center p-3 rounded bg-canvas hover:bg-surface-hover border border-border/50 transition-all group"
             >
               <span className="font-bold text-text-primary group-hover:text-alpha">{stock.ticker}</span>

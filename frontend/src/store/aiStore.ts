@@ -1,5 +1,13 @@
 import { create } from 'zustand';
 
+export interface ChatSession {
+  id: string;
+  title: string;
+  ticker: string | null;
+  messages: ChatMessage[];
+  timestamp: number;
+}
+
 export interface DashboardData {
   metadata?: any;
   narrative_insight?: any;
@@ -45,6 +53,12 @@ interface AIState {
   appendMemo: (m: string) => void;
   addMemoHistory: (msg: {role: 'user'|'assistant', content: string}) => void;
   clearHistory: () => void;
+  
+  // History Sidebar
+  chatHistory: ChatSession[];
+  activeSessionId: string | null;
+  loadSession: (id: string) => void;
+  deleteSession: (id: string) => void;
 }
 
 export const useAIStore = create<AIState>((set) => ({
@@ -54,6 +68,8 @@ export const useAIStore = create<AIState>((set) => ({
   agentHistory: [],
   activeMemo: '',
   memoHistory: [],
+  chatHistory: [],
+  activeSessionId: null,
   
   setProcessing: (status) => set({ isProcessing: status }),
   setActiveTicker: (ticker) => set({ activeTicker: ticker }),
@@ -69,9 +85,38 @@ export const useAIStore = create<AIState>((set) => ({
   addMemoHistory: (msg) => set((state) => ({ memoHistory: [...state.memoHistory, msg] })),
   clearHistory: () => set({ agentHistory: [], activeMemo: '', memoHistory: [] }),
   
-  addMessage: (message) => set((state) => ({ 
-    messages: [...state.messages, message] 
-  })),
+  addMessage: (message) => set((state) => {
+    let newSessionId = state.activeSessionId;
+    let newHistory = [...state.chatHistory];
+    
+    // If this is the first message of a new session
+    if (state.messages.length === 0 && !state.activeSessionId) {
+      newSessionId = Date.now().toString();
+      newHistory.unshift({
+        id: newSessionId,
+        title: message.rawString.substring(0, 30) + '...',
+        ticker: state.activeTicker,
+        messages: [message],
+        timestamp: Date.now()
+      });
+    } else if (newSessionId) {
+      // Update existing session
+      const sessionIndex = newHistory.findIndex(s => s.id === newSessionId);
+      if (sessionIndex !== -1) {
+        newHistory[sessionIndex] = {
+          ...newHistory[sessionIndex],
+          messages: [...state.messages, message],
+          ticker: state.activeTicker
+        };
+      }
+    }
+
+    return { 
+      messages: [...state.messages, message],
+      activeSessionId: newSessionId,
+      chatHistory: newHistory
+    };
+  }),
   
   updateLastMessageString: (chunk) => set((state) => {
     const msgs = [...state.messages];
@@ -123,8 +168,37 @@ export const useAIStore = create<AIState>((set) => ({
       msgs[msgs.length - 1].isStreaming = false;
       msgs[msgs.length - 1].error = error;
     }
-    return { messages: msgs };
+    
+    // Sync with chat history
+    let newHistory = [...state.chatHistory];
+    if (state.activeSessionId) {
+      const idx = newHistory.findIndex(s => s.id === state.activeSessionId);
+      if (idx !== -1) {
+        newHistory[idx].messages = msgs;
+      }
+    }
+    return { messages: msgs, chatHistory: newHistory };
   }),
   
-  clearWorkspace: () => set({ messages: [] }),
+  clearWorkspace: () => set({ messages: [], activeTicker: null, activeSessionId: null }),
+
+  loadSession: (id) => set((state) => {
+    const session = state.chatHistory.find(s => s.id === id);
+    if (session) {
+      return {
+        messages: session.messages,
+        activeTicker: session.ticker,
+        activeSessionId: id
+      };
+    }
+    return state;
+  }),
+  
+  deleteSession: (id) => set((state) => {
+    const newHistory = state.chatHistory.filter(s => s.id !== id);
+    if (state.activeSessionId === id) {
+      return { chatHistory: newHistory, messages: [], activeTicker: null, activeSessionId: null };
+    }
+    return { chatHistory: newHistory };
+  }),
 }));

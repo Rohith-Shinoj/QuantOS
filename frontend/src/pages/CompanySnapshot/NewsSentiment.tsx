@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { InfoTooltip } from '../../components/InfoTooltip';
+import { HelpCircle } from 'lucide-react';
 
 export const NewsSentiment = ({ data }: { data: any }) => {
   const rel = data.relative || {};
@@ -45,22 +45,26 @@ export const NewsSentiment = ({ data }: { data: any }) => {
   };
 
   return (
-    <div className="bg-[#121214] p-5 rounded-xl border border-white/5 h-full flex flex-col col-span-1">
-      <div className="flex justify-between items-start mb-4">
+    <div className="bg-surface p-5 rounded-xl border border-border h-full flex flex-col col-span-1">
+      <div className="flex justify-between items-start mb-6">
         <div>
-          <h3 className="text-lg font-medium text-text-primary flex items-center tracking-tight">
+          <h3 className="text-sm font-semibold text-text-primary flex items-center gap-1.5 shrink-0 group relative w-fit cursor-help">
             News Catalyst Feed
-            <InfoTooltip text="Live feed of major catalysts and their NLP sentiment scoring (VADER)." />
+            <HelpCircle size={14} className="text-text-secondary hover:text-text-primary transition-colors" />
+            <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-64 bg-surface-hover text-text-primary text-[10px] p-2 rounded shadow-xl z-50 normal-case tracking-normal border border-border font-normal leading-relaxed">
+              Live feed of major catalysts and their NLP sentiment scoring (VADER).
+            </div>
           </h3>
+          <p className="text-[10px] text-text-secondary mt-1 uppercase tracking-wider font-bold">Latest Headlines & Sentiment</p>
         </div>
-        <div className="text-right">
-            <p className="text-[10px] text-text-secondary uppercase font-bold tracking-widest">Aggregate Sentiment</p>
-            <p className="text-lg font-bold text-text-primary">{aggregatedNews.ewma_sentiment_all !== undefined ? aggregatedNews.ewma_sentiment_all.toFixed(2) : 'Neutral'}</p>
+        <div className="text-right flex flex-col items-end">
+            <p className="text-[10px] text-text-secondary uppercase font-bold tracking-wider mb-1">Aggregate Sentiment</p>
+            <p className="text-sm font-bold text-text-primary">{aggregatedNews.ewma_sentiment_all !== undefined ? aggregatedNews.ewma_sentiment_all.toFixed(2) : 'Neutral'}</p>
         </div>
       </div>
 
-      <div className="flex-1 bg-[#0a0a0b] rounded-lg border border-white/5 p-3 flex flex-col overflow-hidden">
-        <div className="text-xs font-bold text-text-secondary uppercase tracking-widest mb-3 pb-2 border-b border-white/10 flex justify-between items-center">
+      <div className="flex-1 bg-canvas rounded-lg border border-border p-3 flex flex-col overflow-hidden">
+        <div className="text-xs font-bold text-text-secondary uppercase tracking-widest mb-3 pb-2 border-b border-border flex justify-between items-center">
           <span>Live Headline Feed</span>
           {isLoadingNews ? (
              <span className="text-blue-400 animate-pulse text-[10px]">Fetching...</span>
@@ -76,7 +80,7 @@ export const NewsSentiment = ({ data }: { data: any }) => {
                 href={item.url || '#'}
                 target={item.url ? "_blank" : "_self"}
                 rel="noopener noreferrer"
-                className="group flex flex-col gap-1.5 p-2.5 hover:bg-white/5 rounded-md transition-colors border border-transparent hover:border-white/5 block"
+                className="group flex flex-col gap-1.5 p-2.5 hover:bg-white/5 rounded-md transition-colors border border-transparent hover:border-border block"
               >
                 <div className="flex justify-between items-start gap-2">
                   <span className="text-[10px] text-text-secondary font-medium shrink-0">{item.date}</span>

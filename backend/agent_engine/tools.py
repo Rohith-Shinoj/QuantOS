@@ -29,14 +29,7 @@ def query_quant_database(ticker: str) -> str:
                 rs_rating,
                 inst_accum,
                 volatility_squeeze,
-                qes_flag,
-                GREATEST(COALESCE(alpha_score_conservative, 0), COALESCE(alpha_score_moonshot, 0)) AS alpha_score,
-                alpha_score_conservative,
-                alpha_score_moonshot,
                 pledge_delta,
-                tax_divergence,
-                shap_reason_1,
-                shap_reason_2,
                 absolute_data
             FROM stocks
             WHERE ticker = ? OR name ILIKE ?
@@ -45,13 +38,11 @@ def query_quant_database(ticker: str) -> str:
         
         if not result:
             con.close()
-            return f"Error: Ticker or company name '{ticker}' not found in quantitative database."
+            return f"Error: Ticker or company name '{ticker}' not found in quantitative database. Stop searching and inform the user."
             
         columns = [
             "ticker", "name", "industry", "market_cap", "pe_ratio", "rs_rating", 
-            "inst_accum", "volatility_squeeze", "qes_flag", "alpha_score", 
-            "alpha_score_conservative", "alpha_score_moonshot",
-            "pledge_delta", "tax_divergence", "shap_reason_1", "shap_reason_2", "absolute_data"
+            "inst_accum", "volatility_squeeze", "pledge_delta", "absolute_data"
         ]
         
         data = dict(zip(columns, result))
@@ -71,11 +62,10 @@ def query_quant_database(ticker: str) -> str:
         
         # Fetch peer comps for the same industry
         peer_query = """
-            SELECT ticker, GREATEST(COALESCE(alpha_score_conservative, 0), COALESCE(alpha_score_moonshot, 0)) AS alpha_score, pe_ratio, absolute_data,
+            SELECT ticker, pe_ratio, absolute_data,
                    CASE WHEN pe_ratio < ? THEN 'UNDERVALUED' ELSE 'OVERVALUED' END as valuation_status
             FROM stocks 
             WHERE industry = ? AND ticker != ?
-            ORDER BY alpha_score DESC 
             LIMIT 3
         """
         peers = con.execute(peer_query, [data["pe_ratio"] if data["pe_ratio"] else 0, data["industry"], ticker.upper()]).fetchall()
@@ -84,8 +74,8 @@ def query_quant_database(ticker: str) -> str:
         peer_list = []
         import json as pyjson
         for p in peers:
-            peer_dict = {"ticker": p[0], "alpha_score": p[1], "pe_ratio": p[2], "valuation_status": p[4]}
-            if p[3]:
+            peer_dict = {"ticker": p[0], "pe_ratio": p[1], "valuation_status": p[3]}
+            if p[2]:
                 try:
                     abs_data = pyjson.loads(p[3])
                     peer_dict["pb_ratio"] = abs_data.get("pbRatio", 0.0)
@@ -101,7 +91,7 @@ def query_quant_database(ticker: str) -> str:
         return json.dumps(data, indent=2)
         
     except Exception as e:
-        return f"Database Query Error: {str(e)}"
+        return f"Database Query Error: {str(e)}. Do not retry this exact query."
 
 @tool
 def fetch_macro_context(ticker: str) -> str:
@@ -112,7 +102,7 @@ def fetch_macro_context(ticker: str) -> str:
     try:
         # Ensure TAVILY_API_KEY is set in environment, otherwise LangChain will throw an error
         if not os.environ.get("TAVILY_API_KEY"):
-            return "Error: TAVILY_API_KEY not found in environment."
+            return "Error: TAVILY_API_KEY not found in environment. Do not retry web search."
             
         search_tool = TavilySearchResults(max_results=3, search_depth="advanced")
         # Explicitly append "India NSE BSE" to prevent confusing with US tickers like Halliburton
@@ -128,7 +118,7 @@ def fetch_macro_context(ticker: str) -> str:
         return formatted_results
         
     except Exception as e:
-        return f"Web Search Error: {str(e)}"
+        return f"Web Search Error: {str(e)}. Stop searching and inform the user."
 
 @tool
 def execute_duckdb_query(query: str) -> str:
@@ -145,8 +135,8 @@ def execute_duckdb_query(query: str) -> str:
     -- Core Stock Fundamentals
     CREATE TABLE stocks (
         slug VARCHAR, ticker VARCHAR, name VARCHAR, market_cap_type VARCHAR, market_cap DOUBLE, pe_ratio DOUBLE,
-        day_change VARCHAR, industry VARCHAR, inst_accum DOUBLE, volatility_squeeze DOUBLE, qes_flag INTEGER,
-        tax_divergence DOUBLE, pledge_delta DOUBLE, absolute_data JSON, relative_data JSON, rs_rating DOUBLE, alpha_score_conservative DOUBLE, alpha_score_moonshot DOUBLE
+        day_change VARCHAR, industry VARCHAR, inst_accum DOUBLE, volatility_squeeze DOUBLE,
+        pledge_delta DOUBLE, absolute_data JSON, relative_data JSON, rs_rating DOUBLE
     );
     
     -- Daily Equities Timeseries (OLAP)
@@ -184,7 +174,7 @@ def execute_duckdb_query(query: str) -> str:
     """
     try:
         if not query.strip().upper().startswith("SELECT") and not query.strip().upper().startswith("WITH"):
-            return "Error: Only SELECT queries are permitted for safety reasons."
+            return "Error: Only SELECT queries are permitted for safety reasons. Do not retry with non-SELECT queries."
             
         # Ensure LIMIT 100 if no explicit limit exists
         if "LIMIT" not in query.upper():
@@ -200,7 +190,7 @@ def execute_duckdb_query(query: str) -> str:
         con.close()
         
         if not results:
-            return "Query executed successfully but returned 0 rows."
+            return "Query executed successfully but returned 0 rows. Do not retry the exact same query, inform the user or modify logic."
             
         # Format as string
         formatted = " | ".join(columns) + "\n" + "-" * 50 + "\n"
@@ -210,5 +200,5 @@ def execute_duckdb_query(query: str) -> str:
         return formatted
         
     except Exception as e:
-        return f"SQL Execution Error: {str(e)}"
+        return f"SQL Execution Error: {str(e)}. Review your SQL syntax and try again, or inform the user."
 

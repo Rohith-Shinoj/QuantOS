@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchAllStocks, fetchMutualFunds } from '../api';
+import { fetchAllStocks, fetchMutualFunds, fetchETFs } from '../api';
 
 export interface SearchResult {
   item: any;
@@ -16,6 +16,7 @@ export interface SearchResult {
 
 export function useSearch(query: string, activeFilter: string | string[] = 'All') {
   const { data: stocks } = useQuery({ queryKey: ['allStocks'], queryFn: fetchAllStocks });
+  const { data: etfs } = useQuery({ queryKey: ['allETFsSearch'], queryFn: fetchETFs });
   const { data: mfsResp } = useQuery({ queryKey: ['allMFsSearch'], queryFn: () => fetchMutualFunds({ limit: 5000, minimal: true }) });
   const mfs = (mfsResp as any)?.data;
 
@@ -23,6 +24,7 @@ export function useSearch(query: string, activeFilter: string | string[] = 'All'
     if (!query || query.trim().length === 0) return [];
     
     const q = query.toLowerCase().trim();
+    const qNormalized = q.replace(/[\s-]/g, '');
     const tokens = q.split(/\s+/);
     let combined: SearchResult[] = [];
     
@@ -31,20 +33,19 @@ export function useSearch(query: string, activeFilter: string | string[] = 'All'
         let score = 0;
         const ticker = s.ticker ? s.ticker.toLowerCase() : '';
         const name = s.name ? s.name.toLowerCase() : '';
+        const nameNormalized = name.replace(/[\s-]/g, '');
+        const slugNormalized = s.slug ? s.slug.replace(/[\s-]/g, '') : '';
         
-        if (ticker === q) score = 100;
-        else if (name === q) score = 90;
-        else if (ticker.startsWith(q)) score = 80;
-        else if (name.startsWith(q)) score = 70;
-        else if (ticker.includes(q)) score = 60;
-        else if (name.includes(q)) score = 50;
-        else if (tokens.every(token => ticker.includes(token) || name.includes(token))) score = 40;
+        if (ticker === q || ticker === qNormalized) score = 100;
+        else if (name === q || nameNormalized === qNormalized) score = 90;
+        else if (ticker.startsWith(q) || ticker.startsWith(qNormalized)) score = 80;
+        else if (name.startsWith(q) || nameNormalized.startsWith(qNormalized)) score = 70;
+        else if (ticker.includes(q) || ticker.includes(qNormalized)) score = 60;
+        else if (name.includes(q) || nameNormalized.includes(qNormalized)) score = 50;
+        else if (slugNormalized.includes(qNormalized)) score = 45;
+        else if (tokens.every(token => ticker.includes(token) || name.includes(token) || nameNormalized.includes(token))) score = 40;
         
-        let type: 'Stock' | 'ETF' | 'Index' = 'Stock';
-        const isETF = /\\betf\\b/i.test(name) || /\\betf\\b/i.test(s.industry || '') || /\\betf\\b/i.test(s.sector || '');
-        const isIndex = !isETF && s.volume === 0 && (s.industry === 'Unknown' || !s.industry);
-        if (isETF) type = 'ETF';
-        else if (isIndex) type = 'Index';
+        const type = 'Stock';
         
         return { 
           item: s, 
@@ -53,11 +54,43 @@ export function useSearch(query: string, activeFilter: string | string[] = 'All'
           slug: s.slug,
           title: s.ticker,
           subtitle: s.name,
-          navPath: `/terminal/${s.slug}`,
+          navPath: `/stocks/${s.slug}`,
           logoTicker: s.ticker
         };
       });
       combined = combined.concat(stockResults);
+    }
+
+    if (etfs) {
+      const etfResults = etfs.map((s: any) => {
+        let score = 0;
+        const ticker = s.ticker ? s.ticker.toLowerCase() : '';
+        const name = s.name ? s.name.toLowerCase() : '';
+        const nameNormalized = name.replace(/[\s-]/g, '');
+        const slugNormalized = s.slug ? s.slug.replace(/[\s-]/g, '') : '';
+        
+        if (ticker === q || ticker === qNormalized) score = 100;
+        else if (name === q || nameNormalized === qNormalized) score = 90;
+        else if (ticker.startsWith(q) || ticker.startsWith(qNormalized)) score = 80;
+        else if (name.startsWith(q) || nameNormalized.startsWith(qNormalized)) score = 70;
+        else if (ticker.includes(q) || ticker.includes(qNormalized)) score = 60;
+        else if (name.includes(q) || nameNormalized.includes(qNormalized)) score = 50;
+        else if (slugNormalized.includes(qNormalized)) score = 45;
+        else if (tokens.every(token => ticker.includes(token) || name.includes(token) || nameNormalized.includes(token))) score = 40;
+        
+        return { 
+          item: s, 
+          score, 
+          type: 'ETF' as const,
+          slug: s.slug,
+          title: s.ticker,
+          subtitle: s.name,
+          navPath: `/etf/${s.slug}`,
+          logoTicker: s.ticker,
+          logoUrl: s.header?.logoUrl
+        };
+      });
+      combined = combined.concat(etfResults);
     }
     
     if (mfs) {

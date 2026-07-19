@@ -20,7 +20,6 @@ METRIC_SYNONYMS = {
     "valuation": "s.pe_ratio",
     "dividend": "sm.dividend_yield",
     "ev/ebitda": "sm.ev_to_ebitda",
-    "alpha": "s.alpha_score",
     "debt": "sm.debt_to_equity",
     "roce": "sm.roic",
     "roe": "sm.roe",
@@ -325,10 +324,10 @@ def parse_natural_language_to_sql(query: str) -> dict:
                     conditions_list.append({"col": db_col, "op": ">", "val": 0})
 
     if is_relative:
-        sql_conditions.append("s.alpha_score > 0")
-        select_columns["alpha_score"] = "s.alpha_score as Alpha"
-        parsed_logs.append("Relative Benchmark: Beating NIFTY (Alpha > 0)")
-        conditions_list.append({"col": "s.alpha_score", "op": ">", "val": 0})
+        sql_conditions.append("s.rs_rating > 80")
+        select_columns["rs_rating"] = "s.rs_rating as RS_Rating"
+        parsed_logs.append("Relative Benchmark: Beating NIFTY (RS > 80)")
+        conditions_list.append({"col": "s.rs_rating", "op": ">", "val": 80})
 
     if len(sql_conditions) == 0:
         return {

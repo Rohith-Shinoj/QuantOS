@@ -28,10 +28,10 @@ export const AlphaDeviationCard = ({ fund }: { fund: any }) => {
   const catVol = pseudoVol * 1.1;
   
   return (
-    <div className="bg-[#111114] border border-white/5 p-5 rounded-xl flex flex-col h-full overflow-hidden">
+    <div className="bg-surface border border-border p-5 rounded-xl flex flex-col h-full overflow-hidden">
       <h3 className="text-sm font-semibold text-text-primary mb-6 flex items-center gap-1.5 shrink-0 group relative w-fit cursor-help">
         Alpha & Tracking Deviation <Target size={12} className="opacity-50" />
-        <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-64 bg-[#1a1a24] text-white text-[10px] p-2 rounded shadow-xl z-50 normal-case tracking-normal border border-white/10 font-normal leading-relaxed">
+        <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-64 bg-surface-hover text-text-primary text-[10px] p-2 rounded shadow-xl z-50 normal-case tracking-normal border border-border font-normal leading-relaxed">
           Compares the fund's Returns and Volatility against the Nifty 50 Index and its Category Average to assess risk-adjusted outperformance.
         </div>
       </h3>
@@ -39,7 +39,7 @@ export const AlphaDeviationCard = ({ fund }: { fund: any }) => {
       <div className="flex-1 flex flex-col gap-5 overflow-y-auto custom-scrollbar pr-1">
         
         {/* Nifty Comparison */}
-        <div className="flex flex-col gap-3 p-4 bg-white/5 rounded-lg border border-white/5 relative overflow-hidden">
+        <div className="flex flex-col gap-3 p-4 bg-white/5 rounded-lg border border-border relative overflow-hidden">
            <div className="absolute top-0 right-0 p-3 opacity-10">
              <Zap size={40} />
            </div>
@@ -51,7 +51,7 @@ export const AlphaDeviationCard = ({ fund }: { fund: any }) => {
            </div>
            
            <div className="grid grid-cols-2 gap-4 mt-2 relative z-10">
-             <div className="flex flex-col gap-1 border-r border-white/10">
+             <div className="flex flex-col gap-1 border-r border-border">
                <span className="text-[10px] text-text-secondary uppercase">Return (1Y)</span>
                <div className="flex items-end gap-2">
                  <span className="text-xl font-bold font-mono">{fundRet.toFixed(1)}%</span>
@@ -69,7 +69,7 @@ export const AlphaDeviationCard = ({ fund }: { fund: any }) => {
         </div>
         
         {/* Category Comparison */}
-        <div className="flex flex-col gap-3 p-4 bg-white/5 rounded-lg border border-white/5 relative overflow-hidden">
+        <div className="flex flex-col gap-3 p-4 bg-white/5 rounded-lg border border-border relative overflow-hidden">
            <div className="absolute top-0 right-0 p-3 opacity-10">
              <Target size={40} />
            </div>
@@ -81,7 +81,7 @@ export const AlphaDeviationCard = ({ fund }: { fund: any }) => {
            </div>
            
            <div className="grid grid-cols-2 gap-4 mt-2 relative z-10">
-             <div className="flex flex-col gap-1 border-r border-white/10">
+             <div className="flex flex-col gap-1 border-r border-border">
                <span className="text-[10px] text-text-secondary uppercase">Return (1Y)</span>
                <div className="flex items-end gap-2">
                  <span className="text-xl font-bold font-mono">{fundRet.toFixed(1)}%</span>

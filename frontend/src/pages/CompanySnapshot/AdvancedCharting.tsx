@@ -12,9 +12,8 @@ export const AdvancedCharting = ({ data }: { data: any }) => {
 
     // Convert dates from DD-MM-YYYY to YYYY-MM-DD or timestamp
     const sortedData = [...ohlcv].reverse().map((d: any) => {
-      const [day, month, year] = d.Date.split('-');
       return {
-        time: `${year}-${month}-${day}`, // YYYY-MM-DD
+        time: d.Date, // YYYY-MM-DD
         open: d.Open,
         high: d.High,
         low: d.Low,
@@ -44,8 +43,8 @@ export const AdvancedCharting = ({ data }: { data: any }) => {
         textColor: '#d1d4dc',
       },
       grid: {
-        vertLines: { color: 'rgba(42, 46, 57, 0.5)' },
-        horzLines: { color: 'rgba(42, 46, 57, 0.5)' },
+        vertLines: { color: 'rgba(255, 255, 255, 0.04)' },
+        horzLines: { color: 'rgba(255, 255, 255, 0.04)' },
       },
       crosshair: {
         mode: CrosshairMode.Normal,
@@ -132,12 +131,12 @@ export const AdvancedCharting = ({ data }: { data: any }) => {
   }, [data]);
 
   return (
-    <div className="bg-[#131722] p-6 rounded-lg border border-border flex flex-col min-h-[600px]">
+    <div className="bg-canvas p-6 rounded-lg border border-border flex flex-col min-h-[600px]">
       <div className="mb-4">
-        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+        <h2 className="text-xl font-bold text-text-primary flex items-center gap-2">
           Advanced Charting
         </h2>
-        <p className="text-sm text-gray-400 mt-1">Interactive OHLCV with 50-DMA Overlay</p>
+        <p className="text-sm text-text-secondary mt-1">Interactive OHLCV with 50-DMA Overlay</p>
       </div>
       <div ref={chartContainerRef} className="flex-1 w-full relative" />
     </div>

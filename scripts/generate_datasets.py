@@ -39,22 +39,23 @@ def clean_float(val):
     try:
         if isinstance(val, (int, float)): return float(val)
         clean_str = re.sub(r'[₹%, \s]', '', str(val))
-        if not clean_str or clean_str == '-': return np.nan
+        if not clean_str or clean_str == '-': return None
         return float(clean_str)
-    except: return np.nan
+    except: return None
 
 def safe_div(n, d):
     try:
+        if n is None or d is None: return None
         n_f, d_f = float(n), float(d)
-        if d_f == 0 or np.isnan(n_f) or np.isnan(d_f): return np.nan
+        if d_f == 0 or np.isnan(n_f) or np.isnan(d_f): return None
         return n_f / d_f
-    except: return np.nan
+    except: return None
 
 def safe_log(val):
     try:
-        if val is None or np.isnan(val) or val <= 0: return np.nan
+        if val is None or np.isnan(val) or val <= 0: return None
         return math.log(val)
-    except: return np.nan
+    except: return None
 
 def parse_quarter_date(q_str):
     try:
@@ -64,7 +65,7 @@ def parse_quarter_date(q_str):
         return datetime(2000 + int(y), months[m], 1)
     except: return datetime(1900, 1, 1)
 
-def get_nested(data, path, default=np.nan):
+def get_nested(data, path, default=None):
     keys = path.split('.')
     for key in keys:
         if isinstance(data, dict): data = data.get(key)
@@ -84,6 +85,26 @@ class MLDatasetEngineer:
         self.raw = raw_data.get("raw_next_data", {})
         self.html_fundamentals = raw_data.get("html_fundamentals", {})
         self.stock_data = self.raw.get("stockData", {})
+        
+        # Groww stopped returning the 'stats' dictionary in some paths. 
+        # We reconstruct it from the html_fundamentals which we successfully parse.
+        if "stats" not in self.stock_data or not self.stock_data["stats"]:
+            hf = self.html_fundamentals
+            self.stock_data["stats"] = {
+                "peRatio": hf.get("P/E Ratio(TTM)"),
+                "industryPe": hf.get("Industry P/E"),
+                "pbRatio": hf.get("P/B Ratio"),
+                "debtToEquity": hf.get("Debt to Equity"),
+                "roe": hf.get("ROE"),
+                "returnOnEquity": hf.get("ROE"),
+                "divYield": hf.get("Dividend Yield"),
+                "marketCap": hf.get("Market Cap"),
+                "epsTtm": hf.get("EPS(TTM)"),
+                "bookValue": hf.get("Book Value"),
+            }
+            if hf.get("Operating Cash Flow") and hf.get("Market Cap"):
+                self.stock_data["stats"]["priceToOcf"] = safe_div(hf.get("Market Cap"), hf.get("Operating Cash Flow"))
+
         self.ohlcv = ohlcv or []
         self.index_map = index_map or {}
         self.market_breadth_map = market_breadth_map or {}
@@ -115,8 +136,8 @@ class MLDatasetEngineer:
         for name, idx_ohlcv in self.index_map.items():
             self.active_indices[name] = [c for c in idx_ohlcv if c["Timestamp"] <= ref_ts]
 
-        self.live_price = raw_data.get("live_price", 0.0)
-        if self.live_price == 0.0 and self.active_ohlcv:
+        self.live_price = clean_float(raw_data.get("live price")) or clean_float(raw_data.get("live_price"))
+        if not self.live_price and self.active_ohlcv:
             self.live_price = float(self.active_ohlcv[-1]["Close"])
             
         self.features = {}
@@ -149,6 +170,7 @@ class MLDatasetEngineer:
         self.features["macro_resilience_profile"] = self._derive_resilience()
         self.features["market_breadth_regime"] = self._derive_market_breadth()
         self.features["price_returns"] = self._derive_price_returns()
+        self.features["volume_and_turnover"] = self._derive_volume_and_turnover()
         
         self.features["data_integrity"] = 1.0 - safe_div(self.fallback_count, self.total_expected_features)
         return self.features
@@ -211,6 +233,30 @@ class MLDatasetEngineer:
 
         return returns
 
+    def _derive_volume_and_turnover(self):
+        metrics = {}
+        
+        def calc_vol_turnover(periods):
+            if not self.active_ohlcv or len(self.active_ohlcv) < periods: return np.nan, np.nan
+            subset = self.active_ohlcv[-periods:]
+            vols = [c.get("Volume", 0) for c in subset]
+            turnovers = [c.get("Volume", 0) * c.get("Close", 0) for c in subset]
+            return np.mean(vols), np.mean(turnovers)
+            
+        v1d, t1d = calc_vol_turnover(1)
+        v1w, t1w = calc_vol_turnover(5)
+        v1m, t1m = calc_vol_turnover(21)
+        
+        metrics["vol_1d"] = self.track(v1d)
+        metrics["turnover_1d"] = self.track(t1d)
+        metrics["vol_1w"] = self.track(v1w)
+        metrics["turnover_1w"] = self.track(t1w)
+        metrics["vol_1m"] = self.track(v1m)
+        metrics["turnover_1m"] = self.track(t1m)
+        
+        return metrics
+
+
     def _derive_risk_and_forensics(self):
         # 1. Volatility Squeeze Index (Bollinger Band Width instead of arbitrary division)
         v_squeeze = np.nan
@@ -225,7 +271,7 @@ class MLDatasetEngineer:
         # 2. HNI Absorption Score
         mom = self._derive_momentum()
         shp = self.stock_data.get("shareHoldingPattern", {})
-        hni_absorption = np.nan
+        hni_absorption = None
         try:
             if isinstance(shp, dict):
                 quarters = sorted([q for q in shp.keys() if isinstance(shp[q], dict) and parse_quarter_date(q) <= self.ref_time], key=parse_quarter_date)
@@ -235,32 +281,9 @@ class MLDatasetEngineer:
                     hni_absorption = safe_div(retail_t1 - retail_t, mom.get("free_float_pct", 0.5))
         except: pass
 
-        # 3. Tax-to-Profit Divergence (Forensic)
-        financials = self.stock_data.get("financialStatement", [])
-        tax_divergence = np.nan
-        try:
-            if financials:
-                def get_f_data(titles):
-                    for t in titles:
-                        item = next((i for i in financials if i.get("title") == t), None)
-                        if item: return item.get("quarterly", {})
-                    return {}
-                pbt_data = get_f_data(["Profit Before Tax", "PBT", "Operating Profit"])
-                tax_data = get_f_data(["Tax", "Income Tax", "Provision for Tax"])
-                qs = sorted([q for q in pbt_data.keys() if parse_quarter_date(q) <= self.ref_time], key=parse_quarter_date)
-                if len(qs) >= 5:
-                    t, t4 = qs[-1], qs[-5] # YoY comparison
-                    pbt_growth = safe_div(clean_float(pbt_data[t]) - clean_float(pbt_data[t4]), clean_float(pbt_data[t4]))
-                    tax_growth = safe_div(clean_float(tax_data.get(t)) - clean_float(tax_data.get(t4)), clean_float(tax_data.get(t4)))
-                    if not np.isnan(pbt_growth) and not np.isnan(tax_growth):
-                        tax_divergence = pbt_growth - tax_growth # High positive = Red Flag
-        except: pass
-
         return {
             "volatility_squeeze_index": self.track(v_squeeze),
-            "hni_absorption_score": self.track(hni_absorption),
-            "tax_profit_divergence": self.track(tax_divergence),
-            "qes_forensic_red_flag": self.track(1 if (tax_divergence or 0) > 0.3 else 0)
+            "hni_absorption_score": self.track(hni_absorption)
         }
 
     def _derive_market_breadth(self):
@@ -279,8 +302,8 @@ class MLDatasetEngineer:
             rs_signals[f"rs_{name.lower()}_52w"] = self.track(calc_rs(52))
         
         # AI Metrics Additions: Beta Calculation
+        beta_val = None
         benchmark_ohlcv = self.active_indices.get(self.benchmark_key, [])
-        beta_val = np.nan
         if len(self.active_ohlcv) >= 53 and len(benchmark_ohlcv) >= 53:
             try:
                 s_closes = [c["Close"] for c in self.active_ohlcv[-53:]]
@@ -463,10 +486,19 @@ class MLDatasetEngineer:
         stats = self.stock_data.get("stats", {})
         pe, roe = clean_float(stats.get("peRatio")), safe_div(stats.get("roe"), 100.0)
         div_yield = safe_div(clean_float(stats.get("divYield")), 100.0)
-        payout = div_yield * pe
+        
+        payout = None
+        if div_yield is not None and pe is not None and not np.isnan(div_yield) and not np.isnan(pe):
+            payout = div_yield * pe
+            
+        sgr = None
+        if roe is not None and not np.isnan(roe):
+            p_val = payout if payout is not None and not np.isnan(payout) else 0.5
+            sgr = roe * (1.0 - p_val)
+            
         return {
             "equity_multiplier": self.track(safe_div(stats.get("returnOnEquity"), stats.get("returnOnAssets"))),
-            "sustainable_growth_rate": self.track(roe * (1.0 - (payout if not np.isnan(payout) else 0.5)))
+            "sustainable_growth_rate": self.track(sgr)
         }
 
     def _derive_growth(self):
@@ -532,9 +564,10 @@ class MLDatasetEngineer:
                 trs.append(tr)
             atr_14 = np.mean(trs)
         
+        dist_sma = safe_div(self.live_price - sma50, sma50) if self.live_price is not None and not np.isnan(sma50) else np.nan
         return {
             "rsi_normalized": self.track(safe_div(clean_float(tech.get("rsi14", 50)), 100.0)),
-            "distance_from_sma50": self.track(safe_div(self.live_price - sma50, sma50)),
+            "distance_from_sma50": self.track(dist_sma),
             "volume_intensity_52w": self.track(vol_intensity),
             "volatility_13w": self.track(volatility),
             "bollinger_upper": self.track(bb_upper),
@@ -637,7 +670,10 @@ class MLDatasetEngineer:
 
     def _derive_sector_premiums(self):
         stats = self.stock_data.get("stats", {})
-        return {"roe_vs_sector_premium": self.track(clean_float(stats.get("roe")) - clean_float(stats.get("sectorRoe")))}
+        roe = clean_float(stats.get("roe"))
+        sector_roe = clean_float(stats.get("sectorRoe"))
+        premium = (roe - sector_roe) if roe is not None and sector_roe is not None else np.nan
+        return {"roe_vs_sector_premium": self.track(premium)}
 
     def _derive_scaling(self):
         return {"log_market_cap": self.track(safe_log(clean_float(self.stock_data.get("stats", {}).get("marketCap"))))}
@@ -658,13 +694,13 @@ class MLDatasetEngineer:
         eps = clean_float(stats.get("epsTtm"))
         bvps = clean_float(stats.get("bookValue"))
         graham_num = np.nan
-        if not np.isnan(eps) and eps > 0 and not np.isnan(bvps) and bvps > 0:
+        if eps is not None and not np.isnan(eps) and eps > 0 and bvps is not None and not np.isnan(bvps) and bvps > 0:
             graham_num = math.sqrt(22.5 * eps * bvps)
             
         roe = safe_div(stats.get("roe"), 100.0)
         altman_proxy = np.nan
         debt_to_eq = clean_float(stats.get("debtToEquity"))
-        if not np.isnan(roe) and not np.isnan(debt_to_eq):
+        if roe is not None and not np.isnan(roe) and debt_to_eq is not None and not np.isnan(debt_to_eq):
             altman_proxy = (roe * 3.0) - (debt_to_eq * 1.5) + 1.0
 
         # --- PIOTROSki F-SCORE ---
@@ -699,8 +735,7 @@ class MLDatasetEngineer:
         roa = np.nan
         if net_profit_cy is not None and total_assets and total_assets > 0:
             roa = net_profit_cy / total_assets
-            
-        if not np.isnan(roa) and roa > 0: 
+        if roa is not None and not np.isnan(roa) and roa > 0: 
             f_score += 1
             checks["positive_roa"] = True
             
@@ -727,7 +762,7 @@ class MLDatasetEngineer:
         # 5. Decreasing Leverage (Long Term Debt / Total Assets)
         # Or proxy: debt to equity < 0.5
         de = clean_float(stats.get("debtToEquity"))
-        if not np.isnan(de) and de < 0.5:
+        if de is not None and not np.isnan(de) and de < 0.5:
             f_score += 1
             checks["decreasing_leverage"] = True
             
@@ -740,7 +775,7 @@ class MLDatasetEngineer:
         else:
             cr = clean_float(stats.get("currentRatio"))
             
-        if not np.isnan(cr) and cr > 1.5: 
+        if cr is not None and not np.isnan(cr) and cr > 1.5: 
             f_score += 1
             checks["increasing_current_ratio"] = True
             
@@ -803,7 +838,7 @@ class TrendlyneFetcher:
         for attempt in range(max_retries):
             try:
                 # 1. Resolve ID via Redirect
-                redirect_url = f"https://trendlyne.com/research-reports/stock/{ticker}"
+                redirect_url = f"https://trendlyne.com/research-reports/stocks/{ticker}"
                 res1 = self.session.head(redirect_url, allow_redirects=True, timeout=10)
                 if res1.status_code == 429:
                     wait = backoff ** (attempt + 1) + np.random.uniform(0, 1)
@@ -812,8 +847,8 @@ class TrendlyneFetcher:
                     
                 final_url = res1.url
                 
-                # Example final_url: https://trendlyne.com/research-reports/stock/1127/RELIANCE/reliance-industries-ltd/
-                match = re.search(r'/stock/(\d+)/([^/]+)/([^/]+)/', final_url)
+                # Example final_url: https://trendlyne.com/research-reports/stocks/1127/RELIANCE/reliance-industries-ltd/
+                match = re.search(r'/stocks/(\d+)/([^/]+)/([^/]+)/', final_url)
                 if not match:
                     return []
                     
@@ -869,7 +904,7 @@ class TrendlyneFetcher:
         if not ticker: return result
         try:
             search_query = ticker.split('-')[0].split('_')[0]
-            mc_link = f"https://trendlyne.com/research-reports/stock/{search_query}"
+            mc_link = f"https://trendlyne.com/research-reports/stocks/{search_query}"
             
             page_res = None
             for attempt in range(3):
@@ -1160,7 +1195,9 @@ def process_stock_unified(slug, fetcher, index_map, market_breadth_map, precompu
         if slug in KNOWN_INDICES:
             stock_data = page_props.get("indexData", {})
         else:
-            stock_data = page_props.get("stockData") or page_props.get("etfData", {})
+            if "etf" in slug.lower() or "-exchange-traded-fund" in slug.lower() or slug.lower().endswith("-bees") or slug.lower().endswith("-beesm"):
+                return False # Handled by generate_etf_datasets.py
+            stock_data = page_props.get("stockData", {})
             
         header = stock_data.get("header", {})
         
@@ -1223,7 +1260,7 @@ def process_stock_unified(slug, fetcher, index_map, market_breadth_map, precompu
                 
                 ohlcv_converted.append({
                     "Timestamp": ts, "Open": float(c[1]), "High": float(c[2]), "Low": float(c[3]), "Close": float(c[4]), "Volume": float(c[5]) if c[5] is not None else 0.0,
-                    "Date": datetime.fromtimestamp(ts).strftime('%d-%m-%Y')
+                    "Date": datetime.fromtimestamp(ts).strftime('%Y-%m-%d')
                 })
             except: continue
             
@@ -1328,7 +1365,7 @@ def main():
             index_map[t] = []
             for x in c:
                 ts = x[0]/1000 if x[0]>10**11 else x[0]
-                index_map[t].append({"Timestamp": ts, "Date": datetime.fromtimestamp(ts).strftime('%d-%m-%Y'), "Close": x[4]})
+                index_map[t].append({"Timestamp": ts, "Date": datetime.fromtimestamp(ts).strftime('%Y-%m-%d'), "Close": x[4]})
 
     print(f"Starting Unified Update with {args.workers} workers...")
     

@@ -51,6 +51,7 @@ app.include_router(portfolio_router)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.realpath(os.path.join(BASE_DIR, "datasets/active/market_data.parquet"))
 MF_DB_PATH = os.path.realpath(os.path.join(BASE_DIR, "datasets/active/mutual_funds.parquet"))
+ETF_DB_PATH = os.path.realpath(os.path.join(BASE_DIR, "datasets/active/etfs.parquet"))
 ADMIN_TOKEN = os.getenv("ADMIN_TOKEN")
 
 # Global connection to be reused/reloaded
@@ -67,6 +68,8 @@ def get_db():
         _db_con.execute(f"CREATE OR REPLACE VIEW stocks AS SELECT * FROM '{DB_PATH}'")
         if os.path.exists(MF_DB_PATH):
             _db_con.execute(f"CREATE OR REPLACE VIEW mutual_funds AS SELECT * FROM '{MF_DB_PATH}'")
+        if os.path.exists(ETF_DB_PATH):
+            _db_con.execute(f"CREATE OR REPLACE VIEW etfs AS SELECT * FROM '{ETF_DB_PATH}'")
     return _db_con.cursor()
 
 def verify_admin_token(x_admin_token: str = Header(...)):
@@ -75,7 +78,7 @@ def verify_admin_token(x_admin_token: str = Header(...)):
 
 @app.post("/api/admin/reload_db")
 def reload_db(token: str = Depends(verify_admin_token)):
-    global _db_con, _search_cache, DB_PATH, MF_DB_PATH
+    global _db_con, _search_cache, DB_PATH, MF_DB_PATH, ETF_DB_PATH
     try:
         # For Parquet, just refresh the view on the same in-memory connection 
         # or recreate the connection to be safe.
@@ -86,6 +89,7 @@ def reload_db(token: str = Depends(verify_admin_token)):
         # Resolve the new symlink target using absolute path
         DB_PATH = os.path.realpath(os.path.join(BASE_DIR, "datasets/active/market_data.parquet"))
         MF_DB_PATH = os.path.realpath(os.path.join(BASE_DIR, "datasets/active/mutual_funds.parquet"))
+        ETF_DB_PATH = os.path.realpath(os.path.join(BASE_DIR, "datasets/active/etfs.parquet"))
         
         # Clear cache
         _search_cache = []
@@ -116,7 +120,12 @@ def fetch_live_quote(slug: str, session: requests.Session):
             path_type = "etfs" if "etf" in slug.lower() else "stocks"
             url = f"https://groww.in/{path_type}/{slug}"
             
-        html = session.get(url, timeout=3).text
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9'
+        }
+        html = session.get(url, headers=headers, timeout=10).text
         import re
         match = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', html, re.DOTALL)
         if match:
@@ -202,17 +211,30 @@ def refresh_batch(req: BatchRefreshRequest):
 
 def calculate_historical_returns(ohlcv_json_str: str):
     if not ohlcv_json_str:
-        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
     import json
     try:
         data = json.loads(ohlcv_json_str)
         if not data:
-            return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+            return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
             
         current_close = float(data[-1].get("Close", 0))
         volume = float(data[-1].get("Volume", 0))
+        turnover_1d = volume * current_close
+
         if current_close == 0:
-            return volume, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+            return volume, 0.0, 0.0, turnover_1d, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+
+        def get_avg_vol_turnover(days):
+            if len(data) >= days:
+                subset = data[-days:]
+                vols = [float(c.get("Volume", 0)) for c in subset]
+                turnovers = [float(c.get("Volume", 0)) * float(c.get("Close", 0)) for c in subset]
+                return sum(vols)/len(vols), sum(turnovers)/len(turnovers)
+            return 0.0, 0.0
+            
+        vol_1w, turnover_1w = get_avg_vol_turnover(5)
+        vol_1m, turnover_1m = get_avg_vol_turnover(21)
             
         def get_return(days_ago):
             if len(data) > days_ago:
@@ -240,9 +262,9 @@ def calculate_historical_returns(ohlcv_json_str: str):
             if ytd_base_close > 0:
                 perf_ytd = ((current_close - ytd_base_close) / ytd_base_close) * 100
                 
-        return volume, perf_1w, perf_1m, perf_3m, perf_6m, perf_1y, perf_ytd
+        return volume, vol_1w, vol_1m, turnover_1d, turnover_1w, turnover_1m, perf_1w, perf_1m, perf_3m, perf_6m, perf_1y, perf_ytd
     except Exception:
-        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
 
 @app.get("/api/stocks")
 async def list_stocks():
@@ -256,8 +278,7 @@ async def list_stocks():
             SELECT 
                 slug, ticker, name, market_cap_type, market_cap, 
                 pe_ratio, day_change, industry, inst_accum, 
-                volatility_squeeze, qes_flag, rs_rating,
-                alpha_score_conservative, alpha_score_moonshot, shap_reason_1, shap_reason_2, shap_reason_3,
+                volatility_squeeze, rs_rating,
                 absolute_data->>'$."live price"',
                 absolute_data->>'$.roe',
                 absolute_data->>'$.OHLCV'
@@ -265,11 +286,11 @@ async def list_stocks():
         """
         result = con.execute(query).fetchall()
         
-        _search_cache = []
+        local_cache = []
         for r in result:
-            vol, p_1w, p_1m, p_3m, p_6m, p_1y, p_ytd = calculate_historical_returns(r[19])
+            vol, vol_1w, vol_1m, t_1d, t_1w, t_1m, p_1w, p_1m, p_3m, p_6m, p_1y, p_ytd = calculate_historical_returns(r[13])
             
-            _search_cache.append({
+            local_cache.append({
                 "slug": r[0], 
                 "ticker": r[1], 
                 "name": r[2],
@@ -280,16 +301,15 @@ async def list_stocks():
                 "industry": r[7],
                 "inst_accum": r[8],
                 "v_squeeze": r[9],
-                "qes_flag": r[10],
-                "rs_rating": r[11],
-                "alpha_score_conservative": r[12] if r[12] is not None else 0.0,
-                "alpha_score_moonshot": r[13] if r[13] is not None else 0.0,
-                "shap_reason_1": r[14],
-                "shap_reason_2": r[15],
-                "shap_reason_3": r[16],
-                "livePrice": r[17],
-                "roe": r[18] if r[18] is not None else 0.0,
+                "rs_rating": r[10],
+                "livePrice": r[11],
+                "roe": r[12] if r[12] is not None else 0.0,
                 "volume": vol,
+                "vol_1w": vol_1w,
+                "vol_1m": vol_1m,
+                "turnover_1d": t_1d,
+                "turnover_1w": t_1w,
+                "turnover_1m": t_1m,
                 "perf_1w": p_1w,
                 "perf_1m": p_1m,
                 "perf_3m": p_3m,
@@ -298,6 +318,7 @@ async def list_stocks():
                 "perf_ytd": p_ytd
             })
             
+        _search_cache = local_cache
         return _search_cache
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -322,6 +343,130 @@ async def get_stock(slug: str):
             "slug": slug, 
             "absolute": abs_data, 
             "relative": rel_data,
+            "benchmark_ohlcv": nifty_ohlcv
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/etfs")
+async def list_etfs(limit: int = 1000):
+    try:
+        con = get_db()
+        # Ensure etfs table exists before querying
+        try:
+            con.execute("SELECT 1 FROM etfs LIMIT 1")
+        except:
+            return []
+            
+        query = """
+            SELECT 
+                slug, ticker, name, marketCap, peRatio, livePrice, 
+                dayChange, type, header, stats
+            FROM etfs
+            LIMIT ?
+        """
+        result = con.execute(query, (limit,)).fetchall()
+        
+        etfs = []
+        for r in result:
+            header_val = r[8] if len(r) > 8 else {}
+            if isinstance(header_val, str):
+                try: header_val = json.loads(header_val)
+                except: header_val = {}
+                
+            stats_val = r[9] if len(r) > 9 else {}
+            if isinstance(stats_val, str):
+                try: stats_val = json.loads(stats_val)
+                except: stats_val = {}
+
+            etfs.append({
+                "slug": r[0],
+                "ticker": r[1],
+                "name": r[2],
+                "marketCap": r[3],
+                "peRatio": r[4],
+                "livePrice": r[5],
+                "dayChange": r[6],
+                "type": r[7],
+                "header": header_val,
+                "stats": stats_val
+            })
+        return etfs
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/etfs/{slug}")
+async def get_etf(slug: str):
+    try:
+        con = get_db()
+        try:
+            con.execute("SELECT 1 FROM etfs LIMIT 1")
+        except:
+            raise HTTPException(status_code=404, detail="ETFs not initialized")
+            
+        result = con.execute("SELECT * FROM etfs WHERE slug = ?", (slug,)).fetchone()
+        
+        if not result:
+            raise HTTPException(status_code=404, detail="ETF not found")
+            
+        cols = [d[0] for d in con.description]
+        data = dict(zip(cols, result))
+        
+        # Nifty for benchmark
+        nifty_result = con.execute("SELECT absolute_data->>'$.OHLCV' FROM stocks WHERE slug = 'nifty'").fetchone()
+        nifty_ohlcv = json.loads(nifty_result[0]) if nifty_result and nifty_result[0] else []
+        
+        # Handle types that might be structs or strings
+        ohlcv_raw = data.get("OHLCV")
+        if isinstance(ohlcv_raw, str):
+            try: ohlcv_raw = json.loads(ohlcv_raw)
+            except: ohlcv_raw = []
+        elif not ohlcv_raw:
+            ohlcv_raw = []
+            
+        header_raw = data.get("header")
+        if isinstance(header_raw, str):
+            try: header_raw = json.loads(header_raw)
+            except: header_raw = {}
+        elif not header_raw:
+            header_raw = {}
+            
+        stats_raw = data.get("stats")
+        if isinstance(stats_raw, str):
+            try: stats_raw = json.loads(stats_raw)
+            except: stats_raw = {}
+        elif not stats_raw:
+            stats_raw = {}
+            
+        holdings_raw = data.get("holdings")
+        if isinstance(holdings_raw, str):
+            try: holdings_raw = json.loads(holdings_raw)
+            except: holdings_raw = []
+        elif not holdings_raw:
+            holdings_raw = []
+            
+        sectors_raw = data.get("sectors", [])
+        if isinstance(sectors_raw, str):
+            try: sectors_raw = json.loads(sectors_raw)
+            except: sectors_raw = []
+        elif not sectors_raw:
+            sectors_raw = []
+
+        return {
+            "slug": slug,
+            "absolute": {
+                "live price": data.get("livePrice"),
+                "day change": data.get("dayChange"),
+                "ticker": data.get("ticker"),
+                "displayName": data.get("name"),
+                "marketCap": data.get("marketCap"),
+                "OHLCV": ohlcv_raw,
+                "header_raw": header_raw,
+                "stats_raw": stats_raw,
+                "holdings_raw": holdings_raw,
+                "sectors_raw": sectors_raw
+            },
+            "relative": {},
             "benchmark_ohlcv": nifty_ohlcv
         }
     except Exception as e:
@@ -542,12 +687,9 @@ async def analyze_pair(request: PairRequest):
             # Use 0 if rolling metrics aren't available yet (start of the series)
             z_score = (spread[i] - r_mean) / r_std if not pd.isna(r_std) and r_std > 0 else 0
             
-            parts = d["date"].split('-')
-            time_str = f"{parts[2]}-{parts[1]}-{parts[0]}"
-            
-            chart_data.append({"time": time_str, "value": float(z_score)})
-            price_series_a.append({"time": time_str, "value": ((d["price_a"] / base_a) - 1) * 100})
-            price_series_b.append({"time": time_str, "value": ((d["price_b"] / base_b) - 1) * 100 if base_b > 0 else 0})
+            chart_data.append({"time": d["date"], "value": float(z_score)})
+            price_series_a.append({"time": d["date"], "value": ((d["price_a"] / base_a) - 1) * 100})
+            price_series_b.append({"time": d["date"], "value": ((d["price_b"] / base_b) - 1) * 100 if base_b > 0 else 0})
 
         current_z = chart_data[-1]["value"]
         
@@ -638,16 +780,23 @@ async def get_stock_news(slug: str):
         con = get_db()
         # Get target stock's news feed from Parquet/DuckDB directly
         target = con.execute("""
-            SELECT json_extract_string(relative_data, '$.aggregated_news_signals.raw_feed') 
+            SELECT json_extract_string(relative_data, '$.aggregated_news_signals.raw_feed'), ticker 
             FROM stocks WHERE slug = ?
         """, (slug,)).fetchone()
         
-        if not target or not target[0]:
+        if not target:
             raise HTTPException(status_code=404, detail="Stock or news not found")
             
         import json
         import time
-        news_feed = json.loads(target[0])
+        news_feed = json.loads(target[0]) if target[0] else []
+        ticker = target[1]
+        
+        # Fallback to fetching live news if the DB is empty
+        if not news_feed or len(news_feed) == 0:
+            from news_scraper import fetch_live_news_from_trendlyne
+            print(f"News empty in DB, fetching live news for {slug} ({ticker})...")
+            news_feed = fetch_live_news_from_trendlyne(slug, ticker)
         
         # The ML pipeline already calculated VADER scores and tagged them!
         result_data = {"raw_feed": news_feed}
@@ -688,12 +837,9 @@ async def analyze_portfolio(request: PortfolioRequest):
                 SELECT 
                     ticker,
                     volatility_squeeze,
-                    qes_flag,
                     CAST(json_extract_string(relative_data, '$.aggregated_news_signals.active_debt_crisis_flag') AS INT) as debt_flag,
                     CAST(json_extract_string(relative_data, '$.aggregated_news_signals.active_regulatory_flag') AS INT) as reg_flag,
                     pledge_delta,
-                    tax_divergence,
-                    alpha_score_conservative as alpha_score,
                     industry
                 FROM stocks WHERE slug = ?
             """, (slug,)).fetchone()
@@ -703,13 +849,10 @@ async def analyze_portfolio(request: PortfolioRequest):
                     "slug": slug,
                     "ticker": stock[0],
                     "v_squeeze": stock[1] or 0,
-                    "qes_flag": stock[2] == 1,
-                    "debt_flag": stock[3] == 1,
-                    "reg_flag": stock[4] == 1,
-                    "pledge_surge": (stock[5] or 0) > 1.0,
-                    "tax_divergence": (stock[6] or 0) > 0.3,
-                    "alpha_score": stock[7] if stock[7] is not None else 0.0,
-                    "industry": stock[8],
+                    "debt_flag": stock[2] == 1,
+                    "reg_flag": stock[3] == 1,
+                    "pledge_surge": (stock[4] or 0) > 1.0,
+                    "industry": stock[5],
                     "market_cap_type": con.execute("SELECT market_cap_type FROM stocks WHERE slug = ?", (slug,)).fetchone()[0]
                 })
         
@@ -721,39 +864,11 @@ async def analyze_portfolio(request: PortfolioRequest):
             for r in results:
                 score = 0
                 if r["v_squeeze"] > 2000: score += 10
-                if r["qes_flag"]: score += 20
                 if r["debt_flag"]: score += 30
                 if r["reg_flag"]: score += 10
                 if r["pledge_surge"]: score += 20
-                if r["tax_divergence"]: score += 10
                 r["individual_score"] = min(score, 100)
                 total_risk += r["individual_score"]
-                
-                # Smart Swap Logic: If alpha is low or risk is high, find a better stock in the same industry AND same market cap tier
-                if r["alpha_score"] < 0.5 or r["individual_score"] >= 30:
-                    better_stock = con.execute("""
-                        SELECT slug, ticker, alpha_score_conservative as alpha_score 
-                        FROM stocks 
-                        WHERE industry = ? 
-                        AND market_cap_type = ?
-                        AND slug != ?
-                        AND alpha_score_conservative > ? + 0.10
-                        AND qes_flag = 0
-                        AND (pledge_delta IS NULL OR pledge_delta <= 1.0)
-                        AND (tax_divergence IS NULL OR tax_divergence <= 0.3)
-                        ORDER BY alpha_score_conservative DESC 
-                        LIMIT 1
-                    """, (r["industry"], r["market_cap_type"], r["slug"], r["alpha_score"])).fetchone()
-                    
-                    if better_stock:
-                        swaps.append({
-                            "current_slug": r["slug"],
-                            "current_ticker": r["ticker"],
-                            "recommended_slug": better_stock[0],
-                            "recommended_ticker": better_stock[1],
-                            "alpha_gain": better_stock[2] - r["alpha_score"],
-                            "reason": f"High risk or low Alpha ({r['alpha_score']:.2f}). Switch to {better_stock[1]} for clean forensics and higher expected outperformance."
-                        })
             
             avg_risk = total_risk / len(results)
         else:
@@ -777,7 +892,6 @@ async def analyze_portfolio(request: PortfolioRequest):
             try:
                 from scipy.optimize import minimize
                 matrices = []
-                alphas = []
                 valid_results = []
                 for r in results:
                     mat_res = con.execute("SELECT relative_data->>'$.historical_time_series_matrix' FROM stocks WHERE slug = ?", (r["slug"],)).fetchone()
@@ -787,7 +901,6 @@ async def analyze_portfolio(request: PortfolioRequest):
                             rets = [row[0] for row in mat]
                             if len(rets) >= 50:
                                 matrices.append(rets)
-                                alphas.append(r["alpha_score"])
                                 valid_results.append(r)
                         except: pass
                 if len(matrices) >= 2:
@@ -795,24 +908,19 @@ async def analyze_portfolio(request: PortfolioRequest):
                     mat_array = np.array([m[-min_len:] for m in matrices])
                     
                     # The returns in matrices are daily. We must annualize the covariance matrix
-                    # because the expected_returns (alphas) are 1-year forward expected returns.
-                    # Mismatching annualized returns with daily volatility mathematically breaks the Sharpe ratio.
                     daily_cov_matrix = np.cov(mat_array)
                     cov_matrix = daily_cov_matrix * 252
                     
-                    expected_returns = np.array(alphas)
-                    
-                    def negative_sharpe(weights):
-                        port_return = np.sum(weights * expected_returns)
-                        port_risk = np.sqrt(np.dot(weights.T, np.dot(cov_matrix, weights)))
-                        return -port_return / port_risk if port_risk > 0 else 0
+                    def portfolio_variance(weights):
+                        return np.dot(weights.T, np.dot(cov_matrix, weights))
                     
                     num_assets = len(valid_results)
                     constraints = ({'type': 'eq', 'fun': lambda x: np.sum(x) - 1})
                     bounds = tuple((0.0, 1.0) for _ in range(num_assets))
                     init_weights = np.array([1.0 / num_assets] * num_assets)
                     
-                    opt = minimize(negative_sharpe, init_weights, method='SLSQP', bounds=bounds, constraints=constraints)
+                    # Without alpha expected returns, we fall back to finding the Minimum Variance Portfolio
+                    opt = minimize(portfolio_variance, init_weights, method='SLSQP', bounds=bounds, constraints=constraints)
                     if opt.success:
                         for i, weight in enumerate(opt.x):
                             if weight > 0.01:
@@ -857,7 +965,7 @@ async def ai_analyze_portfolio(req: PortfolioAIRequest):
         # Gather data and calculate weights
         portfolio_data = []
         for h in req.stockHoldings:
-            stock = con.execute("SELECT ticker, name, industry, pe_ratio, alpha_score_conservative as alpha_score, volatility_squeeze FROM stocks WHERE slug = ?", (h.slug,)).fetchone()
+            stock = con.execute("SELECT ticker, name, industry, pe_ratio, volatility_squeeze FROM stocks WHERE slug = ?", (h.slug,)).fetchone()
             if stock:
                 weight = (h.amount / total_value) * 100
                 portfolio_data.append({
@@ -866,8 +974,7 @@ async def ai_analyze_portfolio(req: PortfolioAIRequest):
                     "name": stock[1],
                     "industry": stock[2],
                     "pe_ratio": stock[3],
-                    "alpha_score": stock[4],
-                    "volatility_squeeze": stock[5],
+                    "volatility_squeeze": stock[4],
                     "amount_inr": h.amount,
                     "weight_pct": round(weight, 2)
                 })

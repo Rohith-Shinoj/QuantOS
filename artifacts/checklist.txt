@@ -1,22 +1,5 @@
-[x] Bug of the extra stuff from landing page leaking in stock temrinal view
-[] Moving the terminal -> stock links and Replacing the slugs with tickers in urls
-[x] MAJOR - Upgade portfolio analyzer to include number units, prices, allow monitoring like stocks, filters, etc
-[x] AI overhaul
-[x]   Fix This
-    stockHoldings.forEach(h => {
-      const stock = allStocks?.find((s: any) => s.slug === h.slug);
-      if (!stock) return;
-      const val = h.units * getLivePrice(h.slug, 'STOCKS');
-      const weight = totalValue > 0 ? val / totalValue : 0;
-      // Use rs_rating as beta proxy (higher RS = higher beta)
-      const betaProxy = stock.rs_rating != null ? Math.max(0.6, stock.rs_rating / 50) : 1.0;
-      weightedBeta += betaProxy * weight;
-      coveredWeight += weight;
-    }); in portfoliotracker
+[.] Screener upgrade  - Search within screener
+[ ] MOST IMP: AI NATIVE - CLAUDE
+[ ] Backtest module
 
-[x] Remove the dual datasets into one and new copied on the fly
-[x] Remove Macro overview and combine to home
-[.] Make Heatmap lok like Trading view map
-[x] Nav bar standardized
-[ ] Screener upgrade
-[ ] Logos in the Heatmap and non sector view
+

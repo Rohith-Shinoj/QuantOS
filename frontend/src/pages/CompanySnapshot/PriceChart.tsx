@@ -38,9 +38,8 @@ export const PriceChart = ({ data }: { data: any }) => {
     
     const parsedData = ohlcv
       .map((d: any) => {
-        const parts = d.Date.split('-');
         return {
-          time: `${parts[2]}-${parts[1]}-${parts[0]}`,
+          time: d.Date,
           open: d.Open,
           high: d.High,
           low: d.Low,
@@ -93,8 +92,7 @@ export const PriceChart = ({ data }: { data: any }) => {
 
     const fullData = ohlcv
       .map((d: any) => {
-        const [day, month, year] = d.Date.split('-');
-        const timestamp = new Date(`${year}-${month}-${day}`).getTime();
+        const timestamp = new Date(d.Date).getTime();
         return {
           x: timestamp,
           y: [d.Open, d.High, d.Low, d.Close] as [number, number, number, number],
@@ -136,7 +134,7 @@ export const PriceChart = ({ data }: { data: any }) => {
 
   let pctChange = 0;
   let priceDiff = 0;
-  let rawLivePrice = data?.absolute?.absolute_data?.["live price"];
+  let rawLivePrice = data?.absolute?.["live price"];
   let currentPrice = 0;
   let startPrice = 0;
   
@@ -281,11 +279,11 @@ export const PriceChart = ({ data }: { data: any }) => {
           <StockLogo ticker={data?.absolute?.ticker || ''} className="w-14 h-14 shadow-md" textClass="text-sm" fallbackClass="bg-surface border border-border text-text-primary" />
           <div className="flex flex-col justify-center gap-0.5">
             <div className="flex items-center gap-3">
-              <h3 className="text-2xl font-extrabold text-white tracking-tight leading-none">{data?.absolute?.ticker}</h3>
+              <h3 className="text-2xl font-extrabold text-text-primary tracking-tight leading-none">{data?.absolute?.ticker}</h3>
               <span className="text-sm text-text-secondary leading-none">{data?.absolute?.name}</span>
             </div>
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-lg font-bold text-white leading-none">₹{currentPrice.toFixed(2)}</span>
+              <span className="text-lg font-bold text-text-primary leading-none">₹{currentPrice.toFixed(2)}</span>
               <span className={`text-sm font-semibold leading-none ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
                 {isPositive ? '+' : ''}{priceDiff.toFixed(2)} ({isPositive ? '+' : ''}{pctChange.toFixed(2)}%)
               </span>
@@ -304,7 +302,7 @@ export const PriceChart = ({ data }: { data: any }) => {
                 onClick={() => toggleOverlay(overlay.id)}
                 className={`text-[10px] px-2 py-1 rounded border transition-colors ${
                   isActive 
-                    ? 'bg-white/10 text-white border-white/20 font-bold' 
+                    ? 'bg-white/10 text-text-primary border-white/20 font-bold' 
                     : 'bg-transparent text-text-secondary border-border hover:bg-white/5'
                 }`}
               >
@@ -320,7 +318,7 @@ export const PriceChart = ({ data }: { data: any }) => {
               onClick={() => setTimeframe(tf)}
               className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
                 timeframe === tf
-                  ? 'bg-blue-600 text-white shadow-sm'
+                  ? 'bg-blue-600 text-text-primary shadow-sm'
                   : 'text-text-secondary hover:text-text-primary hover:bg-white/5'
               }`}
             >

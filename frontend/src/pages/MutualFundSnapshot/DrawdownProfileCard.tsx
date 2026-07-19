@@ -56,22 +56,22 @@ export const DrawdownProfileCard = ({ fund }: { fund: any }) => {
   }, [data, maxDrawdown]);
 
   return (
-    <div className="bg-[#111114] border border-white/5 p-5 rounded-xl flex flex-col justify-between h-full overflow-hidden">
+    <div className="bg-surface border border-border p-5 rounded-xl flex flex-col justify-between h-full overflow-hidden">
       <div className="flex justify-between items-start mb-4 shrink-0">
         <h3 className="text-sm font-semibold text-text-primary flex items-center gap-1.5 group relative w-fit cursor-help">
-          Drawdown & Recovery Profile <HelpCircle size={14} className="text-text-secondary hover:text-white transition-colors" />
-          <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-64 bg-[#1a1a24] text-white text-[10px] p-2 rounded shadow-xl z-50 normal-case tracking-normal border border-white/10 font-normal leading-relaxed">
+          Drawdown & Recovery Profile <HelpCircle size={14} className="text-text-secondary hover:text-text-primary transition-colors" />
+          <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-64 bg-surface-hover text-text-primary text-[10px] p-2 rounded shadow-xl z-50 normal-case tracking-normal border border-border font-normal leading-relaxed">
             Visualizes historical drops from peak valuation. Assesses the fund's downside risk and how quickly it recovers from macro crashes.
           </div>
         </h3>
         
         {/* Toggle */}
-        <div className="flex bg-[#1a1a24] rounded-md p-0.5 border border-white/10 shrink-0">
+        <div className="flex bg-surface-hover rounded-md p-0.5 border border-border shrink-0">
           {['1Y', '3Y', '5Y'].map((p) => (
             <button
               key={p}
               onClick={() => setPeriod(p)}
-              className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-colors ${period === p ? 'bg-[#27272a] text-white' : 'text-text-secondary hover:text-white'}`}
+              className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-colors ${period === p ? 'bg-[#27272a] text-text-primary' : 'text-text-secondary hover:text-text-primary'}`}
             >
               {p}
             </button>
@@ -86,12 +86,12 @@ export const DrawdownProfileCard = ({ fund }: { fund: any }) => {
          </div>
          <div className="flex flex-col">
            <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider mb-1">Time to Recovery</span>
-           <span className="text-lg font-bold text-white">{ttr} <span className="text-xs text-text-secondary">Months</span></span>
+           <span className="text-lg font-bold text-text-primary">{ttr} <span className="text-xs text-text-secondary">Months</span></span>
          </div>
       </div>
 
       {data.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center text-text-secondary border border-white/5 border-dashed rounded-lg bg-white/5">
+        <div className="flex-1 flex flex-col items-center justify-center text-text-secondary border border-border border-dashed rounded-lg bg-white/5">
            <Activity size={24} className="mb-2 opacity-50" />
            <span className="text-xs font-semibold">Historical NAV data not available</span>
            <span className="text-[10px] mt-1 opacity-70">Cannot compute real drawdown profile.</span>

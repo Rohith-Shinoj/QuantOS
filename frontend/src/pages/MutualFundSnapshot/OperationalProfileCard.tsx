@@ -1,25 +1,7 @@
 import React from 'react';
 import { HelpCircle } from 'lucide-react';
 
-const MetricBox = ({ label, value, subtext, color = 'text-text-primary', tooltipDesc }: any) => (
-  <div className="flex flex-col">
-    <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider mb-1 flex items-center gap-1 group relative w-fit cursor-help">
-      {label}
-      {tooltipDesc && (
-        <>
-          <HelpCircle size={14} className="text-text-secondary hover:text-white transition-colors" />
-          <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-48 bg-[#1a1a24] text-white text-[10px] p-2 rounded shadow-xl z-50 normal-case tracking-normal border border-white/10 font-normal leading-relaxed">
-            {tooltipDesc}
-          </div>
-        </>
-      )}
-    </span>
-    <div className="flex items-end gap-2">
-      <span className={`text-xl font-bold font-mono ${color}`}>{value}</span>
-      {subtext && <span className="text-xs font-semibold text-text-secondary mb-1">{subtext}</span>}
-    </div>
-  </div>
-);
+import { MetricBox } from '../../components/MetricBox';
 
 export const OperationalProfileCard = ({ fund }: { fund: any }) => {
   // Procedural stats for deep institutional data that may be missing from retail DB
@@ -46,9 +28,9 @@ export const OperationalProfileCard = ({ fund }: { fund: any }) => {
   const rotation = (riskData.val / 100) * 180; // 0 to 180 degrees
 
   return (
-    <div className="bg-[#111114] border border-white/5 p-5 rounded-xl flex flex-col justify-between h-full overflow-hidden">
+    <div className="bg-surface border border-border p-5 rounded-xl flex flex-col justify-between h-full overflow-hidden">
       <h3 className="text-sm font-semibold text-text-primary mb-6 flex items-center gap-1.5 shrink-0">
-        Operational Profile & Health <HelpCircle size={14} className="text-text-secondary hover:text-white transition-colors" />
+        Operational Profile & Health <HelpCircle size={14} className="text-text-secondary hover:text-text-primary transition-colors" />
       </h3>
       
       <div className="flex-1 flex flex-col gap-6">
@@ -78,7 +60,7 @@ export const OperationalProfileCard = ({ fund }: { fund: any }) => {
           />
         </div>
 
-        <hr className="border-white/5" />
+        <hr className="border-border" />
 
         {/* Institutional Metrics */}
         <div className="grid grid-cols-2 gap-y-6 gap-x-4 shrink-0">
@@ -96,7 +78,7 @@ export const OperationalProfileCard = ({ fund }: { fund: any }) => {
         </div>
         
         {/* Riskometer Gauge */}
-        <div className="flex-1 min-h-[100px] bg-white/5 border border-white/5 rounded-lg mt-2 relative flex flex-col items-center justify-end pb-4 pt-6 shrink-0">
+        <div className="flex-1 min-h-[100px] bg-white/5 border border-border rounded-lg mt-2 relative flex flex-col items-center justify-end pb-4 pt-6 shrink-0">
            <span className="absolute top-3 left-3 text-[10px] font-bold text-text-secondary uppercase tracking-wider">SEBI Riskometer</span>
            <div className="relative w-40 h-20 overflow-hidden">
              {/* Semicircle Track */}

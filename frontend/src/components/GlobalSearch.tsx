@@ -49,7 +49,7 @@ export const GlobalSearch = ({ className = "w-96 lg:w-[400px] xl:w-[480px]", onS
                 onClick={() => setActiveFilter(f)}
                 className={`px-2 py-1 text-[10px] font-bold rounded transition-colors ${
                   activeFilter === f 
-                    ? 'bg-alpha text-white' 
+                    ? 'bg-alpha text-text-primary' 
                     : 'text-text-secondary hover:text-text-primary'
                 }`}
               >

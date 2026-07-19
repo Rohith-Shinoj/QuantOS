@@ -181,21 +181,7 @@ COMPONENT_REGISTRY = {
         "schema": '{"promoter_pledge_delta_alert": {"pledged_pct": 0.0, "change_pct": 0.0, "risk_level": "STR"}}',
         "required_tools": ["query_quant_database"]
     },
-    "tax_divergence_discrepancy_card": {
-        "description": "Minimalist warning block showing reporting misalignments between book profit and actual cash tax paid.",
-        "schema": '{"tax_divergence_discrepancy_card": {"book_tax_rate": 0.0, "cash_tax_rate": 0.0, "discrepancy_flag": false}}',
-        "required_tools": ["query_quant_database"]
-    },
-    "quantitative_earnings_quality_scorecard": {
-        "description": "Clean metric rating tracking earnings manipulations, accruals, and cash flow conversions (QES score).",
-        "schema": '{"quantitative_earnings_quality_scorecard": {"qes_score": 0.0, "quality_tier": "STR", "flags": ["STR"]}}',
-        "required_tools": ["query_quant_database"]
-    },
-    "shap_global_feature_driver_plot": {
-        "description": "Recharts horizontal bar chart mapping machine learning feature attributions explaining the alpha projection.",
-        "schema": '{"shap_global_feature_driver_plot": [{"feature": "STR", "contribution": 0.0}]}',
-        "required_tools": ["query_quant_database"]
-    },
+
     "block_deal_activity_matrix": {
         "description": "Standard table tracking high-volume block transactions, bulk deals, and dark pool exchanges.",
         "schema": '{"block_deal_activity_matrix": [{"date": "STR", "buyer_seller": "STR", "volume": 0, "price": 0.0}]}',
@@ -236,11 +222,6 @@ COMPONENT_REGISTRY = {
     "cross_sectional_peer_multiples_table": {
         "description": "Borderless financial table mapping the target stock against direct competitors (P/E, P/B, EV/EBITDA).",
         "schema": '{"cross_sectional_peer_multiples_table": [{"ticker": "STR", "pe_ratio": 0.0, "pb_ratio": 0.0}]}',
-        "required_tools": ["query_quant_database"]
-    },
-    "sector_alpha_dominance_chart": {
-        "description": "Recharts comparative bar graph mapping competitive alpha rankings and multi-factor models across the sector.",
-        "schema": '{"sector_alpha_dominance_chart": [{"ticker": "STR", "alpha_score": 0.0}]}',
         "required_tools": ["query_quant_database"]
     },
     "beta_and_systematic_correlation_index": {

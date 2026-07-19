@@ -347,41 +347,8 @@ def compute_ai_outlook_view(stocks_df, weights):
     agg_qes = 0
     valid_qes = 0
     
-    shap_counts = {}
-    
-    for _, row in stocks_df.iterrows():
-        w = weights.get(row['slug'], 0)
-        
-        if pd.notna(row.get('alpha_score_conservative')) and float(row.get('alpha_score_conservative')) != 0.0:
-            agg_alpha += float(row['alpha_score_conservative']) * w
-            valid_alpha += w
-            
-        if pd.notna(row.get('qes_flag')) and float(row.get('qes_flag')) != 0.0:
-            agg_qes += float(row['qes_flag']) * w
-            valid_qes += w
-            
-        r1 = row.get('shap_reason_1')
-        r2 = row.get('shap_reason_2')
-        if pd.notna(r1) and str(r1).strip() != "":
-            shap_counts[r1] = shap_counts.get(r1, 0) + w
-        if pd.notna(r2) and str(r2).strip() != "":
-            shap_counts[r2] = shap_counts.get(r2, 0) + w
-            
-    if valid_alpha > 0: 
-        agg_alpha = round((agg_alpha / valid_alpha) * 100, 1)
-    else: 
-        agg_alpha = "PENDING"
-        
-    if valid_qes > 0: 
-        agg_qes = round((agg_qes / valid_qes) * 100, 1)
-    else: 
-        agg_qes = "PENDING"
-    
-    top_shaps = sorted(shap_counts.items(), key=lambda x: x[1], reverse=True)[:2]
-    top_drivers = [x[0] for x in top_shaps]
-    
     return {
-        "ensemble_alpha": agg_alpha,
-        "forensic_risk": agg_qes,
-        "shap_drivers": top_drivers
+        "ensemble_alpha": "PENDING",
+        "forensic_risk": "PENDING",
+        "shap_drivers": []
     }

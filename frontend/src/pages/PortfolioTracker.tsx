@@ -1142,7 +1142,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
               : <StockLogo ticker={data.ticker || data.slug} name={data.name} className="w-6 h-6 rounded-full" />
           )}
           <div className="flex flex-col">
-            <span className="text-white font-bold text-xs">{data.name}</span>
+            <span className="text-text-primary font-bold text-xs">{data.name}</span>
             <span className="text-text-secondary text-[10px]">₹{Number(data.value).toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
           </div>
         </div>
@@ -1245,7 +1245,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
             </button>
             <button 
               onClick={() => setIsAiModalOpen(true)}
-              className="px-6 py-2.5 bg-indigo-500 text-white font-bold rounded-lg hover:bg-indigo-600 transition-colors flex items-center gap-2 shadow-[0_0_15px_rgba(99,102,241,0.3)]"
+              className="px-6 py-2.5 bg-indigo-500 text-text-primary font-bold rounded-lg hover:bg-indigo-600 transition-colors flex items-center gap-2 shadow-[0_0_15px_rgba(99,102,241,0.3)]"
             >
               <BrainCircuit size={18} />
               AI Portfolio Analysis
@@ -1513,7 +1513,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                                 type="number" 
                                 value={editHoldingVal} 
                                 onChange={e => setEditHoldingVal(e.target.value)}
-                                className="w-full bg-surface border border-border rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-alpha"
+                                className="w-full bg-surface border border-border rounded px-2 py-1 text-xs text-text-primary focus:outline-none focus:border-alpha"
                               />
                             </div>
                             <div className="flex flex-col gap-1">
@@ -1522,12 +1522,12 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                                 type="number" 
                                 value={editInvestedVal} 
                                 onChange={e => setEditInvestedVal(e.target.value)}
-                                className="w-full bg-surface border border-border rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-alpha"
+                                className="w-full bg-surface border border-border rounded px-2 py-1 text-xs text-text-primary focus:outline-none focus:border-alpha"
                               />
                             </div>
                           </div>
                           <div className="flex justify-end gap-2 mt-2">
-                            <button onClick={() => setEditingSlug(null)} className="px-2 py-1 text-xs text-text-secondary hover:text-white transition-colors">
+                            <button onClick={() => setEditingSlug(null)} className="px-2 py-1 text-xs text-text-secondary hover:text-text-primary transition-colors">
                               Cancel
                             </button>
                             <button 
@@ -1552,7 +1552,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                           </div>
                           
                           <div className="flex flex-col items-end shrink-0 pr-2 group-hover:pr-8 transition-all">
-                             <span className="font-mono text-xs font-bold tabular-nums text-white">₹{val.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
+                             <span className="font-mono text-xs font-bold tabular-nums text-text-primary">₹{val.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
                              <span className={`text-[9px] font-bold ${isPositive ? 'text-alpha' : 'text-beta'}`}>
                                {isPositive ? '+' : ''}{dayAmt.toFixed(2)} ({isPositive ? '+' : ''}{dayPct.toFixed(2)}%)
                              </span>
@@ -1588,7 +1588,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                      <TrendingDown size={12} className="text-red-400" /> 
                      <span>Drawdown Profile</span>
                      <Info size={12} className="text-text-secondary opacity-50 cursor-pointer" />
-                     <div className="absolute top-full left-0 mt-2 w-64 p-2 bg-gray-900 border border-gray-700 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                     <div className="absolute top-full left-0 mt-2 w-64 p-2 bg-surface border border-border text-text-primary text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
                         Assumes your current portfolio weights were held passively (no rebalancing) over the last 252 trading days. The benchmark is strictly normalized against the Nifty 50.
                      </div>
                    </div>
@@ -1803,7 +1803,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                            const data = payload[0].payload;
                            return (
                              <div className="bg-[#1e222d] border border-[#2a2e39] p-3 rounded shadow-xl text-xs min-w-[300px] z-50">
-                               <div className="font-bold text-white mb-2">{data.event}</div>
+                               <div className="font-bold text-text-primary mb-2">{data.event}</div>
                                <div className="flex justify-between text-text-secondary mb-1">
                                  <span>Portfolio Return:</span>
                                  <span className={`font-bold ${data.combined >= 0 ? 'text-alpha' : 'text-red-400'}`}>{data.combined}%</span>
@@ -1926,10 +1926,10 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                 <BrainCircuit size={20} /> AI Portfolio Analysis
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={() => setIsMaximized(!isMaximized)} className="p-1.5 text-text-secondary hover:text-white transition-colors">
+                <button onClick={() => setIsMaximized(!isMaximized)} className="p-1.5 text-text-secondary hover:text-text-primary transition-colors">
                   {isMaximized ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
                 </button>
-                <button onClick={() => setIsAiModalOpen(false)} className="p-1.5 text-text-secondary hover:text-white transition-colors">
+                <button onClick={() => setIsAiModalOpen(false)} className="p-1.5 text-text-secondary hover:text-text-primary transition-colors">
                   <X size={18} />
                 </button>
               </div>
@@ -1941,7 +1941,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                 <button 
                   onClick={handleAnalyze}
                   disabled={isAnalyzing}
-                  className="px-4 py-1.5 bg-indigo-500 text-white text-xs font-bold rounded hover:bg-indigo-600 transition-colors flex items-center gap-2 disabled:opacity-50"
+                  className="px-4 py-1.5 bg-indigo-500 text-text-primary text-xs font-bold rounded hover:bg-indigo-600 transition-colors flex items-center gap-2 disabled:opacity-50"
                 >
                   {isAnalyzing ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
                   Run Analysis
@@ -1995,7 +1995,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                     <div className="flex justify-between items-start z-10 gap-6">
                       <div className="flex-1">
                         <span className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase mb-3 block">Strategic Verdict</span>
-                        <div className="prose prose-invert prose-indigo max-w-none text-sm leading-relaxed [&>p]:mb-4 last:[&>p]:mb-0 [&>ul]:list-disc [&>ul]:ml-5 [&>h3]:text-base [&>h3]:font-bold [&>h3]:mt-4 [&>h3]:mb-2 [&>strong]:text-white">
+                        <div className="prose prose-invert prose-indigo max-w-none text-sm leading-relaxed [&>p]:mb-4 last:[&>p]:mb-0 [&>ul]:list-disc [&>ul]:ml-5 [&>h3]:text-base [&>h3]:font-bold [&>h3]:mt-4 [&>h3]:mb-2 [&>strong]:text-text-primary">
                           <ReactMarkdown>
                             {aiAnalysis.strategic_verdict}
                           </ReactMarkdown>
@@ -2020,7 +2020,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                        <span className="text-xs font-bold uppercase tracking-widest text-text-secondary flex items-center gap-2">
                          <AlertTriangle size={14} /> Concentration
                        </span>
-                       <div className="text-sm font-bold text-white">Risk: <span className={aiAnalysis.concentration_analysis.risk_level === 'HIGH' ? 'text-beta' : 'text-warning'}>{aiAnalysis.concentration_analysis.risk_level}</span></div>
+                       <div className="text-sm font-bold text-text-primary">Risk: <span className={aiAnalysis.concentration_analysis.risk_level === 'HIGH' ? 'text-beta' : 'text-warning'}>{aiAnalysis.concentration_analysis.risk_level}</span></div>
                        <div className="flex flex-wrap gap-2">
                          {aiAnalysis.concentration_analysis.vulnerable_sectors.map((s: string, i: number) => (
                            <span key={i} className="text-[10px] font-bold px-2 py-1 bg-surface rounded border border-border">{s}</span>
@@ -2035,7 +2035,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                          {aiAnalysis.macro_exposures.map((m: any, i: number) => (
                            <div key={i} className="text-xs flex justify-between items-center border-b border-border/50 pb-1 last:border-0 last:pb-0">
                              <span className="text-text-secondary">{m.factor}</span>
-                             <span className="font-bold text-white text-right w-1/2 text-[10px] leading-tight" title={m.impact}>{m.impact}</span>
+                             <span className="font-bold text-text-primary text-right w-1/2 text-[10px] leading-tight" title={m.impact}>{m.impact}</span>
                            </div>
                          ))}
                        </div>
@@ -2105,7 +2105,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                 <button 
                   onClick={() => setChatHistory([])}
                   disabled={!aiAnalysis || chatHistory.length === 0}
-                  className="p-3 bg-canvas border border-border rounded-xl text-text-secondary hover:text-white disabled:opacity-50 transition-colors"
+                  className="p-3 bg-canvas border border-border rounded-xl text-text-secondary hover:text-text-primary disabled:opacity-50 transition-colors"
                   title="New Chat (Clears Follow-ups)"
                 >
                   <Plus size={16} />

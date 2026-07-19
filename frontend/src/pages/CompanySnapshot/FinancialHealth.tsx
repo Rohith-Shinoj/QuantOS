@@ -24,27 +24,27 @@ export const FinancialHealth = ({ data }: { data: any }) => {
     const checksArray = [
       { 
         name: 'Positive ROA', passed: c.positive_roa ?? null, 
-        desc: <>Is the Return on Assets (ROA) positive?<BlockMath math="\text{ROA} > 0" /></>
+        desc: <>Is the Return on Assets (ROA) positive?<BlockMath math={String.raw`\text{ROA} > 0`} /></>
       },
       { 
         name: 'Positive OCF', passed: c.positive_ocf ?? null, 
-        desc: <>Is the company generating positive operating cash flow?<BlockMath math="\text{OCF} > 0" /></>
+        desc: <>Is the company generating positive operating cash flow?<BlockMath math={String.raw`\text{OCF} > 0`} /></>
       },
       { 
         name: 'Increasing ROA', passed: c.increasing_roa ?? null, 
-        desc: <>Did the Return on Assets increase?<BlockMath math="\text{ROA}_{\text{current}} > \text{ROA}_{\text{previous}}" /></>
+        desc: <>Did the Return on Assets increase?<BlockMath math={String.raw`\text{ROA}_{\text{current}} > \text{ROA}_{\text{previous}}`} /></>
       },
       { 
         name: 'Cash > Profit', passed: c.quality_of_earnings ?? null, 
-        desc: <>Calculates if the actual cash generated exceeds the accounting net profit.<BlockMath math="\text{OCF} > \text{Net Profit}" /></>
+        desc: <>Calculates if the actual cash generated exceeds the accounting net profit.<BlockMath math={String.raw`\text{OCF} > \text{Net Profit}`} /></>
       },
       { 
         name: 'Low Leverage', passed: c.decreasing_leverage ?? null, 
-        desc: <>Is the company keeping its debt under control?<BlockMath math="\frac{\text{Total Debt}}{\text{Total Equity}} < 0.5" /></>
+        desc: <>Is the company keeping its debt under control?<BlockMath math={String.raw`\frac{\text{Total Debt}}{\text{Total Equity}} < 0.5`} /></>
       },
       { 
         name: 'High Liquidity', passed: c.increasing_current_ratio ?? null, 
-        desc: <>Does the company have enough short-term assets to cover short-term liabilities?<BlockMath math="\text{Current Ratio} > 1.5" /></>
+        desc: <>Does the company have enough short-term assets to cover short-term liabilities?<BlockMath math={String.raw`\text{Current Ratio} > 1.5`} /></>
       },
       { 
         name: 'No Dilution', passed: c.no_dilution ?? null, 
@@ -52,11 +52,11 @@ export const FinancialHealth = ({ data }: { data: any }) => {
       },
       { 
         name: 'Margin Exp.', passed: c.increasing_margin ?? null, 
-        desc: <>Did Profit Margins expand year-over-year?<BlockMath math="\text{Profit Margin}_{\text{current}} > \text{Profit Margin}_{\text{previous}}" /></>
+        desc: <>Did Profit Margins expand year-over-year?<BlockMath math={String.raw`\text{Profit Margin}_{\text{current}} > \text{Profit Margin}_{\text{previous}}`} /></>
       },
       { 
         name: 'Rev Growth', passed: c.increasing_revenue ?? null, 
-        desc: <>Did the company grow its revenue year-over-year?<BlockMath math="\text{Revenue}_{\text{current}} > \text{Revenue}_{\text{previous}}" /></>
+        desc: <>Did the company grow its revenue year-over-year?<BlockMath math={String.raw`\text{Revenue}_{\text{current}} > \text{Revenue}_{\text{previous}}`} /></>
       },
     ];
 
@@ -66,17 +66,17 @@ export const FinancialHealth = ({ data }: { data: any }) => {
   const isHealthy = score >= 7;
 
   return (
-    <div className="bg-surface p-4 rounded-lg border border-border h-full flex flex-col">
+    <div className="bg-surface border border-border p-5 rounded-xl flex flex-col h-full overflow-hidden">
       <div className="flex justify-between items-start mb-4 shrink-0">
-        <h3 className="text-lg font-medium text-text-primary flex items-center">
+        <h3 className="text-sm font-semibold text-text-primary flex items-center gap-1.5">
           Forensic X-Ray Matrix
           <InfoTooltip text="Strict 9-point Piotroski checklist. Evaluates deep accounting reality vs engineered earnings." />
         </h3>
-        <div className="text-right">
-          <div className="text-sm text-text-secondary font-medium">Piotroski F-Score</div>
-          <div className={`text-xl font-bold ${isHealthy ? 'text-emerald-400' : 'text-amber-400'}`}>
+        <div className="flex flex-col items-end">
+          <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider mb-1">Piotroski F-Score</span>
+          <span className={`text-xl font-bold font-mono ${isHealthy ? 'text-emerald-400' : 'text-amber-400'}`}>
             {score}/9
-          </div>
+          </span>
         </div>
       </div>
       

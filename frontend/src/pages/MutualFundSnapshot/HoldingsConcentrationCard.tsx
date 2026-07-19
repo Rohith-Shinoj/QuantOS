@@ -43,11 +43,11 @@ export const HoldingsConcentrationCard = ({ fund }: { fund: any }) => {
   }, [parsedHoldings]);
 
   return (
-    <div className="bg-[#111114] border border-white/5 p-5 rounded-xl flex flex-col justify-between h-full overflow-hidden">
+    <div className="bg-surface border border-border p-5 rounded-xl flex flex-col justify-between h-full overflow-hidden">
       <div className="flex justify-between items-start mb-6 shrink-0">
         <h3 className="text-sm font-semibold text-text-primary flex items-center gap-1.5 group relative w-fit cursor-help">
-          Holdings & Sector Concentration <HelpCircle size={14} className="text-text-secondary hover:text-white transition-colors" />
-          <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-64 bg-[#1a1a24] text-white text-[10px] p-2 rounded shadow-xl z-50 normal-case tracking-normal border border-white/10 font-normal leading-relaxed">
+          Holdings & Sector Concentration <HelpCircle size={14} className="text-text-secondary hover:text-text-primary transition-colors" />
+          <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-64 bg-surface-hover text-text-primary text-[10px] p-2 rounded shadow-xl z-50 normal-case tracking-normal border border-border font-normal leading-relaxed">
             Displays the fund's top pure-equity holdings and sector tilts, removing cash equivalents like Repo to reveal the true portfolio exposure.
           </div>
         </h3>
@@ -66,8 +66,8 @@ export const HoldingsConcentrationCard = ({ fund }: { fund: any }) => {
       <div className="flex-1 flex gap-6 overflow-hidden">
         
         {/* Left: Sectors */}
-        <div className="flex-1 flex flex-col gap-3 overflow-y-auto custom-scrollbar pr-2 border-r border-white/5">
-          <div className="text-[10px] font-bold text-text-secondary uppercase tracking-wider sticky top-0 bg-[#111114] pb-2 z-10 border-b border-white/5">
+        <div className="flex-1 flex flex-col gap-3 overflow-y-auto custom-scrollbar pr-2 border-r border-border">
+          <div className="text-[10px] font-bold text-text-secondary uppercase tracking-wider sticky top-0 bg-surface pb-2 z-10 border-b border-border">
             Top 5 Sectors
           </div>
           {sectorAllocations.map((sector, i) => (
@@ -94,7 +94,7 @@ export const HoldingsConcentrationCard = ({ fund }: { fund: any }) => {
 
         {/* Right: Holdings */}
         <div className="flex-1 flex flex-col gap-2 overflow-y-auto custom-scrollbar pr-1">
-          <div className="text-[10px] font-bold text-text-secondary uppercase tracking-wider sticky top-0 bg-[#111114] pb-2 z-10 border-b border-white/5 flex justify-between">
+          <div className="text-[10px] font-bold text-text-secondary uppercase tracking-wider sticky top-0 bg-surface pb-2 z-10 border-b border-border flex justify-between">
             <span>Top 5 Equities</span>
             <span>Wt</span>
           </div>

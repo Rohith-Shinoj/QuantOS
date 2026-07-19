@@ -61,12 +61,12 @@ export const MutualFunds = () => {
         </div>
       </div>
 
-      {/* Top Visualizations Panel */}
+      {/* Top Visualizations Panel
       <div className="w-full">
         <div className="h-[500px]">
           <MarketCaptureScatterplot />
         </div>
-      </div>
+      </div> */}
 
       {/* Screener Controls */}
       <div className="bg-surface p-4 rounded-lg border border-border flex flex-col sm:flex-row gap-4 justify-between items-center">
@@ -111,7 +111,7 @@ export const MutualFunds = () => {
                 <th className="px-6 py-3 font-medium text-text-secondary text-sm text-right">Expense Ratio</th>
                 <th className="px-6 py-3 font-medium text-text-secondary text-sm text-right">1Y Return</th>
                 <th className="px-6 py-3 font-medium text-text-secondary text-sm text-right">3Y Return</th>
-                <th className="px-6 py-3 font-medium text-text-secondary text-sm text-center">Action</th>
+                {/* <th className="px-6 py-3 font-medium text-text-secondary text-sm text-center">Action</th> */}
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -155,14 +155,14 @@ export const MutualFunds = () => {
                   <td className="px-6 py-4 text-right font-mono text-sm font-bold text-alpha">
                     {fund.return3y ? `${fund.return3y}%` : '-'}
                   </td>
-                  <td className="px-6 py-4 text-center">
+                  {/* <td className="px-6 py-4 text-center">
                     <button 
                       onClick={() => setSelectedFund(fund)}
                       className="p-1.5 bg-surface-hover text-text-secondary hover:text-text-primary rounded transition-colors"
                     >
                       <Maximize2 className="w-4 h-4" />
                     </button>
-                  </td>
+                  </td> */}
                 </tr>
               ))}
             </tbody>

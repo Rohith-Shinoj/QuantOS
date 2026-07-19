@@ -9,6 +9,7 @@ router = APIRouter()
 _BASE_DIR   = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PARQUET_LINK  = os.path.join(_BASE_DIR, "datasets/active/market_data.parquet")
 MF_PARQUET_LINK  = os.path.join(_BASE_DIR, "datasets/active/mutual_funds.parquet")
+ETF_PARQUET_LINK = os.path.join(_BASE_DIR, "datasets/active/etfs.parquet")
 
 # ────────────────────────────────────────────────────────────────────────────
 #  STOCK METRICS REGISTRY
@@ -150,8 +151,7 @@ STOCK_METRICS: dict[str, tuple] = {
     "altman_z":      ("TRY_CAST(json_extract_string(relative_data,'$.health_scores.altman_z_proxy') AS DOUBLE)",     "Altman Z-Score Proxy",   "Health Scores", "numeric", ""),
 
     # ── FORENSIC / RISK ───────────────────────────────────────────────────
-    "qes_flag":        ("qes_flag",                                                                                              "QES Red Flag (0/1)",     "Forensic", "flag", "QES Red Flag (0/1)."),
-    "tax_divergence":  ("tax_divergence",                                                                                        "Tax Divergence",         "Forensic", "numeric", "Tax Divergence."),
+
     "hni_absorption":  ("TRY_CAST(json_extract_string(relative_data,'$.risk_and_forensic_signals.hni_absorption_score') AS DOUBLE)","HNI Absorption Score","Forensic", "numeric", ""),
     "debt_crisis":     ("TRY_CAST(json_extract_string(relative_data,'$.aggregated_news_signals.active_debt_crisis_flag') AS DOUBLE)","Debt Crisis Flag (0/1)","Forensic", "flag", ""),
     "regulatory_flag": ("TRY_CAST(json_extract_string(relative_data,'$.aggregated_news_signals.active_regulatory_flag') AS DOUBLE)","Regulatory Flag (0/1)","Forensic", "flag", ""),
@@ -262,6 +262,10 @@ def _init_con() -> duckdb.DuckDBPyConnection:
     
     if os.path.exists(mf_parquet_actual):
         con.execute(f"CREATE OR REPLACE VIEW mutual_funds AS SELECT * FROM '{mf_parquet_actual}'")
+
+    etf_parquet_actual = os.path.realpath(ETF_PARQUET_LINK)
+    if os.path.exists(etf_parquet_actual):
+        con.execute(f"CREATE OR REPLACE VIEW etfs AS SELECT * FROM '{etf_parquet_actual}'")
         
     _screener_con = con
     return con
@@ -519,3 +523,73 @@ def _prewarm():
         print(f"[screener] ⚠️  Pre-warm failed (will retry on first request): {e}")
 
 threading.Thread(target=_prewarm, daemon=True, name="screener-prewarm").start()
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  ETF METRICS REGISTRY
+# ─────────────────────────────────────────────────────────────────────────────
+ETF_METRICS: dict[str, tuple] = {
+
+    # ── IDENTITY ──────────────────────────────────────────────────────────
+    "etf_type":  ("type", "ETF Type", "Identity", "string", "The type classification of the ETF.", ""),
+
+    # ── PRICE & RETURNS ───────────────────────────────────────────────────
+    "live_price":     ("livePrice",     "Live Price (₹)",  "Price", "numeric", "Current market price of the ETF.", ""),
+    "day_change_pct": ("dayChangePerc", "Day Change %",     "Price", "numeric", "Percentage price change over the last trading day.", ""),
+    "return_1m":  ("TRY_CAST(json_extract_string(stats,'$.returns.return1M')  AS DOUBLE)", "1M Return %",  "Price", "numeric", "ETF return over last 1 month.", ""),
+    "return_3m":  ("TRY_CAST(json_extract_string(stats,'$.returns.return3M')  AS DOUBLE)", "3M Return %",  "Price", "numeric", "ETF return over last 3 months.", ""),
+    "return_6m":  ("TRY_CAST(json_extract_string(stats,'$.returns.return6M')  AS DOUBLE)", "6M Return %",  "Price", "numeric", "ETF return over last 6 months.", ""),
+    "return_1y":  ("TRY_CAST(json_extract_string(stats,'$.returns.return1Y')  AS DOUBLE)", "1Y Return %",  "Price", "numeric", "ETF return over last 1 year.", ""),
+    "return_3y":  ("TRY_CAST(json_extract_string(stats,'$.returns.return3Y')  AS DOUBLE)", "3Y Return %",  "Price", "numeric", "ETF return over last 3 years.", ""),
+    "return_5y":  ("TRY_CAST(json_extract_string(stats,'$.returns.return5Y')  AS DOUBLE)", "5Y Return %",  "Price", "numeric", "ETF return over last 5 years.", ""),
+    "cat_return_1y": ("TRY_CAST(json_extract_string(stats,'$.returns.categoryReturn1Y') AS DOUBLE)", "Category 1Y Return %", "Price", "numeric", "Category average 1Y return.", ""),
+
+    # ── SIZE & COST ───────────────────────────────────────────────────────
+    "aum":            ("marketCap",  "AUM (Cr)",          "Size & Cost", "numeric", "Assets Under Management in Crores.", ""),
+    "nav":            ("TRY_CAST(json_extract_string(stats,'$.nav') AS DOUBLE)",            "NAV (₹)",            "Size & Cost", "numeric", "Net Asset Value per unit.", ""),
+    "expense_ratio":  ("TRY_CAST(json_extract_string(stats,'$.expenseRatio') AS DOUBLE)",   "Expense Ratio %",     "Size & Cost", "numeric", "Annual fee charged by the ETF as a % of AUM.", ""),
+    "tracking_error": ("TRY_CAST(json_extract_string(stats,'$.trackingError') AS DOUBLE)",  "Tracking Error %",    "Size & Cost", "numeric", "Deviation of ETF returns from the benchmark index.", ""),
+
+    # ── VALUATION ─────────────────────────────────────────────────────────
+    "pe_ratio": ("peRatio",                                                           "P/E Ratio",   "Valuation", "numeric", "Price-to-Earnings Ratio of the ETF.", ""),
+    "pb_ratio": ("TRY_CAST(json_extract_string(stats,'$.pbRatio') AS DOUBLE)",        "P/B Ratio",   "Valuation", "numeric", "Price-to-Book Ratio of the ETF.", ""),
+
+    # ── RANK (within category) ────────────────────────────────────────────
+    "rank_1m": ("TRY_CAST(json_extract_string(stats,'$.returns.rank1M') AS INTEGER)", "Rank (1M)",   "Rank", "numeric", "Rank within category over 1 month.", ""),
+    "rank_1y": ("TRY_CAST(json_extract_string(stats,'$.returns.rank1Y') AS INTEGER)", "Rank (1Y)",   "Rank", "numeric", "Rank within category over 1 year.", ""),
+    "rank_3y": ("TRY_CAST(json_extract_string(stats,'$.returns.rank3Y') AS INTEGER)", "Rank (3Y)",   "Rank", "numeric", "Rank within category over 3 years.", ""),
+}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  ETF SCREENER ENDPOINT
+# ─────────────────────────────────────────────────────────────────────────────
+@router.post("/api/screener/etfs")
+def screen_etfs(req: ScreenerRequest):
+    try:
+        con = get_con()
+        always = [
+            "slug",
+            "ticker",
+            "name",
+            "type",
+            "json_extract_string(header,'$.logoUrl') AS logo_url",
+        ]
+        main_sql, count_sql, params = build_query("etfs", ETF_METRICS, req, always)
+
+        df    = con.execute(main_sql,  params).df()
+        df    = df.replace({np.nan: None, np.inf: None, -np.inf: None})
+        data  = nan_safe(df.to_dict("records"))
+        count = con.execute(count_sql, params).fetchone()[0]
+
+        return {
+            "data": data,
+            "total": count,
+            "page": req.page,
+            "limit": req.limit,
+            "available_metrics": metrics_meta(ETF_METRICS, "etfs")
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, str(e))
+

@@ -24,10 +24,10 @@ async def architect_node(state: InvestmentState, config: RunnableConfig):
     sys_msg = SystemMessage(content=(
         "You are the UI Architect. Analyze the user's intent and design a holistic, 360-degree visual dashboard. "
         "CRITICAL CONSTRAINT: You must fix the UI rendering based heavily on the knowledge of the dataset fields we have. "
-        "The quantitative database ONLY contains these fields: [market_cap, pe_ratio, rs_rating, inst_accum, volatility_squeeze, qes_flag, alpha_score, pledge_delta, tax_divergence, shap_reason_1, shap_reason_2, peer_comps]. "
-        "If the user asks for something we don't have (like insider trading or specific charts), you must intelligently pivot and select components we CAN fulfill (like valuation, momentum, or SHAP alpha drivers). "
+        "The quantitative database ONLY contains these fields: [market_cap, pe_ratio, rs_rating, inst_accum, volatility_squeeze, pledge_delta, peer_comps]. "
+        "If the user asks for something we don't have (like insider trading or specific charts), you must intelligently pivot and select components we CAN fulfill (like valuation or momentum). "
         "You MUST output your selection as a strict, raw JSON array of strings corresponding to the exact component keys. "
-        "Do not output markdown code blocks. Example: [\"current_valuation_grid\", \"narrative_insight\", \"shap_global_feature_driver_plot\"]\n\n"
+        "Do not output markdown code blocks. Example: [\"current_valuation_grid\", \"narrative_insight\"]\n\n"
         "You must select between 3 and 5 components to ensure a rich UI.\n\n"
         "Available Components:\n"
         f"{registry_str}"

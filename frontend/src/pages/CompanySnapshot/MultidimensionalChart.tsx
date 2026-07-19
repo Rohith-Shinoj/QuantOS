@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { createChart, ColorType, CrosshairMode, LineStyle } from 'lightweight-charts';
 import type { IChartApi, ISeriesApi } from 'lightweight-charts';
-import { HelpCircle, RefreshCw, Calendar, BrainCircuit, Settings, Lock } from 'lucide-react';
+import { HelpCircle, RefreshCw, Calendar, BrainCircuit, Settings, Lock, ChevronDown } from 'lucide-react';
 import { StockLogo } from '../../components/StockLogo';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { fetchLiveQuote, fetchStockData } from '../../api';
@@ -158,7 +158,7 @@ export const MultidimensionalChart = ({
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleRefresh = async () => {
-    const slug = data?.absolute?.slug;
+    const slug = data?.slug || data?.absolute?.slug;
     if (!slug) return;
     setIsRefreshing(true);
     try {
@@ -185,19 +185,18 @@ export const MultidimensionalChart = ({
 
   const hasFetched = useRef(false);
   useEffect(() => {
-    const slug = data?.absolute?.slug;
+    const slug = data?.slug || data?.absolute?.slug;
     if (slug && !hasFetched.current) {
       hasFetched.current = true;
       handleRefresh();
     }
-  }, [data?.absolute?.slug]);
+  }, [data?.slug, data?.absolute?.slug]);
   
   const [viewMode, setViewMode] = useState<'candles' | 'baseline'>('candles');
   const [showNifty, setShowNifty] = useState(false);
   const [showSector, setShowSector] = useState(false);
   const [showBands, setShowBands] = useState(false);
   const [showMacroPatterns, setShowMacroPatterns] = useState(false);
-  const [showMLOverlay, setShowMLOverlay] = useState(false);
   const [showTechnicalLevels, setShowTechnicalLevels] = useState(false);
   const [pivotTimeframe, setPivotTimeframe] = useState<'1D' | '1W' | '1M' | '1Y'>('1D');
   const priceLinesRef = useRef<any[]>([]);
@@ -277,15 +276,23 @@ export const MultidimensionalChart = ({
   const mlSeriesRefs = useRef<any[]>([]);
   const baseLineRef = useRef<any>(null);
 
-  const { parsedData, niftyData, sectorData, baseValue, delistedPadIndex } = useMemo(() => {
+  const { parsedData, niftyData, sectorData, baseValue, delistedPadIndex, isDelisted } = useMemo(() => {
+    const livePriceStr = String(data?.absolute?.['live price'] || '');
+    const priceVal = parseFloat(livePriceStr.replace(/[^\d.]/g, '')) || 0;
+    const isDelisted = priceVal === 0;
+
     const ohlcv = data?.absolute?.OHLCV || [];
     const rawNifty = data?.benchmark_ohlcv || [];
 
     const sortedData = ([...ohlcv].reverse().map((d: any) => {
       if (!d || !d.Date) return null;
-      const [day, month, year] = d.Date.split('-');
+      let timeStr = d.Date;
+      const parts = d.Date.split('-');
+      if (parts.length === 3 && parts[2].length === 4) {
+        timeStr = `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
       return {
-        time: `${year}-${month}-${day}`,
+        time: timeStr,
         open: d.Open,
         high: d.High,
         low: d.Low,
@@ -294,7 +301,6 @@ export const MultidimensionalChart = ({
       };
     }).filter(Boolean) as any[]).sort((a: any, b: any) => new Date(a.time).getTime() - new Date(b.time).getTime());
 
-    const isDelisted = data?.absolute?.['live price'] === '₹0.00' || data?.absolute?.['live price'] === '0.00';
     let delistedPadIndex = -1;
     
     if (isDelisted && sortedData.length > 0) {
@@ -307,22 +313,21 @@ export const MultidimensionalChart = ({
       currDate.setDate(currDate.getDate() + 1);
       
       while (currDate <= today) {
-        if (currDate.getDay() !== 0 && currDate.getDay() !== 6) {
+        if (currDate.getDay() !== 0 && currDate.getDay() !== 6) { // Skip weekends
           sortedData.push({
-            time: currDate.toISOString().split('T')[0],
+            time: currDate.getTime() / 1000,
             open: lastData.close,
             high: lastData.close,
             low: lastData.close,
             close: lastData.close,
-            value: 0,
-            isPadded: true
+            volume: 0,
+            Date: `${String(currDate.getDate()).padStart(2, '0')}-${String(currDate.getMonth() + 1).padStart(2, '0')}-${currDate.getFullYear()}`
           });
         }
         currDate.setDate(currDate.getDate() + 1);
       }
     }
 
-    // Deduplicate
     const uniqueData: any[] = [];
     const seenTimes = new Set();
     for (const d of sortedData) {
@@ -332,12 +337,15 @@ export const MultidimensionalChart = ({
       }
     }
 
-    // Process Nifty
     const nData = ([...rawNifty].reverse().map((d: any) => {
       if (!d || !d.Date) return null;
-      const [day, month, year] = d.Date.split('-');
+      let timeStr = d.Date;
+      const parts = d.Date.split('-');
+      if (parts.length === 3 && parts[2].length === 4) {
+        timeStr = `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
       return {
-        time: `${year}-${month}-${day}`,
+        time: timeStr,
         value: d.Close,
       };
     }).filter(Boolean) as any[]).sort((a: any, b: any) => new Date(a.time).getTime() - new Date(b.time).getTime());
@@ -351,12 +359,15 @@ export const MultidimensionalChart = ({
       }
     }
 
-    // Process Sector
     const sData = ([...(sectorRaw?.absolute?.OHLCV || [])].reverse().map((d: any) => {
       if (!d || !d.Date) return null;
-      const [day, month, year] = d.Date.split('-');
+      let timeStr = d.Date;
+      const parts = d.Date.split('-');
+      if (parts.length === 3 && parts[2].length === 4) {
+        timeStr = `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
       return {
-        time: `${year}-${month}-${day}`,
+        time: timeStr,
         value: d.Close,
       };
     }).filter(Boolean) as any[]).sort((a: any, b: any) => new Date(a.time).getTime() - new Date(b.time).getTime());
@@ -370,15 +381,14 @@ export const MultidimensionalChart = ({
       }
     }
 
-    // Default base value for the Baseline chart (start of visible range ideally, but we use first point for now)
     const baseVal = uniqueData.length > 0 ? uniqueData[0].close : 0;
 
-    return { parsedData: uniqueData, niftyData: nUnique, sectorData: sUnique, baseValue: baseVal, delistedPadIndex };
+    return { parsedData: uniqueData, niftyData: nUnique, sectorData: sUnique, baseValue: baseVal, delistedPadIndex, isDelisted };
   }, [data, sectorRaw]);
 
   // Strict useMemo for Quantitative Engine
   const quantData = useMemo(() => {
-    if (parsedData.length === 0) return { atr: [], obv: [], geometricPatterns: [], lines: [], mlPatterns: [] };
+    if (parsedData.length === 0) return { atr: [], obv: [], geometricPatterns: [], lines: [] };
     
     const instAccum = data?.absolute?.inst_accum || 0;
     
@@ -408,27 +418,8 @@ export const MultidimensionalChart = ({
       });
     }
     
-    // 3. ML Patterns (Current Day Only if toggled, calculated locally if possible, or extracted from backend)
-    // The backend provides alpha_score_moonshot, shap_reasons, etc. We map this to the last candle.
-    const mlPatterns = [];
-    if (showMacroPatterns && showMLOverlay) {
-      const alphaScore = data?.absolute?.alpha_score_moonshot || data?.absolute?.alpha_score_conservative || 0;
-      if (alphaScore > 0) {
-        mlPatterns.push({
-          time: parsedData[parsedData.length - 1].time,
-          position: 'aboveBar',
-          color: alphaScore > 0.7 ? '#10b981' : '#eab308',
-          shape: 'arrowDown',
-          text: `ML Score: ${(alphaScore * 100).toFixed(0)}%`,
-          shap1: data?.absolute?.shap_reason_1 || '',
-          shap2: data?.absolute?.shap_reason_2 || '',
-          shap3: data?.absolute?.shap_reason_3 || ''
-        });
-      }
-    }
-    
-    return { atr, obv, geometricPatterns, lines, mlPatterns, exhaustionMarkers };
-  }, [parsedData, niftyData, data?.absolute, showMacroPatterns, showMLOverlay, patternFilter]);
+    return { atr, obv, geometricPatterns, lines, exhaustionMarkers };
+  }, [parsedData, niftyData, data?.absolute, showMacroPatterns, patternFilter]);
 
   // Main Chart Initialization
   useEffect(() => {
@@ -441,8 +432,8 @@ export const MultidimensionalChart = ({
         attributionLogo: false,
       },
       grid: {
-        vertLines: { color: 'rgba(39, 39, 42, 0.5)' },
-        horzLines: { color: 'rgba(39, 39, 42, 0.5)' },
+        vertLines: { color: 'rgba(255, 255, 255, 0.04)' },
+        horzLines: { color: 'rgba(255, 255, 255, 0.04)' },
       },
       crosshair: {
         mode: CrosshairMode.Normal,
@@ -478,10 +469,10 @@ export const MultidimensionalChart = ({
 
     // 2. Baseline Series
     const baselineSeries = chart.addBaselineSeries({
-      baseValue: { type: 'price', price: baseValue },
-      topLineColor: '#10b981',
-      topFillColor1: 'rgba(16, 185, 129, 0.28)',
-      topFillColor2: 'rgba(16, 185, 129, 0.05)',
+      baseValue: { type: 'price', price: isDelisted ? (parsedData[0]?.close || 1) : baseValue },
+      topLineColor: isDelisted ? '#ef4444' : '#10b981',
+      topFillColor1: isDelisted ? 'rgba(239, 68, 68, 0.28)' : 'rgba(16, 185, 129, 0.28)',
+      topFillColor2: isDelisted ? 'rgba(239, 68, 68, 0.05)' : 'rgba(16, 185, 129, 0.05)',
       bottomLineColor: '#ef4444',
       bottomFillColor1: 'rgba(239, 68, 68, 0.05)',
       bottomFillColor2: 'rgba(239, 68, 68, 0.28)',
@@ -770,20 +761,9 @@ export const MultidimensionalChart = ({
     };
   }, [parsedData, niftyData, baseValue]);
 
-  // Sync Quantitative Overlays (Accumulation Zones, RS Divergence, ML Markers, Geometric Patterns)
+  // Effect to update chart markers and geometric patterns
   useEffect(() => {
-    if (!chartRef.current || !seriesRefs.current.candle) return;
-    const chart = chartRef.current;
-    
-    // Clear old zone series safely
-    mlSeriesRefs.current.forEach(s => {
-      if (s) {
-        try { chart.removeSeries(s); } catch (e) { console.warn('Series already removed', e); }
-      }
-    });
-    mlSeriesRefs.current = [];
-
-    // Render ML Markers & Exhaustion Warnings
+    if (!seriesRefs.current.candle) return;
     let markersToSet: any[] = delistedPadIndex !== -1 ? [{
       time: parsedData[delistedPadIndex]?.time,
       position: 'aboveBar' as const,
@@ -791,11 +771,8 @@ export const MultidimensionalChart = ({
       shape: 'arrowDown' as const,
       text: 'Delisted',
     }] : [];
-
+    
     if (showMacroPatterns) {
-      if (showMLOverlay && quantData.mlPatterns && quantData.mlPatterns.length > 0) {
-        markersToSet = [...markersToSet, ...quantData.mlPatterns];
-      }
       if (quantData.exhaustionMarkers && quantData.exhaustionMarkers.length > 0) {
         markersToSet = [...markersToSet, ...quantData.exhaustionMarkers];
       }
@@ -852,7 +829,7 @@ export const MultidimensionalChart = ({
         mlSeriesRefs.current = [];
       }
     };
-  }, [quantData, showMacroPatterns, showMLOverlay, parsedData, delistedPadIndex, userLines]);
+  }, [quantData, showMacroPatterns, parsedData, delistedPadIndex, userLines]);
 
   // Handle Drawing Mode Click
   useEffect(() => {
@@ -1040,7 +1017,7 @@ export const MultidimensionalChart = ({
        chart.unsubscribeClick(clickHandler);
        chart.unsubscribeCrosshairMove(crosshairMoveHandler);
     };
-  }, [isDrawingMode, activeDrawPoint, showMLOverlay, quantData, userLines, selectedLineId, dragState]);
+  }, [isDrawingMode, activeDrawPoint, quantData, userLines, selectedLineId, dragState]);
 
   // Sync external HTML labels with canvas price positions
   const bandValuesRef = useRef({ upper: 0, lower: 0, sma: 0 });
@@ -1224,6 +1201,16 @@ export const MultidimensionalChart = ({
   useEffect(() => {
     if (!chartRef.current || parsedData.length === 0) return;
     
+    const getStartPriceForOverlay = (dataArray: any[], timeStr: string) => {
+      if (!dataArray || dataArray.length === 0) return 0;
+      for (let i = 0; i < dataArray.length; i++) {
+        if (new Date(dataArray[i].time).getTime() >= new Date(timeStr).getTime()) {
+          return dataArray[i].value || dataArray[i].close;
+        }
+      }
+      return dataArray[dataArray.length - 1].value || dataArray[dataArray.length - 1].close;
+    };
+
     if (timeframe === 'ALL') {
       chartRef.current.timeScale().fitContent();
       const startPrice = parsedData[0].close;
@@ -1231,6 +1218,15 @@ export const MultidimensionalChart = ({
       const years = (new Date(parsedData[parsedData.length - 1].time).getTime() - new Date(parsedData[0].time).getTime()) / (365 * 24 * 60 * 60 * 1000);
       const cagr = years > 0 ? (Math.pow(endPrice / startPrice, 1 / years) - 1) * 100 : 0;
       setPeriodStats({ change: endPrice - startPrice, percentChange: ((endPrice - startPrice) / startPrice) * 100, cagr });
+      
+      const startRange = parsedData[0].time;
+      if (seriesRefs.current.nifty && niftyData.length > 0) {
+        seriesRefs.current.nifty.applyOptions({ baseValue: { type: 'price', price: getStartPriceForOverlay(niftyData, startRange) } });
+      }
+      if (seriesRefs.current.sector && sectorData.length > 0) {
+        seriesRefs.current.sector.applyOptions({ baseValue: { type: 'price', price: getStartPriceForOverlay(sectorData, startRange) } });
+      }
+
       if (seriesRefs.current.baseline) {
         if (baseLineRef.current) seriesRefs.current.baseline.removePriceLine(baseLineRef.current);
         baseLineRef.current = seriesRefs.current.baseline.createPriceLine({
@@ -1311,6 +1307,13 @@ export const MultidimensionalChart = ({
     if (seriesRefs.current.lowerBand) seriesRefs.current.lowerBand.applyOptions({ baseValue: baseValueConfig });
     if (seriesRefs.current.sma) seriesRefs.current.sma.applyOptions({ baseValue: baseValueConfig });
 
+    if (seriesRefs.current.nifty && niftyData.length > 0) {
+      seriesRefs.current.nifty.applyOptions({ baseValue: { type: 'price', price: getStartPriceForOverlay(niftyData, startRange) } });
+    }
+    if (seriesRefs.current.sector && sectorData.length > 0) {
+      seriesRefs.current.sector.applyOptions({ baseValue: { type: 'price', price: getStartPriceForOverlay(sectorData, startRange) } });
+    }
+
     const startPrice = parsedData[startIndex].close;
     const endPrice = parsedData[parsedData.length - 1].close;
     const years = (new Date(endRange).getTime() - new Date(startRange).getTime()) / (365 * 24 * 60 * 60 * 1000);
@@ -1324,7 +1327,7 @@ export const MultidimensionalChart = ({
   // Top header metrics strictly 1D
   let pctChange = 0;
   let priceDiff = 0;
-  let rawLivePrice = data?.absolute?.absolute_data?.["live price"];
+  let rawLivePrice = data?.absolute?.["live price"];
   let currentPrice = 0;
   
   if (parsedData.length > 0) {
@@ -1344,23 +1347,35 @@ export const MultidimensionalChart = ({
   const isPositive = priceDiff >= 0;
 
   return (
-    <div className="bg-canvas border-b border-border h-full flex flex-col">
+    <div className="bg-surface border border-border h-full flex flex-col rounded-xl overflow-hidden">
       {/* Header & Controls */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border-b border-border gap-4 shrink-0">
         <div className="flex items-center gap-4">
-          <StockLogo ticker={data?.absolute?.ticker || ''} className="w-14 h-14 shadow-md" textClass="text-sm" fallbackClass="bg-surface border border-border text-text-primary" />
-          <div className="flex flex-col justify-center gap-0.5">
+          <StockLogo 
+            ticker={data?.absolute?.ticker || ''} 
+            name={data?.absolute?.name || ''} 
+            logoUrl={data?.absolute?.header_raw?.logoUrl}
+            className="w-14 h-14 shadow-md" 
+            textClass="text-sm" 
+            fallbackClass="bg-surface border border-border text-text-primary" 
+          />
+          <div className="flex flex-col justify-center gap-0.5 flex-1 min-w-0">
             <div className="flex items-center gap-3">
-              <h3 className="text-2xl font-extrabold text-white tracking-tight leading-none">{data?.absolute?.ticker}</h3>
-              <span className="text-sm text-text-secondary leading-none">{data?.absolute?.name}</span>
+              <h3 className="text-2xl font-extrabold text-text-primary tracking-tight leading-none truncate max-w-[400px]">
+                {data?.absolute?.name || data?.absolute?.header_raw?.displayName || data?.absolute?.displayName || data?.absolute?.ticker || 'N/A'}
+              </h3>
               {data?.absolute?.header_raw?.industryName && (
                 <span className="px-2 py-0.5 rounded-full bg-surface border border-border text-[10px] text-text-secondary font-medium tracking-wide shadow-sm">
                   {data.absolute.header_raw.industryName}
                 </span>
               )}
             </div>
+            
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-lg font-bold text-white leading-none">₹{currentPrice.toFixed(2)}</span>
+              <span className="px-2 py-0.5 rounded bg-yellow-500/20 border border-yellow-500/30 text-[10px] font-bold text-yellow-400 tracking-wider">
+                {data?.absolute?.ticker || 'N/A'}
+              </span>
+              <span className="text-lg font-bold text-text-primary leading-none ml-2">₹{currentPrice.toFixed(2)}</span>
               <span className={`text-sm font-semibold leading-none ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
                 {isPositive ? '+' : ''}{priceDiff.toFixed(2)} ({isPositive ? '+' : ''}{pctChange.toFixed(2)}%) <span className="text-[10px] font-bold text-text-secondary ml-0.5">1D</span>
               </span>
@@ -1376,32 +1391,152 @@ export const MultidimensionalChart = ({
           </div>
         </div>
 
-        <div className="flex flex-col items-end gap-2">
+        <div className="flex flex-col items-end gap-2 flex-1 min-w-0">
           {/* Toggles */}
-          <div className="flex items-center gap-2 text-xs font-medium relative">
-            {setCentralMode && (
-              <>
+          <div className="flex items-center justify-start sm:justify-end gap-2 text-[10px] font-bold relative z-50 w-full pb-1 flex-wrap">
+            {/* 1. Views Dropdown */}
+            <div className="relative group/view">
+              <button className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-border bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-hover whitespace-nowrap transition-all">
+                Views <ChevronDown size={12} />
+              </button>
+              <div className="absolute top-full left-0 mt-1 w-40 bg-surface border border-border rounded shadow-xl opacity-0 invisible group-hover/view:opacity-100 group-hover/view:visible transition-all z-50 flex flex-col p-1">
                 <button 
-                  onClick={() => setCentralMode('PRICE')}
-                  className={`px-3 py-1.5 rounded transition-all border ${centralMode === 'PRICE' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-surface text-text-secondary border-border hover:text-text-primary hover:bg-surface-hover'}`}
+                  onClick={() => { setViewMode('candles'); if(setCentralMode) setCentralMode('PRICE'); }}
+                  className={`px-3 py-2 text-left rounded text-[10px] font-bold ${viewMode === 'candles' && centralMode !== 'PAIRS' ? 'bg-indigo-500/20 text-indigo-400' : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'}`}
                 >
-                  Price Action
+                  OHLCV Candlesticks
                 </button>
                 <button 
-                  onClick={() => setCentralMode('PAIRS')}
-                  className={`px-3 py-1.5 rounded transition-all border ${centralMode === 'PAIRS' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-surface text-text-secondary border-border hover:text-text-primary hover:bg-surface-hover'}`}
+                  onClick={() => { setViewMode('baseline'); if(setCentralMode) setCentralMode('PRICE'); }}
+                  className={`px-3 py-2 text-left rounded text-[10px] font-bold ${viewMode === 'baseline' && centralMode !== 'PAIRS' ? 'bg-indigo-500/20 text-indigo-400' : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'}`}
                 >
-                  Pair Trading
+                  Baseline Area
                 </button>
-                <div className="w-px h-4 bg-border mx-1"></div>
-              </>
-            )}
+              </div>
+            </div>
+
+            <span className="text-text-secondary mx-1">|</span>
+
+            {/* 2. Overlays Dropdown */}
+            <div className="relative group/overlay">
+              <button className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-border bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-hover whitespace-nowrap transition-all">
+                Overlays <ChevronDown size={12} />
+              </button>
+              <div className="absolute top-full left-0 mt-1 w-52 bg-surface border border-border rounded shadow-xl opacity-0 invisible group-hover/overlay:opacity-100 group-hover/overlay:visible transition-all z-50 flex flex-col p-1">
+                <button 
+                  onClick={() => {
+                    const nextState = !showNifty;
+                    setShowNifty(nextState);
+                    if (nextState) setShowBands(false);
+                  }}
+                  className={`px-3 py-2 text-left rounded text-[10px] font-bold ${showNifty ? 'bg-yellow-500/20 text-yellow-400' : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'}`}
+                >
+                  vs Nifty 50
+                </button>
+                <button 
+                  onClick={() => {
+                    const nextState = !showSector;
+                    setShowSector(nextState);
+                    if (nextState) setShowBands(false);
+                  }}
+                  className={`px-3 py-2 text-left rounded text-[10px] font-bold ${showSector ? 'bg-purple-500/20 text-purple-400' : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'}`}
+                >
+                  Sector ({getSectorName(sectorSlug)})
+                </button>
+                <button 
+                  onClick={() => {
+                    const nextState = !showBands;
+                    setShowBands(nextState);
+                    if (nextState) { setShowNifty(false); setShowSector(false); }
+                  }}
+                  className={`px-3 py-2 text-left rounded text-[10px] font-bold ${showBands ? 'bg-emerald-500/20 text-emerald-400' : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'}`}
+                >
+                  Volatility Bands & Squeeze
+                </button>
+                {setCentralMode && (
+                  <button 
+                    onClick={() => setCentralMode(centralMode === 'PAIRS' ? 'PRICE' : 'PAIRS')}
+                    className={`px-3 py-2 text-left rounded text-[10px] font-bold ${centralMode === 'PAIRS' ? 'bg-blue-500/20 text-blue-400' : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'}`}
+                  >
+                    Pair Trading
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <span className="text-text-secondary mx-1">|</span>
+
+            {/* 3. Technical Analysis Dropdown */}
+            <div className="relative group/tech">
+              <button className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-border bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-hover whitespace-nowrap transition-all">
+                Technical Analysis <ChevronDown size={12} />
+              </button>
+              <div className="absolute top-full right-0 mt-1 w-52 bg-surface border border-border rounded shadow-xl opacity-0 invisible group-hover/tech:opacity-100 group-hover/tech:visible transition-all z-50 flex flex-col p-1">
+                <button 
+                  onClick={() => {
+                    setIsDrawingMode(prev => !prev);
+                    setActiveDrawPoint(null);
+                  }}
+                  className={`px-3 py-2 text-left rounded text-[10px] font-bold flex items-center gap-2 ${isDrawingMode ? 'bg-orange-500/20 text-orange-400' : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'}`}
+                >
+                  ✏️ Draw
+                </button>
+                
+                {/* Nested Timeline for Support & Resistance */}
+                <div className="relative group/timeline flex items-center w-full">
+                  <button 
+                    onClick={() => setShowTechnicalLevels(prev => !prev)}
+                    className={`flex-1 px-3 py-2 text-left rounded text-[10px] font-bold ${showTechnicalLevels ? 'bg-pink-500/20 text-pink-400' : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'}`}
+                  >
+                    Support & Resistance
+                  </button>
+                  {showTechnicalLevels && (
+                    <select
+                      value={pivotTimeframe}
+                      onChange={(e) => setPivotTimeframe(e.target.value as '1D'|'1W'|'1M'|'1Y')}
+                      className="absolute right-2 px-1.5 py-0.5 rounded bg-surface border border-border text-text-primary focus:outline-none cursor-pointer text-[9px] font-bold"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <option value="1D">1D</option>
+                      <option value="1W">1W</option>
+                      <option value="1M">1M</option>
+                      <option value="1Y">1Y</option>
+                    </select>
+                  )}
+                </div>
+
+                <div className="w-full h-px bg-border my-1"></div>
+
+                {/* Automate Button */}
+                <div className="relative group/automate px-1 py-1">
+                  <button 
+                    onClick={() => setShowMacroPatterns(prev => !prev)}
+                    className={`w-full px-3 py-2 text-left rounded text-[10px] font-bold border transition-all duration-300 relative overflow-hidden flex items-center gap-1.5 ${
+                      showMacroPatterns 
+                        ? 'bg-purple-500/20 text-purple-300 border-purple-500/50 shadow-[0_0_10px_rgba(168,85,247,0.4)]' 
+                        : 'border-purple-500/50 text-purple-300 shadow-[0_0_6px_rgba(168,85,247,0.25)] hover:shadow-[0_0_10px_rgba(168,85,247,0.4)] hover:bg-purple-500/10'
+                    }`}
+                  >
+                    <BrainCircuit size={11} />
+                    Automate
+                  </button>
+                  <div className="absolute right-full top-0 mr-2 w-48 bg-surface border border-purple-500/30 rounded p-2 text-[10px] text-purple-300 opacity-0 invisible group-hover/automate:opacity-100 group-hover/automate:visible transition-all z-50 shadow-xl pointer-events-none">
+                    <strong>Beta Feature:</strong> Automated geometric pattern detection is experimental. Verify visually.
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <div className="w-px h-4 bg-border mx-1"></div>
+
+            {/* AI Analysis */}
             {setIsAIOverlayOpen && (
               <>
                 {localStorage.getItem('admin_mode') === 'true' ? (
                   <button 
                     onClick={() => setIsAIOverlayOpen(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded transition-all border bg-indigo-500/10 text-indigo-400 border-indigo-500/30 hover:bg-indigo-500/20 shadow-[0_0_10px_rgba(99,102,241,0.15)]"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded transition-all border whitespace-nowrap bg-purple-500/10 text-purple-300 border-purple-500/50 hover:bg-purple-500/20 shadow-[0_0_8px_#a855f7]"
                   >
                     <BrainCircuit size={14} /> AI Analysis
                   </button>
@@ -1409,177 +1544,17 @@ export const MultidimensionalChart = ({
                   <div className="group relative">
                     <button 
                       disabled
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded transition-all border bg-surface text-text-secondary opacity-50 border-border cursor-not-allowed"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded transition-all border whitespace-nowrap bg-surface text-text-secondary opacity-50 border-border cursor-not-allowed"
                     >
                       <BrainCircuit size={14} /> AI Analysis <Lock size={10} className="ml-0.5 opacity-70" />
                     </button>
-                    <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-[#1e1e24] border border-white/10 p-2 rounded text-[10px] w-48 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 text-text-secondary font-mono pointer-events-none text-center">
+                    <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-surface-hover border border-border p-2 rounded text-[10px] w-48 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 text-text-secondary font-mono pointer-events-none text-center">
                       Due to increased demand, AI Analyst Desk is currently restricted to Enterprise / Internal use only.
                     </div>
                   </div>
                 )}
-                <div className="w-px h-4 bg-border mx-1"></div>
               </>
             )}
-            <span className="text-text-secondary mx-1 group flex items-center gap-1 cursor-help relative z-50">
-              VIEW:
-              <HelpCircle size={12} className="text-text-secondary opacity-50 group-hover:opacity-100 transition-opacity" />
-              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 bg-surface/95 backdrop-blur-md border border-border rounded-lg p-2 text-[10px] text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl whitespace-normal text-left">
-                <div className="font-bold text-text-primary mb-1 text-[11px]">View Modes</div>
-                <div className="mb-0.5 leading-tight"><strong className="text-indigo-400">Candles:</strong> Micro-psychology (intraday).</div>
-                <div className="leading-tight"><strong className="text-emerald-400">Baseline Area:</strong> Macro-trend (anchors to 0).</div>
-              </div>
-            </span>
-            <button 
-              onClick={() => setViewMode('candles')}
-              className={`px-3 py-1.5 rounded transition-all border ${viewMode === 'candles' ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' : 'bg-surface text-text-secondary border-border hover:text-text-primary hover:bg-surface-hover'}`}
-            >
-              Candles
-            </button>
-            <button 
-              onClick={() => setViewMode('baseline')}
-              className={`px-3 py-1.5 rounded transition-all border ${viewMode === 'baseline' ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' : 'bg-surface text-text-secondary border-border hover:text-text-primary hover:bg-surface-hover'}`}
-            >
-              Baseline Area
-            </button>
-            
-            <div className="w-px h-4 bg-border mx-1"></div>
-            
-            <span className="text-text-secondary mx-1 group flex items-center gap-1 cursor-help relative z-50">
-              OVERLAYS:
-              <HelpCircle size={12} className="text-text-secondary opacity-50 group-hover:opacity-100 transition-opacity" />
-              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 bg-surface/95 backdrop-blur-md border border-border rounded-lg p-2 text-[10px] text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl whitespace-normal text-left">
-                <div className="font-bold text-text-primary mb-1 text-[11px]">Overlays</div>
-                <div className="mb-0.5 leading-tight"><strong className="text-yellow-400">vs Nifty 50:</strong> Market context (relative strength).</div>
-                <div className="mb-0.5 leading-tight"><strong className="text-purple-400">vs Sector:</strong> Industry-specific benchmark.</div>
-                <div className="mb-0.5 leading-tight"><strong className="text-purple-400">Volatility Bands:</strong> Risk/Entry (Top=Overbought).</div>
-                <div className="mb-0.5 leading-tight"><strong className="text-blue-400">Technical Levels:</strong> Pivot points and Current Price.</div>
-              </div>
-            </span>
-            <button 
-              onClick={() => {
-                const nextState = !showNifty;
-                setShowNifty(nextState);
-                if (nextState) setShowBands(false);
-              }}
-              className={`px-3 py-1.5 rounded transition-all border ${showNifty ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' : 'bg-surface text-text-secondary border-border hover:text-text-primary hover:bg-surface-hover'}`}
-            >
-              vs Nifty 50
-            </button>
-            <button 
-              onClick={() => {
-                const nextState = !showSector;
-                setShowSector(nextState);
-                if (nextState) setShowBands(false);
-              }}
-              className={`px-3 py-1.5 rounded transition-all border ${showSector ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' : 'bg-surface text-text-secondary border-border hover:text-text-primary hover:bg-surface-hover'}`}
-            >
-              Sector ({getSectorName(sectorSlug)})
-            </button>
-            <button 
-              onClick={() => {
-                const nextState = !showBands;
-                setShowBands(nextState);
-                if (nextState) { setShowNifty(false); setShowSector(false); }
-              }}
-              className={`px-3 py-1.5 rounded transition-all border ${showBands ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' : 'bg-surface text-text-secondary border-border hover:text-text-primary hover:bg-surface-hover'}`}
-            >
-              Volatility Bands & Squeeze
-            </button>
-            <button 
-              onClick={() => {
-                setIsDrawingMode(prev => !prev);
-                setActiveDrawPoint(null);
-              }}
-              className={`px-3 py-1.5 rounded transition-all border ${isDrawingMode ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : 'bg-surface text-text-secondary border-border hover:text-text-primary hover:bg-surface-hover'}`}
-            >
-              ✏️ Draw
-            </button>
-            {/* Macro Patterns Toggle */}
-            <div className="flex items-center relative">
-              <button
-                onClick={() => setShowMacroPatterns(prev => !prev)}
-                className={`px-3 py-1.5 rounded transition-all border ${
-                  showMacroPatterns 
-                    ? 'bg-amber-500/20 text-amber-400 border-amber-500/30 rounded-r-none border-r-0' 
-                    : 'bg-surface text-text-secondary border-border hover:text-text-primary hover:bg-surface-hover'
-                }`}
-              >
-                Macro Patterns
-              </button>
-              {showMacroPatterns && (showNifty || showSector) && (
-                 <span className="ml-2 text-[10px] text-amber-500 italic whitespace-nowrap">
-                   (Hidden: Disable overlays to view)
-                 </span>
-              )}
-              {showMacroPatterns && !(showNifty || showSector) && (
-                <>
-                  <select
-                    value={showMLOverlay ? 'ON' : 'OFF'}
-                    onChange={(e) => setShowMLOverlay(e.target.value === 'ON')}
-                    className="px-2 py-1.5 rounded-none bg-amber-500/10 text-amber-400 border border-amber-500/30 border-l-0 focus:outline-none cursor-pointer text-sm"
-                  >
-                    <option value="OFF" className="bg-surface text-text-primary">ML: OFF</option>
-                    <option value="ON" className="bg-surface text-text-primary">ML: ON</option>
-                  </select>
-                  <button
-                    onClick={() => setShowPatternSettings(!showPatternSettings)}
-                    className={`px-2 py-1.5 rounded rounded-l-none border border-amber-500/30 border-l-0 transition-colors ${showPatternSettings ? 'bg-amber-500/30 text-amber-300' : 'bg-amber-500/10 text-amber-400 hover:bg-amber-500/20'}`}
-                  >
-                    <Settings size={16} />
-                  </button>
-                  
-                  {showPatternSettings && (
-                    <div className="absolute top-full mt-2 right-0 bg-surface-elevated border border-border rounded-lg shadow-xl p-3 z-50 min-w-[200px]">
-                      <h4 className="text-sm font-semibold text-text-primary mb-3">Pattern Settings</h4>
-                      
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-xs text-text-secondary mb-1 block">Filter Patterns</label>
-                          <select 
-                            value={patternFilter}
-                            onChange={(e) => setPatternFilter(e.target.value as any)}
-                            className="w-full bg-surface text-sm text-text-primary border border-border rounded px-2 py-1.5 focus:outline-none focus:border-blue-500"
-                          >
-                            <option value="ALL">All Patterns</option>
-                            <option value="FORMING">In Progress</option>
-                            <option value="REACHED">Target Reached</option>
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-            
-            <div className="w-px h-4 bg-border mx-1"></div>
-
-            {/* Technical Overlays Toggle */}
-            <div className="flex items-center">
-              <button
-                onClick={() => setShowTechnicalLevels(prev => !prev)}
-                className={`px-3 py-1.5 rounded transition-all border ${
-                  showTechnicalLevels 
-                    ? 'bg-blue-500/20 text-blue-400 border-blue-500/30 rounded-r-none border-r-0' 
-                    : 'bg-surface text-text-secondary border-border hover:text-text-primary hover:bg-surface-hover'
-                }`}
-              >
-                Technical Levels
-              </button>
-              {showTechnicalLevels && (
-                <select
-                  value={pivotTimeframe}
-                  onChange={(e) => setPivotTimeframe(e.target.value as '1D'|'1W'|'1M'|'1Y')}
-                  className="px-2 py-1.5 rounded rounded-l-none bg-blue-500/10 text-blue-400 border border-blue-500/30 focus:outline-none cursor-pointer text-sm"
-                >
-                  <option value="1D" className="bg-surface text-text-primary">1D</option>
-                  <option value="1W" className="bg-surface text-text-primary">1W</option>
-                  <option value="1M" className="bg-surface text-text-primary">1M</option>
-                  <option value="1Y" className="bg-surface text-text-primary">1Y</option>
-                </select>
-              )}
-            </div>
           </div>
 
           {/* Timeframes & Stats */}
@@ -1613,12 +1588,12 @@ export const MultidimensionalChart = ({
               </div>
             )}
 
-            <div className="flex bg-surface-hover p-1 rounded-md border border-border gap-1">
+            <div className="flex gap-1 bg-surface p-1 rounded-lg border border-border">
               {TIMEFRAMES.map(t => (
                 <button 
                   key={t}
                   onClick={() => setTimeframe(t)}
-                  className={`px-3 py-1 rounded text-xs font-bold transition-all flex items-center justify-center min-w-[32px] ${timeframe === t ? 'bg-alpha text-canvas shadow-sm' : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'}`}
+                  className={`px-3 py-1 rounded text-xs font-bold transition-colors flex items-center justify-center min-w-[32px] ${timeframe === t ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 shadow-sm' : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'}`}
                 >
                   {t === 'CUSTOM' ? <Calendar size={14} /> : t}
                 </button>
@@ -1637,37 +1612,35 @@ export const MultidimensionalChart = ({
             ref={tooltipRef} 
             className="absolute z-50 pointer-events-none text-[11px] bg-surface/95 backdrop-blur-md p-2.5 rounded-lg border border-border opacity-0 shadow-xl transition-opacity duration-150 min-w-[140px]"
           ></div>
-        </div>
-        
-        {/* Right-side External Labels */}
-        <div className="w-20 relative bg-canvas shrink-0" style={{ borderLeft: '1px solid rgba(255,255,255,0.05)' }}>
-          <div ref={labelRef} className="absolute left-1 hidden transform -translate-y-1/2 pointer-events-none z-50">
-            <div className="bg-canvas border border-border text-text-primary text-[10px] px-1.5 py-0.5 rounded font-medium shadow-lg whitespace-nowrap">
+
+          {/* Right-side Floating Price Labels */}
+          <div ref={labelRef} className="absolute right-[70px] hidden transform -translate-y-1/2 pointer-events-none z-50">
+            <div className="bg-surface-elevated border border-border text-text-primary text-[10px] px-1.5 py-0.5 rounded shadow-lg whitespace-nowrap font-bold tracking-wider uppercase">
               {data?.absolute?.ticker || 'Current'}
             </div>
           </div>
-          <div ref={niftyLabelRef} className="absolute left-1 hidden transform -translate-y-1/2 pointer-events-none z-50">
-            <div className="bg-yellow-500/90 text-black text-[10px] px-1.5 py-0.5 rounded font-medium shadow-lg whitespace-nowrap">
+          <div ref={niftyLabelRef} className="absolute right-[70px] hidden transform -translate-y-1/2 pointer-events-none z-50">
+            <div className="bg-white/10 border border-white/20 text-text-primary text-[10px] px-1.5 py-0.5 rounded shadow-lg whitespace-nowrap font-bold tracking-wider uppercase backdrop-blur-sm">
               NIFTY 50
             </div>
           </div>
-          <div ref={sectorLabelRef} className="absolute left-1 hidden transform -translate-y-1/2 pointer-events-none z-50">
-            <div className="bg-purple-500/90 text-white text-[10px] px-1.5 py-0.5 rounded font-medium shadow-lg whitespace-nowrap">
+          <div ref={sectorLabelRef} className="absolute right-[70px] hidden transform -translate-y-1/2 pointer-events-none z-50">
+            <div className="bg-white/10 border border-white/20 text-text-primary text-[10px] px-1.5 py-0.5 rounded shadow-lg whitespace-nowrap font-bold tracking-wider uppercase backdrop-blur-sm">
               {getSectorName(sectorSlug)}
             </div>
           </div>
-          <div ref={upperLabelRef} className="absolute left-1 hidden transform -translate-y-1/2 pointer-events-none z-50">
-            <div className="bg-purple-800/20 border border-purple-800/80 text-white text-[10px] px-1 py-0.5 rounded font-medium shadow-lg whitespace-nowrap">
+          <div ref={upperLabelRef} className="absolute right-[70px] hidden transform -translate-y-1/2 pointer-events-none z-50">
+            <div className="bg-white/5 border border-border text-text-primary/70 text-[10px] px-1 py-0.5 rounded shadow-lg whitespace-nowrap font-bold">
               +2σ
             </div>
           </div>
-          <div ref={lowerLabelRef} className="absolute left-1 hidden transform -translate-y-1/2 pointer-events-none z-50">
-            <div className="bg-purple-800/20 border border-purple-800/80 text-white text-[10px] px-1 py-0.5 rounded font-medium shadow-lg whitespace-nowrap">
+          <div ref={lowerLabelRef} className="absolute right-[70px] hidden transform -translate-y-1/2 pointer-events-none z-50">
+            <div className="bg-white/5 border border-border text-text-primary/70 text-[10px] px-1 py-0.5 rounded shadow-lg whitespace-nowrap font-bold">
               -2σ
             </div>
           </div>
-          <div ref={smaLabelRef} className="absolute left-1 hidden transform -translate-y-1/2 pointer-events-none z-50">
-            <div className="bg-purple-800/20 border border-purple-800/80 text-white text-[10px] px-1 py-0.5 rounded font-medium shadow-lg whitespace-nowrap">
+          <div ref={smaLabelRef} className="absolute right-[70px] hidden transform -translate-y-1/2 pointer-events-none z-50">
+            <div className="bg-white/5 border border-border text-text-primary/70 text-[10px] px-1 py-0.5 rounded shadow-lg whitespace-nowrap font-bold">
               SMA 20
             </div>
           </div>

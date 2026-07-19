@@ -17,14 +17,10 @@ These are the top-level columns inside the `stocks` (market_data.parquet) table.
 - `industry` (VARCHAR): Sector classification
 - `inst_accum` (DOUBLE): Institutional accumulation metric
 - `volatility_squeeze` (DOUBLE): Proprietary volatility squeeze indicator
-- `qes_flag` (INTEGER): Quantitative screening flag
-- `tax_divergence` (DOUBLE): Tax impact/divergence metric
 - `pledge_delta` (DOUBLE): Change in promoter pledged shares
+- `abs_tminus1` (INTEGER): T-1 backward shift for absolute metrics
 - `raw_rank` (DOUBLE): Base quantitative ranking
 - `rs_rating` (DOUBLE): Relative Strength rating
-- `alpha_score_conservative` (DOUBLE): Meta-Learner prediction of 1-year forward probability for Conservative track (low risk).
-- `alpha_score_moonshot` (DOUBLE): Meta-Learner prediction of 1-year forward probability for Moonshot track (high growth).
-- `shap_reason_1`, `shap_reason_2`, `shap_reason_3` (VARCHAR): Top 3 Machine Learning feature importance reasons
 
 ---
 
@@ -87,6 +83,16 @@ Top-level fields from the `mutual_funds` table (`mutual_funds.parquet`).
   - `detailed_holdings`: Struct containing (`scheme_code`, `portfolio_date`, `company_name`, `nature_name`, `sector_name`, `instrument_name`, `rating`, `market_value`, `corpus_per`, `market_cap`, `rating_market_cap`, `stock_search_id`)
   - `advanced_stats`: Struct array containing `type`, `stat_1y`, `stat_3y`, `stat_5y`, `stat_all`, `title` (e.g., Sharpe, Beta, Alpha, Standard Deviation)
   - `historical_navs`: 2D array of historical NAV prices
+
+---
+
+## 4.5. ETFs Schema
+Top-level fields from the `etfs` table (`etfs.parquet`).
+
+- **Identity**: `slug`, `ticker`, `name`, `type`
+- **Valuation**: `marketCap`, `peRatio`, `livePrice`, `dayChange`, `dayChangePerc`
+- **Historical**: `OHLCV` (Historical Candle Data as JSON)
+- **Nested Data**: `header` (ETF header metadata), `holdings`, `stats`
 
 ---
 

@@ -58,7 +58,7 @@ export const MarketCaptureScatterplot = () => {
     if (active && payload && payload.length) {
       const fund = payload[0].payload;
       return (
-        <div className="bg-[#1a1a24] border border-white/10 p-3 rounded shadow-xl text-white z-50">
+        <div className="bg-surface-hover border border-border p-3 rounded shadow-xl text-text-primary z-50">
           <p className="text-sm font-bold mb-1">{fund.fund_name}</p>
           <p className="text-[10px] text-text-secondary uppercase tracking-wider mb-2">{fund.category}</p>
           <div className="grid grid-cols-2 gap-4 mt-2">
@@ -72,13 +72,13 @@ export const MarketCaptureScatterplot = () => {
             </div>
             <div>
               <p className="text-[10px] text-text-secondary" title="Rolling 1-Month Outperformance">Up Hit Rate</p>
-              <p className="text-sm font-mono text-white font-bold">
+              <p className="text-sm font-mono text-text-primary font-bold">
                 {fund[`up_hit_${period}`] != null ? (fund[`up_hit_${period}`] * 100).toFixed(1) + '%' : 'N/A'}
               </p>
             </div>
             <div>
               <p className="text-[10px] text-text-secondary" title="Rolling 1-Month Resilience">Down Hit Rate</p>
-              <p className="text-sm font-mono text-white font-bold">
+              <p className="text-sm font-mono text-text-primary font-bold">
                 {fund[`down_hit_${period}`] != null ? (fund[`down_hit_${period}`] * 100).toFixed(1) + '%' : 'N/A'}
               </p>
             </div>
@@ -90,11 +90,11 @@ export const MarketCaptureScatterplot = () => {
   };
 
   return (
-    <div className="bg-[#111114] rounded-lg border border-white/5 p-6 h-full flex flex-col relative overflow-hidden">
+    <div className="bg-surface rounded-lg border border-border p-6 h-full flex flex-col relative overflow-hidden">
       <div className="flex justify-between items-start mb-4 shrink-0 z-10">
         <h3 className="text-sm font-semibold text-text-primary flex items-center gap-1.5 group relative w-fit cursor-help">
-          Up-Down Market Capture <HelpCircle size={14} className="text-text-secondary hover:text-white transition-colors" />
-          <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-72 bg-[#1a1a24] text-white text-[10px] p-2 rounded shadow-xl z-50 normal-case tracking-normal border border-white/10 font-normal leading-relaxed">
+          Up-Down Market Capture <HelpCircle size={14} className="text-text-secondary hover:text-text-primary transition-colors" />
+          <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-72 bg-surface-hover text-text-primary text-[10px] p-2 rounded shadow-xl z-50 normal-case tracking-normal border border-border font-normal leading-relaxed">
             Measures a manager's performance in bull vs bear markets. 
             <br/><br/>
             Top-Left (Alpha): Beats up-markets, protects in down-markets.<br/>
@@ -104,7 +104,7 @@ export const MarketCaptureScatterplot = () => {
         
         <div className="flex gap-2 shrink-0 items-center">
           {/* Consistency Slider */}
-          <div className="flex items-center gap-2 mr-4 bg-[#1a1a24] rounded-md px-3 py-1 border border-white/10">
+          <div className="flex items-center gap-2 mr-4 bg-surface-hover rounded-md px-3 py-1 border border-border">
             <span className="text-[10px] text-text-secondary uppercase tracking-wider font-bold w-24">Hit Rate: {hitRateThreshold}%+</span>
             <input 
               type="range" 
@@ -118,24 +118,24 @@ export const MarketCaptureScatterplot = () => {
           </div>
           
           {/* Category Toggle */}
-          <div className="flex bg-[#1a1a24] rounded-md p-0.5 border border-white/10">
+          <div className="flex bg-surface-hover rounded-md p-0.5 border border-border">
             {['All', 'Equity', 'Debt', 'Hybrid'].map((c) => (
               <button
                 key={c}
                 onClick={() => setSelectedCategory(c)}
-                className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-colors ${selectedCategory === c ? 'bg-[#27272a] text-white' : 'text-text-secondary hover:text-white'}`}
+                className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-colors ${selectedCategory === c ? 'bg-[#27272a] text-text-primary' : 'text-text-secondary hover:text-text-primary'}`}
               >
                 {c}
               </button>
             ))}
           </div>
           {/* Period Toggle */}
-          <div className="flex bg-[#1a1a24] rounded-md p-0.5 border border-white/10">
+          <div className="flex bg-surface-hover rounded-md p-0.5 border border-border">
             {['1M', '3M', '6M', '1Y', '3Y', '5Y'].map((p) => (
               <button
                 key={p}
                 onClick={() => setPeriod(p)}
-                className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-colors ${period === p ? 'bg-[#27272a] text-white' : 'text-text-secondary hover:text-white'}`}
+                className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-colors ${period === p ? 'bg-[#27272a] text-text-primary' : 'text-text-secondary hover:text-text-primary'}`}
               >
                 {p}
               </button>

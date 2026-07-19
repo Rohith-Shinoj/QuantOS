@@ -94,9 +94,7 @@ export const Watchlists = ({ isPanel = false }: { isPanel?: boolean }) => {
     for (const slug of activeList.slugs) {
       const stock = allStocks.find((s: any) => s.slug === slug);
       if (!stock) continue;
-      if (stock.qes_flag === 1) {
-        alerts.push({ type: 'danger', stock: stock.ticker, message: 'QES Forensic Divergence Flag Triggered. Possible aggressive revenue recognition.' });
-      }
+
       if (stock.v_squeeze > 5000) {
         alerts.push({ type: 'warning', stock: stock.ticker, message: `Extreme volatility squeeze detected (Level: ${Math.round(stock.v_squeeze)}).` });
       }
@@ -108,7 +106,7 @@ export const Watchlists = ({ isPanel = false }: { isPanel?: boolean }) => {
       {!isPanel && (
         <div className="flex justify-between items-end mb-6 shrink-0">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Watchlists & Alerts</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-text-primary mb-2">Watchlists & Alerts</h1>
             <p className="text-text-secondary">Curate your lists and monitor active forensic triggers.</p>
           </div>
           <button onClick={createList} className="flex items-center gap-2 bg-alpha text-canvas px-4 py-2 rounded-lg font-bold hover:bg-alpha/90">
@@ -127,7 +125,7 @@ export const Watchlists = ({ isPanel = false }: { isPanel?: boolean }) => {
             {watchlists.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
           </select>
           <div className="flex gap-1">
-            <button onClick={createList} className="p-1 hover:bg-surface-hover rounded text-text-secondary hover:text-white"><Plus size={14} /></button>
+            <button onClick={createList} className="p-1 hover:bg-surface-hover rounded text-text-secondary hover:text-text-primary"><Plus size={14} /></button>
             <button onClick={() => activeListId && deleteList(activeListId)} className="p-1 hover:bg-surface-hover rounded text-beta"><Trash2 size={14} /></button>
           </div>
         </div>
@@ -190,7 +188,6 @@ export const Watchlists = ({ isPanel = false }: { isPanel?: boolean }) => {
                     <tr className="border-b border-border text-xs text-text-secondary uppercase tracking-wider">
                       <th className={`font-bold ${isPanel ? 'p-2' : 'p-4'}`}>Symbol</th>
                       {!isPanel && <th className="p-4 font-bold text-right">Price</th>}
-                      <th className={`font-bold text-right ${isPanel ? 'p-2' : 'p-4'}`}><span className="flex justify-end items-center gap-1">AI Score <InfoTooltip text="ML ensemble probability (0–100)" position="bottom" /></span></th>
                       <th className={`font-bold text-right ${isPanel ? 'p-2' : 'p-4'}`}>Momentum</th>
                       <th className="p-4 font-bold text-center">Alerts</th>
                       <th className="p-4 font-bold"></th>
@@ -215,21 +212,19 @@ export const Watchlists = ({ isPanel = false }: { isPanel?: boolean }) => {
                       {!isLoading && activeList.slugs.map(slug => {
                         const stock = allStocks?.find((s: any) => s.slug === slug);
                         if (!stock) return null;
-                        const alphaScore = Math.round((stock.alpha_score || 0) * 100);
                         const rsRating = Math.round(stock.rs_rating || 0);
-                        const hasAlert = stock.qes_flag === 1 || stock.v_squeeze > 5000;
+                        const hasAlert = stock.v_squeeze > 5000;
                         
                         return (
                           <tr key={slug} className="hover:bg-surface-hover/50 transition-colors group">
                             <td className="p-4">
-                              <Link to={`/stock/${slug}`} className="flex items-center gap-3 font-bold text-text-primary hover:text-alpha">
+                              <Link to={`/stocks/${slug}`} className="flex items-center gap-3 font-bold text-text-primary hover:text-alpha">
                                 <StockLogo ticker={stock.ticker} className="w-6 h-6" textClass="text-[8px]" fallbackClass="bg-surface border border-border text-text-primary" />
                                 {stock.ticker}
                               </Link>
                               <div className="text-xs text-text-secondary truncate max-w-[200px] mt-1">{stock.name}</div>
                             </td>
                             <td className="p-4 text-right tabular-nums">₹{stock.close ? stock.close.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : stock.livePrice || '-'}</td>
-                            <td className={`p-4 text-right tabular-nums font-bold ${getScoreColor(alphaScore)}`}>{alphaScore}</td>
                             <td className={`p-4 text-right tabular-nums font-bold ${getScoreColor(rsRating)}`}>{rsRating}</td>
                             <td className="p-4 text-center">
                               {hasAlert ? <AlertTriangle size={16} className="text-warning mx-auto" /> : <span className="text-text-secondary opacity-50">-</span>}

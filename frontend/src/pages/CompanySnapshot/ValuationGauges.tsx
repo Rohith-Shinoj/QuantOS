@@ -2,7 +2,8 @@ import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ZAxis, ReferenceLine } from 'recharts';
 import { fetchAllStocks } from '../../api';
-import { InfoTooltip } from '../../components/InfoTooltip';
+import { HelpCircle } from 'lucide-react';
+import { InsufficientDataBadge } from '../../components/InsufficientDataBadge';
 
 export const ValuationGauges = ({ data }: { data: any }) => {
   const abs = data.absolute || {};
@@ -26,8 +27,8 @@ export const ValuationGauges = ({ data }: { data: any }) => {
     );
 
     return peers.map((p: any) => {
-      const roe = Number(p.roe) || 0;
-      const pe = Number(p.peRatio) || 0;
+      const roe = Number(p.roe);
+      const pe = Number(p.peRatio);
       
       return {
         slug: p.slug,
@@ -41,15 +42,15 @@ export const ValuationGauges = ({ data }: { data: any }) => {
 
   const tech = abs.technicals || {};
 
-  const getRsiVerdict = (e: number) => e > 70 ? ["High Momentum", "text-blue-400"] : e > 65 && e <= 70 ? ["Rising Momentum", "text-blue-300"] : e > 35 && e <= 65 ? ["Neutral", "text-gray-400"] : e > 30 && e <= 35 ? ["Oversold", "text-emerald-500"] : ["Deep Oversold", "text-emerald-400"];
+  const getRsiVerdict = (e: number) => e > 70 ? ["High Momentum", "text-blue-400"] : e > 65 && e <= 70 ? ["Rising Momentum", "text-blue-300"] : e > 35 && e <= 65 ? ["Neutral", "text-text-secondary"] : e > 30 && e <= 35 ? ["Oversold", "text-emerald-500"] : ["Deep Oversold", "text-emerald-400"];
   const getMacdVerdict = (e: number) => e > 0 ? ["Bullish", "text-emerald-500"] : e < 0 ? ["Bearish", "text-red-500"] : ["At signal", "text-emerald-500"];
-  const getBetaVerdict = (e: number) => e > 1.2 ? ["High Volatility", "text-red-400"] : e >= .8 && e <= 1.2 ? ["Market Beta", "text-gray-400"] : ["Low Volatility", "text-emerald-400"];
+  const getBetaVerdict = (e: number) => e > 1.2 ? ["High Volatility", "text-red-400"] : e >= .8 && e <= 1.2 ? ["Market Beta", "text-text-secondary"] : ["Low Volatility", "text-emerald-400"];
 
   const techMetrics = [
     { name: "RSI (14)", value: tech.rsi14, verdict: tech.rsi14 !== undefined ? getRsiVerdict(tech.rsi14) : null },
     { name: "MACD", value: tech.macd, verdict: tech.macd !== undefined ? getMacdVerdict(tech.macd) : null },
     { name: "Beta", value: tech.beta, verdict: tech.beta !== undefined ? getBetaVerdict(tech.beta) : null }
-  ].filter(m => m.value !== undefined && m.value !== null);
+  ];
 
   const sortedX = [...scatterData].map((d: any) => d.x).sort((a,b) => a-b);
   const medianX = sortedX.length > 0 ? sortedX[Math.floor(sortedX.length/2)] : 0;
@@ -58,15 +59,18 @@ export const ValuationGauges = ({ data }: { data: any }) => {
   const medianY = sortedY.length > 0 ? sortedY[Math.floor(sortedY.length/2)] : 0;
 
   return (
-    <div className="bg-[#121214] p-5 rounded-xl border border-white/5 h-full flex flex-col group hover:border-white/10 transition-colors">
-      <div className="flex justify-between items-start mb-2 shrink-0">
+    <div className="bg-surface border border-border p-5 rounded-xl flex flex-col h-full overflow-hidden">
+      <div className="flex justify-between items-start mb-6 shrink-0">
         <div>
-          <h3 className="text-lg font-medium text-text-primary flex items-center tracking-tight">
+          <h3 className="text-sm font-semibold text-text-primary flex items-center gap-1.5 group relative w-fit cursor-help">
             Sector Valuation Matrix
-            {scatterData.length > 0 && <span className="ml-3 text-xs font-medium text-text-secondary">{scatterData.length} Peers</span>}
-            <InfoTooltip text="2D Sector distribution. X-Axis: Quality (ROE). Y-Axis: Price (P/E Ratio). Bottom-Right quadrant is the Deep Value 'Multibagger' zone (High Quality, Low Price)." />
+            {scatterData.length > 0 && <span className="ml-2 text-[10px] font-bold text-text-secondary">{scatterData.length} Peers</span>}
+            <HelpCircle size={14} className="text-text-secondary hover:text-text-primary transition-colors" />
+            <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-64 bg-surface-hover text-text-primary text-[10px] p-2 rounded shadow-xl z-50 normal-case tracking-normal border border-border font-normal leading-relaxed">
+              2D Sector distribution. X-Axis: Quality (ROE). Y-Axis: Price (P/E Ratio). Bottom-Right quadrant is the Deep Value 'Multibagger' zone (High Quality, Low Price).
+            </div>
           </h3>
-          <p className="text-[11px] text-text-secondary mt-1 uppercase tracking-wider font-semibold">
+          <p className="text-[10px] font-bold text-text-secondary mt-1 uppercase tracking-wider">
             Intrinsic Value vs Sector Peers
           </p>
         </div>
@@ -139,13 +143,13 @@ export const ValuationGauges = ({ data }: { data: any }) => {
 
       {/* Technical Indicators */}
       {techMetrics.length > 0 && (
-        <div className="mt-4 pt-3 border-t border-white/5 shrink-0">
+        <div className="mt-4 pt-3 border-t border-border shrink-0">
           <div className="grid grid-cols-3 gap-3">
             {techMetrics.map(m => (
-              <div key={m.name} className="bg-white/5 rounded p-2 flex flex-col justify-between border border-white/5">
+              <div key={m.name} className="bg-white/5 rounded p-2 flex flex-col justify-between border border-border">
                 <span className="text-[9px] text-text-secondary font-bold uppercase tracking-wider">{m.name}</span>
                 <div className="mt-0.5">
-                  <div className="text-[12px] font-bold text-text-primary tabular-nums">{m.value.toFixed(2)}</div>
+                  <div className="text-[12px] font-bold text-text-primary tabular-nums">{m.value !== undefined && m.value !== null ? m.value.toFixed(2) : <InsufficientDataBadge size="sm" />}</div>
                   {m.verdict && (
                     <div className={`text-[8px] font-bold uppercase tracking-wider truncate ${m.verdict[1]}`}>
                       {m.verdict[0]}

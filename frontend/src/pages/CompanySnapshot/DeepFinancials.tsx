@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid, Cell, Legend } from 'recharts';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, HelpCircle } from 'lucide-react';
 
 export const DeepFinancials = ({ data }: { data: any }) => {
   const [period, setPeriod] = useState<'annual' | 'quarterly'>('annual');
@@ -96,7 +96,7 @@ export const DeepFinancials = ({ data }: { data: any }) => {
                    {isAnomaly && <span title="⚠ possible corporate action (Demerger/Bonus) — verify manually" className="text-amber-500 cursor-help text-xs">⚠</span>}
                 </div>
                 {yoy !== null && (
-                  <span className={`text-[12px] font-bold px-1.5 py-0.5 rounded tabular-nums ${yoy > 0 ? 'bg-[#42bd7f]/20 text-[#42bd7f]' : yoy < 0 ? 'bg-[#f23645]/20 text-[#f23645]' : 'bg-surface-hover text-text-secondary'}`}>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded tabular-nums ${yoy > 0 ? 'bg-emerald-500/20 text-emerald-400' : yoy < 0 ? 'bg-red-500/20 text-red-400' : 'bg-white/5 text-text-secondary'}`}>
                     {yoy > 0 ? '+' : ''}{yoy.toFixed(1)}%
                   </span>
                 )}
@@ -121,30 +121,36 @@ export const DeepFinancials = ({ data }: { data: any }) => {
   }
 
   return (
-    <div className="bg-surface p-4 rounded-lg border border-border h-full flex flex-col">
-      <div className="flex justify-between items-start mb-4">
+    <div className="bg-surface border border-border p-5 rounded-xl flex flex-col h-full overflow-hidden min-w-0">
+      <div className="flex justify-between items-start mb-6">
         <div>
-          <h3 className="text-lg font-medium text-text-primary">Deep Financials</h3>
-          <p className="text-sm text-text-secondary mt-0.5">Income Statement & Financial Ratios</p>
+          <h3 className="text-sm font-semibold text-text-primary flex items-center gap-1.5 shrink-0 group relative w-fit cursor-help">
+            Deep Financials
+            <HelpCircle size={14} className="text-text-secondary hover:text-text-primary transition-colors" />
+            <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-64 bg-surface-hover text-text-primary text-[10px] p-2 rounded shadow-xl z-50 normal-case tracking-normal border border-border font-normal leading-relaxed">
+              Income Statement & Financial Ratios across multiple periods.
+            </div>
+          </h3>
+          <p className="text-[10px] text-text-secondary mt-1 uppercase tracking-wider font-bold">Income Statement & Financial Ratios</p>
         </div>
         
-        <div className="flex bg-canvas p-1 rounded-lg border border-border">
+        <div className="flex bg-surface-hover p-1 rounded-lg border border-border">
           <button
             onClick={() => setPeriod('annual')}
-            className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${period === 'annual' ? 'bg-surface border border-border text-alpha shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}
+            className={`px-4 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${period === 'annual' ? 'bg-[#27272a] text-text-primary shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}
           >
             Annual
           </button>
           <button
             onClick={() => setPeriod('quarterly')}
-            className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${period === 'quarterly' ? 'bg-surface border border-border text-alpha shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}
+            className={`px-4 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${period === 'quarterly' ? 'bg-[#27272a] text-text-primary shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}
           >
             Quarterly
           </button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-visible relative flex flex-col z-10">
+      <div className="flex-1 overflow-hidden relative flex flex-col z-10 min-w-0">
         {viewIndex === 0 ? (
           <div className="overflow-x-scroll overflow-y-auto flex-1 custom-scrollbar">
             <table className="w-full text-left border-collapse min-w-max">
@@ -162,13 +168,13 @@ export const DeepFinancials = ({ data }: { data: any }) => {
                   </tr>
                 ))}
               </thead>
-              <tbody className="divide-y divide-border/30 bg-surface">
+              <tbody className="divide-y divide-white/5 bg-surface">
                 {table.getRowModel().rows.map(row => (
-                  <tr key={row.id} className="hover:bg-surface-hover/50 transition-colors">
+                  <tr key={row.id} className="hover:bg-white/5 transition-colors group">
                     {row.getVisibleCells().map((cell, i) => (
                       <td 
                         key={cell.id} 
-                        className={`p-3 text-sm border-b border-border/30 ${i === 0 ? 'sticky left-0 z-10 bg-surface border-r border-border group-hover:bg-surface-hover/50' : ''}`}
+                        className={`p-3 text-sm border-b border-border ${i === 0 ? 'sticky left-0 z-10 bg-surface border-r border-border group-hover:bg-white/5' : ''}`}
                       >
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
@@ -202,7 +208,7 @@ export const DeepFinancials = ({ data }: { data: any }) => {
               const profGrowth = prevData ? (((activeData.Profit - prevData.Profit) / Math.abs(prevData.Profit)) * 100).toFixed(2) : null;
                 
               return (
-              <div className="bg-canvas/50 border border-border/50 rounded-lg p-4 h-full flex flex-col">
+              <div className="bg-surface-hover/50 border border-border rounded-lg p-4 h-full flex flex-col">
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h3 className="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-2">{activeData?.date || ''}</h3>
@@ -276,7 +282,7 @@ export const DeepFinancials = ({ data }: { data: any }) => {
               const growth = prevData ? (((activeData.value - prevData.value) / Math.abs(prevData.value)) * 100).toFixed(2) : null;
                 
               return (
-                <div className="bg-canvas/50 border border-border/50 rounded-lg p-4 h-full flex flex-col">
+                <div className="bg-surface-hover/50 border border-border rounded-lg p-4 h-full flex flex-col">
                   <div className="flex justify-between items-start mb-4">
                     <div>
                       <h3 className="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-2">{activeData?.date || ''}</h3>
@@ -322,12 +328,12 @@ export const DeepFinancials = ({ data }: { data: any }) => {
         )}
         
         {/* Pagination Dots */}
-        <div className="h-10 border-t border-border bg-surface shrink-0 flex items-center justify-center gap-3">
+        <div className="h-6 mt-3 shrink-0 flex items-center justify-center gap-3">
           {[0, 1, 2].map((dotIndex) => (
             <button 
               key={dotIndex}
               onClick={() => setViewIndex(dotIndex)}
-              className={`w-2.5 h-2.5 rounded-full transition-all ${viewIndex === dotIndex ? 'bg-alpha scale-125' : 'bg-text-secondary/30 hover:bg-text-secondary/60'}`}
+              className={`w-2.5 h-2.5 rounded-full transition-all ${viewIndex === dotIndex ? 'bg-emerald-400 scale-125' : 'bg-[#27272a] hover:bg-[#3f3f46]'}`}
               title={dotIndex === 0 ? "Tabular View" : dotIndex === 1 ? "Revenue & Profit" : "Net Worth"}
             />
           ))}

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
-
-import { InfoTooltip } from '../../components/InfoTooltip';
+import { HelpCircle } from 'lucide-react';
 
 export const OwnershipTrends = ({ data }: { data: any }) => {
   const rel = data.relative || {};
@@ -90,22 +89,25 @@ export const OwnershipTrends = ({ data }: { data: any }) => {
   };
 
   return (
-    <div className="bg-surface p-4 rounded-lg border border-border h-full flex flex-col">
-      <div className="flex justify-between items-start mb-4">
-        <h3 className="text-lg font-medium text-text-primary flex items-center">
+    <div className="bg-surface border border-border p-5 rounded-xl flex flex-col h-full overflow-hidden">
+      <div className="flex justify-between items-start mb-6">
+        <h3 className="text-sm font-semibold text-text-primary flex items-center gap-1.5 shrink-0 group relative w-fit cursor-help">
           Ownership Trends
-          <InfoTooltip text="Tracks Quarter-over-Quarter (QoQ) shifts in shareholding across major categories." />
+          <HelpCircle size={14} className="text-text-secondary hover:text-text-primary transition-colors" />
+          <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-64 bg-surface-hover text-text-primary text-[10px] p-2 rounded shadow-xl z-50 normal-case tracking-normal border border-border font-normal leading-relaxed">
+            Tracks Quarter-over-Quarter (QoQ) shifts in shareholding across major categories.
+          </div>
         </h3>
         {latestInstPct > 0 && (
           <div className="text-right flex flex-col items-end">
-            <div className="text-sm text-text-secondary mb-1">Inst. Holding ({latestQuarter})</div>
+            <div className="text-[10px] font-bold text-text-secondary uppercase tracking-wider mb-1">Inst. Holding ({latestQuarter})</div>
             <div className="flex items-center gap-2">
               {instPctChange !== null && instPctChange !== 0 && (
-                <span className={`text-[12px] font-bold px-1.5 py-0.5 rounded tabular-nums ${instPctChange > 0 ? 'bg-[#42bd7f]/20 text-[#42bd7f]' : 'bg-[#f23645]/20 text-[#f23645]'}`}>
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded tabular-nums ${instPctChange > 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
                   {instPctChange > 0 ? '+' : ''}{instPctChange.toFixed(2)}%
                 </span>
               )}
-              <div className="text-xl font-bold text-alpha">{latestInstPct.toFixed(2)}%</div>
+              <div className="text-xl font-bold font-mono text-emerald-400">{latestInstPct.toFixed(2)}%</div>
             </div>
           </div>
         )}
@@ -145,10 +147,10 @@ export const OwnershipTrends = ({ data }: { data: any }) => {
                   {sortedQuarters.slice(0, 4).map(q => <th key={q} className="py-2 px-3 text-[10px] font-bold text-text-secondary uppercase tracking-wider border-b border-border">{q}</th>)}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/30 bg-surface">
+              <tbody className="divide-y divide-white/5 bg-surface">
                 {categories.map(cat => (
-                  <tr key={cat.key} className="hover:bg-surface-hover/50 transition-colors">
-                    <td className="py-2 px-3 text-sm border-b border-border/30 text-text-primary font-medium">{cat.label}</td>
+                  <tr key={cat.key} className="hover:bg-white/5 transition-colors">
+                    <td className="py-2 px-3 text-sm border-b border-border text-text-primary font-medium">{cat.label}</td>
                     {sortedQuarters.slice(0, 4).map((q, i) => {
                       const val = getSum(shp[q]?.[cat.key]);
                       const prevQ = sortedQuarters[i + 1];
@@ -159,11 +161,11 @@ export const OwnershipTrends = ({ data }: { data: any }) => {
                       }
                       
                       return (
-                        <td key={q} className="py-2 px-3 border-b border-border/30">
+                        <td key={q} className="py-2 px-3 border-b border-border">
                           <div className="flex flex-row items-center gap-1.5 min-w-max">
-                            <span className="text-sm font-medium text-text-primary tabular-nums">{val.toFixed(2)}%</span>
+                            <span className="text-sm font-bold text-text-primary tabular-nums">{val.toFixed(2)}%</span>
                             {yoy !== null && Math.abs(yoy) >= 0.01 && (
-                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded tabular-nums ${yoy > 0 ? 'bg-[#42bd7f]/20 text-[#42bd7f]' : 'bg-[#f23645]/20 text-[#f23645]'}`}>
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded tabular-nums ${yoy > 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
                                 {yoy > 0 ? '+' : ''}{yoy.toFixed(2)}%
                               </span>
                             )}
@@ -185,7 +187,7 @@ export const OwnershipTrends = ({ data }: { data: any }) => {
           <button 
             key={dotIndex}
             onClick={() => setViewIndex(dotIndex)}
-            className={`w-2.5 h-2.5 rounded-full transition-all ${viewIndex === dotIndex ? 'bg-alpha scale-125' : 'bg-text-secondary/30 hover:bg-text-secondary/60'}`}
+            className={`w-2.5 h-2.5 rounded-full transition-all ${viewIndex === dotIndex ? 'bg-emerald-400 scale-125' : 'bg-[#27272a] hover:bg-[#3f3f46]'}`}
             title={dotIndex === 0 ? "Bar Chart" : "Raw Data"}
           />
         ))}

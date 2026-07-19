@@ -21,14 +21,14 @@ export const MarketCaptureAlphaCard = ({ fund }: { fund: any }) => {
   const sectorRatio = (sectorUp / sectorDown).toFixed(2);
 
   const CaptureColumn = ({ title, up, down, ratio }: any) => (
-    <div className="flex flex-col gap-2 bg-white/5 rounded-lg p-2.5 border border-white/5">
+    <div className="flex flex-col gap-2 bg-white/5 rounded-lg p-2.5 border border-border">
       <span className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">{title}</span>
       <div className="flex flex-col gap-1">
         <div className="flex justify-between items-center text-xs font-medium">
           <span className="text-text-secondary">Up-Capture</span>
           <span className="font-mono text-emerald-400">{up}%</span>
         </div>
-        <div className="h-1 w-full bg-[#111114] rounded-full overflow-hidden flex">
+        <div className="h-1 w-full bg-surface rounded-full overflow-hidden flex">
           <div className="h-full bg-emerald-500" style={{ width: `${Math.min(up, 150) / 1.5}%` }}></div>
         </div>
       </div>
@@ -37,11 +37,11 @@ export const MarketCaptureAlphaCard = ({ fund }: { fund: any }) => {
           <span className="text-text-secondary">Down-Capture</span>
           <span className="font-mono text-red-400">{down}%</span>
         </div>
-        <div className="h-1 w-full bg-[#111114] rounded-full overflow-hidden flex">
+        <div className="h-1 w-full bg-surface rounded-full overflow-hidden flex">
           <div className="h-full bg-red-500" style={{ width: `${Math.min(down, 150) / 1.5}%` }}></div>
         </div>
       </div>
-      <div className="flex justify-between items-center mt-1 pt-1.5 border-t border-white/10">
+      <div className="flex justify-between items-center mt-1 pt-1.5 border-t border-border">
         <span className="text-[10px] font-semibold text-text-secondary uppercase">Ratio</span>
         <span className={`text-xs font-mono font-bold ${ratio > 1 ? 'text-emerald-400' : 'text-red-400'}`}>{ratio}</span>
       </div>
@@ -62,10 +62,10 @@ export const MarketCaptureAlphaCard = ({ fund }: { fund: any }) => {
   const tePercentile = Math.min(Math.max((teValue / 8) * 100, 0), 100); // Scale 0 to 8 TE to 0-100%
 
   return (
-    <div className="bg-[#111114] border border-white/5 p-5 rounded-xl flex flex-col justify-between h-full overflow-hidden">
+    <div className="bg-surface border border-border p-5 rounded-xl flex flex-col justify-between h-full overflow-hidden">
       <h3 className="text-sm font-semibold text-text-primary mb-6 flex items-center gap-1.5 shrink-0 group relative w-fit cursor-help">
-        Market Capture & Alpha Engine <HelpCircle size={14} className="text-text-secondary hover:text-white transition-colors" />
-        <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-64 bg-[#1a1a24] text-white text-[10px] p-2 rounded shadow-xl z-50 normal-case tracking-normal border border-white/10 font-normal leading-relaxed">
+        Market Capture & Alpha Engine <HelpCircle size={14} className="text-text-secondary hover:text-text-primary transition-colors" />
+        <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-64 bg-surface-hover text-text-primary text-[10px] p-2 rounded shadow-xl z-50 normal-case tracking-normal border border-border font-normal leading-relaxed">
           Analyzes how much of the market's upside and downside the fund captures, alongside its generated Alpha and Tracking Error against the category.
         </div>
       </h3>
@@ -78,12 +78,12 @@ export const MarketCaptureAlphaCard = ({ fund }: { fund: any }) => {
             <CaptureColumn title="vs Nifty 50" up={niftyUp} down={niftyDown} ratio={niftyRatio} />
             <CaptureColumn title="vs Sector" up={sectorUp} down={sectorDown} ratio={sectorRatio} />
           </div>
-          <div className="text-[10px] text-text-secondary leading-relaxed bg-white/5 p-2 rounded border border-white/5 border-dashed">
-            <span className="font-semibold text-white">Insight:</span> An upcapture to downcapture ratio &gt; 1 indicates the fund consistently beats the reference.
+          <div className="text-[10px] text-text-secondary leading-relaxed bg-white/5 p-2 rounded border border-border border-dashed">
+            <span className="font-semibold text-text-primary">Insight:</span> An upcapture to downcapture ratio &gt; 1 indicates the fund consistently beats the reference.
           </div>
         </div>
         
-        <hr className="border-white/5" />
+        <hr className="border-border" />
 
         {/* Gradient Sliders */}
         <div className="flex flex-col gap-6 pt-2">
@@ -107,7 +107,7 @@ export const MarketCaptureAlphaCard = ({ fund }: { fund: any }) => {
            <div className="relative flex flex-col">
                <div className="flex justify-between items-end mb-2">
                  <span className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">Tracking Error (Risk)</span>
-                 <span className="text-base font-bold font-mono text-white">{teValue.toFixed(2)}%</span>
+                 <span className="text-base font-bold font-mono text-text-primary">{teValue.toFixed(2)}%</span>
                </div>
               <div className="h-2 w-full rounded-full bg-gradient-to-r from-emerald-500 via-yellow-500 to-red-500 relative flex items-center">
                  <div className="absolute w-3 h-3 bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.8)] border-2 border-[#111114] transform -translate-x-1/2" style={{ left: `${tePercentile}%` }}></div>

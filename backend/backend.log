@@ -1,530 +1,696 @@
 INFO:     Will watch for changes in these directories: ['/Users/rohith/groww/backend']
 INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
-INFO:     Started reloader process [28903] using WatchFiles
-INFO:     Started server process [28905]
+INFO:     Started reloader process [65199] using WatchFiles
+INFO:     Started server process [65208]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 [screener] ✅ Screener connection pre-warmed.
-INFO:     127.0.0.1:55992 - "GET /api/news/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56045 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56047 - "GET /api/stocks/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56048 - "GET /api/stocks/hcl-technologies-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56068 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56070 - "GET /api/stocks/state-bank-of-india HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56071 - "GET /api/stocks/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56069 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56069 - "GET /api/stocks/hcl-technologies-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56125 - "GET /api/news/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56125 - "GET /api/news/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56071 - "GET /api/stocks/hcl-technologies-ltd/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56513 - "POST /api/admin/reload_db HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56641 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56643 - "GET /api/stocks/state-bank-of-india HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56644 - "GET /api/stocks/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56642 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56642 - "GET /api/stocks/hcl-technologies-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56696 - "GET /api/news/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56696 - "GET /api/news/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56644 - "GET /api/stocks/hcl-technologies-ltd/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59799 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59801 - "GET /api/stocks/state-bank-of-india HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59802 - "GET /api/stocks/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59800 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59800 - "GET /api/stocks/hcl-technologies-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59816 - "GET /api/news/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59802 - "GET /api/stocks/hcl-technologies-ltd/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59816 - "GET /api/news/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59831 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59833 - "GET /api/stocks/state-bank-of-india HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59834 - "GET /api/stocks/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59832 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59832 - "GET /api/stocks/hcl-technologies-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59841 - "GET /api/news/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59841 - "GET /api/news/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59834 - "GET /api/stocks/hcl-technologies-ltd/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60082 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60084 - "GET /api/stocks/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60085 - "GET /api/stocks/hcl-technologies-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60083 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:62727 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:62729 - "GET /api/stocks/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:62730 - "GET /api/stocks/hcl-technologies-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:62728 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:62731 - "GET /api/stocks/hcl-technologies-ltd/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:64284 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:64286 - "GET /api/stocks/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:64287 - "GET /api/stocks/hcl-technologies-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:64285 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:64288 - "GET /api/stocks/hcl-technologies-ltd/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51815 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51817 - "GET /api/macro HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51817 - "GET /api/stocks/nifty HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51815 - "GET /api/stocks/reliance-etf-gold-bees HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51817 - "OPTIONS /api/quotes/refresh-batch HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51825 - "GET /api/stocks/nippon-life-india-asset-management-ltd-nippon-india-silver-etf HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51816 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51826 - "OPTIONS /api/stocks/batch HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51826 - "POST /api/stocks/batch HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51826 - "GET /api/stocks HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:51903 - "GET /api/stocks HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:51915 - "GET /api/stocks HTTP/1.1" 500 Internal Server Error
+WARNING:  WatchFiles detected changes in 'main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [65208]
+INFO:     Started server process [65587]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+[screener] ✅ Screener connection pre-warmed.
+INFO:     127.0.0.1:51932 - "GET /api/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51933 - "GET /api/stocks HTTP/1.1" 200 OK
 
-[BACKEND] Starting refresh-batch for 19 slugs: ['reliance-industries-ltd', 'hdfc-bank-ltd', 'bharti-airtel-ltd', 'icici-bank-ltd', 'state-bank-of-india', 'tata-consultancy-services-ltd', 'bajaj-finance-ltd', 'larsen-toubro-ltd', 'life-insurance-corporation-of-india', 'hindustan-unilever-ltd', 'nifty', 'nifty-total-market-index', 'nifty-bank', 'nifty-midcap', 'nifty-smallcap-100', 'india-vix', 'nifty-it', 'nifty-metal', 'sp-bse-sensex']
-[BACKEND] Finished refresh-batch. Took 2.79 seconds.
+[BACKEND] Starting refresh-batch for 18 slugs: ['hdfc-bank-ltd', 'bharti-airtel-ltd', 'icici-bank-ltd', 'state-bank-of-india', 'tata-consultancy-services-ltd', 'bajaj-finance-ltd', 'life-insurance-corporation-of-india', 'larsen-toubro-ltd', 'hindustan-unilever-ltd', 'sun-pharmaceutical-industries-ltd', 'nifty-metal', 'nifty-it', 'nifty', 'sp-bse-sensex', 'nifty-total-market-index', 'nifty-midcap', 'nifty-smallcap-100', 'nifty-bank']
+[BACKEND] Finished refresh-batch. Took 1.11 seconds.
 
-INFO:     127.0.0.1:51818 - "GET /api/mutual_funds?limit=1000 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51816 - "GET /api/stocks/hdfc-bank-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51817 - "POST /api/quotes/refresh-batch HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51886 - "OPTIONS /api/admin/log HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51946 - "POST /api/quotes/refresh-batch HTTP/1.1" 200 OK
 
 [FRONTEND TRACE]:
-[0.0ms] Extracted 19 slugs
-[20522.1ms] fetchBatchLiveQuotes network call completed
-[3.6ms] allStocks cache update (6000+ items) completed
-[0.2ms] Individual stockData cache updates completed
-[20525.9ms] Total frontend handleSyncMarket execution time
-
-INFO:     127.0.0.1:51886 - "POST /api/admin/log HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51886 - "GET /api/news/hdfc-bank-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51816 - "GET /api/stocks/hdfc-bank-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51886 - "GET /api/news/hdfc-bank-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51817 - "GET /api/stocks/hdfc-bank-ltd/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51900 - "GET /api/stocks/nifty-financial-services HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51918 - "OPTIONS /api/agent/memo HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51918 - "POST /api/agent/memo HTTP/1.1" 200 OK
-/Users/rohith/groww/backend/agent_engine/tools.py:117: LangChainDeprecationWarning: The class `TavilySearchResults` was deprecated in LangChain 0.3.25 and will be removed in 1.0. An updated version of the class exists in the `langchain-tavily package and should be used instead. To use it run `pip install -U `langchain-tavily` and import as `from `langchain_tavily import TavilySearch``.
-  search_tool = TavilySearchResults(max_results=3, search_depth="advanced")
-INFO:     127.0.0.1:51935 - "GET /api/mutual_funds/127042 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51940 - "GET /api/stocks/nifty HTTP/1.1" 200 OK
-INFO:     127.0.0.1:51981 - "GET /api/stocks/nifty-midcap HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52028 - "GET /api/stocks/apollo-hospitals-enterprise-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52028 - "GET /api/stocks/apollo-hospitals-enterprise-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52032 - "GET /api/news/apollo-hospitals-enterprise-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52032 - "GET /api/news/apollo-hospitals-enterprise-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52033 - "GET /api/stocks/apollo-hospitals-enterprise-ltd/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52037 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52039 - "GET /api/portfolio HTTP/1.1" 307 Temporary Redirect
-INFO:     127.0.0.1:52039 - "GET /api/portfolio HTTP/1.1" 307 Temporary Redirect
-INFO:     127.0.0.1:52039 - "GET /api/portfolio/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52040 - "GET /api/portfolio/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52037 - "OPTIONS /api/portfolio HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52038 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52037 - "POST /api/portfolio HTTP/1.1" 307 Temporary Redirect
-INFO:     127.0.0.1:52038 - "POST /api/portfolio HTTP/1.1" 307 Temporary Redirect
-INFO:     127.0.0.1:52037 - "OPTIONS /api/portfolio/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52038 - "OPTIONS /api/portfolio/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52038 - "POST /api/portfolio/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52037 - "POST /api/portfolio/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52056 - "POST /api/portfolio HTTP/1.1" 307 Temporary Redirect
-INFO:     127.0.0.1:52057 - "POST /api/stocks/batch HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52058 - "OPTIONS /api/portfolio/matrix-prefetch HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52058 - "POST /api/portfolio/matrix-prefetch HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52056 - "POST /api/portfolio/ HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52088 - "GET /api/news/apollo-hospitals-enterprise-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52088 - "GET /api/news/apollo-hospitals-enterprise-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52089 - "GET /api/mutual_funds/127042 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52088 - "GET /api/news/apollo-hospitals-enterprise-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52088 - "GET /api/news/apollo-hospitals-enterprise-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52107 - "GET /api/mutual_funds/153258 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52112 - "GET /api/stocks/nifty HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52114 - "GET /api/stocks/nifty-total-market-index HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52126 - "GET /api/stocks/nifty HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52127 - "GET /api/stocks/reliance-etf-gold-bees HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52126 - "OPTIONS /api/quotes/refresh-batch HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52128 - "GET /api/stocks/nippon-life-india-asset-management-ltd-nippon-india-silver-etf HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52129 - "GET /api/macro HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52130 - "OPTIONS /api/stocks/batch HTTP/1.1" 200 OK
-
-[BACKEND] Starting refresh-batch for 19 slugs: ['reliance-industries-ltd', 'hdfc-bank-ltd', 'bharti-airtel-ltd', 'icici-bank-ltd', 'state-bank-of-india', 'tata-consultancy-services-ltd', 'bajaj-finance-ltd', 'larsen-toubro-ltd', 'life-insurance-corporation-of-india', 'hindustan-unilever-ltd', 'nifty', 'nifty-total-market-index', 'nifty-bank', 'nifty-midcap', 'nifty-smallcap-100', 'india-vix', 'nifty-it', 'nifty-metal', 'sp-bse-sensex']
-[BACKEND] Finished refresh-batch. Took 1.88 seconds.
-
-INFO:     127.0.0.1:52130 - "POST /api/stocks/batch HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52126 - "POST /api/quotes/refresh-batch HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52152 - "OPTIONS /api/admin/log HTTP/1.1" 200 OK
-
-[FRONTEND TRACE]:
-[0.0ms] Extracted 19 slugs
-[6858.4ms] fetchBatchLiveQuotes network call completed
+[0.0ms] Extracted 18 slugs
+[1140.9ms] fetchBatchLiveQuotes network call completed
 [2.0ms] allStocks cache update (6000+ items) completed
-[0.0ms] Individual stockData cache updates completed
-[6860.4ms] Total frontend handleSyncMarket execution time
+[0.2ms] Individual stockData cache updates completed
+[1143.1ms] Total frontend handleSyncMarket execution time
 
-INFO:     127.0.0.1:52152 - "POST /api/admin/log HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52131 - "GET /api/mutual_funds?limit=1000 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52152 - "GET /api/news/apollo-hospitals-enterprise-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52126 - "GET /api/stocks/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52152 - "GET /api/news/apollo-hospitals-enterprise-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52152 - "GET /api/news/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52126 - "GET /api/stocks/megasoft-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52157 - "GET /api/news/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52158 - "GET /api/stocks/megasoft-ltd/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52171 - "GET /api/stocks/kei-industries-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52173 - "GET /api/news/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52173 - "GET /api/news/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52173 - "GET /api/news/kei-industries-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52171 - "GET /api/stocks/kei-industries-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52175 - "GET /api/news/kei-industries-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52176 - "GET /api/stocks/kei-industries-ltd/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52305 - "GET /api/stocks/zomato-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52307 - "GET /api/news/kei-industries-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52307 - "GET /api/news/kei-industries-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52307 - "GET /api/news/zomato-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52305 - "GET /api/stocks/zomato-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52309 - "GET /api/news/zomato-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52310 - "GET /api/stocks/zomato-ltd/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52343 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52355 - "GET /api/stocks/jio-financial-services-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52357 - "GET /api/news/zomato-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52357 - "GET /api/news/zomato-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52357 - "GET /api/news/jio-financial-services-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52355 - "GET /api/stocks/jio-financial-services-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52359 - "GET /api/news/jio-financial-services-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52360 - "GET /api/stocks/jio-financial-services-ltd/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52429 - "GET /api/stocks/reliance-industries-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52431 - "GET /api/news/jio-financial-services-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52431 - "GET /api/news/jio-financial-services-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52431 - "GET /api/news/reliance-industries-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52429 - "GET /api/stocks/reliance-industries-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52433 - "GET /api/news/reliance-industries-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52434 - "GET /api/stocks/reliance-industries-ltd/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52453 - "GET /api/stocks/nifty HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52454 - "GET /api/stocks/reliance-etf-gold-bees HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52455 - "GET /api/stocks/nippon-life-india-asset-management-ltd-nippon-india-silver-etf HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52456 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52457 - "GET /api/macro HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51967 - "POST /api/admin/log HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52009 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52010 - "GET /api/macro HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52009 - "GET /api/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52010 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52019 - "GET /api/macro HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52021 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52023 - "GET /api/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52024 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52026 - "GET /api/macro HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52028 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52030 - "GET /api/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52031 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52033 - "GET /api/macro HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52031 - "GET /api/stocks/nifty HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52030 - "OPTIONS /api/stocks/batch HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52033 - "OPTIONS /api/quotes/refresh-batch HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52036 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52032 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52031 - "POST /api/stocks/batch HTTP/1.1" 200 OK
 
-[BACKEND] Starting refresh-batch for 19 slugs: ['reliance-industries-ltd', 'hdfc-bank-ltd', 'bharti-airtel-ltd', 'icici-bank-ltd', 'state-bank-of-india', 'tata-consultancy-services-ltd', 'bajaj-finance-ltd', 'larsen-toubro-ltd', 'life-insurance-corporation-of-india', 'hindustan-unilever-ltd', 'nifty', 'nifty-total-market-index', 'nifty-bank', 'nifty-midcap', 'nifty-smallcap-100', 'india-vix', 'nifty-it', 'nifty-metal', 'sp-bse-sensex']
-[BACKEND] Finished refresh-batch. Took 2.09 seconds.
+[BACKEND] Starting refresh-batch for 19 slugs: ['reliance-industries-ltd', 'hdfc-bank-ltd', 'bharti-airtel-ltd', 'icici-bank-ltd', 'state-bank-of-india', 'tata-consultancy-services-ltd', 'bajaj-finance-ltd', 'life-insurance-corporation-of-india', 'larsen-toubro-ltd', 'hindustan-unilever-ltd', 'nifty-metal', 'nifty-it', 'nifty', 'sp-bse-sensex', 'nifty-total-market-index', 'nifty-midcap', 'nifty-smallcap-100', 'nifty-bank', 'india-vix']
+[BACKEND] Finished refresh-batch. Took 2.53 seconds.
 
-INFO:     127.0.0.1:52458 - "POST /api/stocks/batch HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52457 - "GET /api/stocks/nifty-total-market-index HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52455 - "GET /api/stocks/nifty-midcap HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52454 - "POST /api/quotes/refresh-batch HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52453 - "GET /api/mutual_funds?limit=1000 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52457 - "GET /api/stocks/india-vix HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52455 - "GET /api/stocks/nifty-metal HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52458 - "GET /api/stocks/nifty-smallcap-100 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52486 - "GET /api/stocks/nifty-it HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52455 - "GET /api/stocks/britannia-industries-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52034 - "GET /api/mutual_funds?limit=1000 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52030 - "POST /api/quotes/refresh-batch HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52061 - "GET /api/stocks/state-bank-of-india HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52062 - "GET /api/stocks/reliance-industries-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52072 - "OPTIONS /api/admin/log HTTP/1.1" 200 OK
 
 [FRONTEND TRACE]:
 [0.0ms] Extracted 19 slugs
-[23918.3ms] fetchBatchLiveQuotes network call completed
-[4.0ms] allStocks cache update (6000+ items) completed
-[0.2ms] Individual stockData cache updates completed
-[23922.5ms] Total frontend handleSyncMarket execution time
+[50557.8ms] fetchBatchLiveQuotes network call completed
+[6.8ms] allStocks cache update (6000+ items) completed
+[0.4ms] Individual stockData cache updates completed
+[50565.0ms] Total frontend handleSyncMarket execution time
 
-INFO:     127.0.0.1:52488 - "POST /api/admin/log HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52488 - "GET /api/news/britannia-industries-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52455 - "GET /api/stocks/britannia-industries-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52488 - "GET /api/news/britannia-industries-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52486 - "GET /api/stocks/britannia-industries-ltd/targets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52072 - "POST /api/admin/log HTTP/1.1" 200 OK
+News empty in DB, fetching live news for reliance-industries-ltd (RELIANCE)...
+INFO:     127.0.0.1:52072 - "GET /api/news/reliance-industries-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52061 - "GET /api/stocks/reliance-industries-ltd/related HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52062 - "GET /api/quotes/live/reliance-industries-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52072 - "GET /api/news/reliance-industries-ltd HTTP/1.1" 200 OK
 
-[BACKEND] Starting refresh-batch for 19 slugs: ['reliance-industries-ltd', 'hdfc-bank-ltd', 'bharti-airtel-ltd', 'icici-bank-ltd', 'state-bank-of-india', 'tata-consultancy-services-ltd', 'bajaj-finance-ltd', 'larsen-toubro-ltd', 'life-insurance-corporation-of-india', 'hindustan-unilever-ltd', 'nifty', 'nifty-total-market-index', 'nifty-bank', 'nifty-midcap', 'nifty-smallcap-100', 'india-vix', 'nifty-it', 'nifty-metal', 'sp-bse-sensex']
-[BACKEND] Finished refresh-batch. Took 1.34 seconds.
+[BACKEND] Starting refresh-batch for 19 slugs: ['reliance-industries-ltd', 'hdfc-bank-ltd', 'bharti-airtel-ltd', 'icici-bank-ltd', 'state-bank-of-india', 'tata-consultancy-services-ltd', 'bajaj-finance-ltd', 'life-insurance-corporation-of-india', 'larsen-toubro-ltd', 'hindustan-unilever-ltd', 'nifty-metal', 'nifty-it', 'nifty', 'sp-bse-sensex', 'nifty-total-market-index', 'nifty-midcap', 'nifty-smallcap-100', 'nifty-bank', 'india-vix']
+[BACKEND] Finished refresh-batch. Took 0.59 seconds.
 
-INFO:     127.0.0.1:52516 - "POST /api/quotes/refresh-batch HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52084 - "POST /api/quotes/refresh-batch HTTP/1.1" 200 OK
 
 [FRONTEND TRACE]:
 [0.1ms] Extracted 19 slugs
-[1355.7ms] fetchBatchLiveQuotes network call completed
-[2.6ms] allStocks cache update (6000+ items) completed
-[0.2ms] Individual stockData cache updates completed
-[1358.6ms] Total frontend handleSyncMarket execution time
+[1861.4ms] fetchBatchLiveQuotes network call completed
+[1.6ms] allStocks cache update (6000+ items) completed
+[0.1ms] Individual stockData cache updates completed
+[1863.2ms] Total frontend handleSyncMarket execution time
 
-INFO:     127.0.0.1:52490 - "POST /api/admin/log HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52490 - "GET /api/news/britannia-industries-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52490 - "GET /api/news/britannia-industries-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52516 - "GET /api/stocks/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52490 - "GET /api/news/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52516 - "GET /api/stocks/megasoft-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52490 - "GET /api/news/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52538 - "GET /api/stocks/megasoft-ltd/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52786 - "GET /api/stocks/maruti-suzuki-india-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52788 - "GET /api/stocks/megasoft-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52786 - "GET /api/stocks/maruti-suzuki-india-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52789 - "GET /api/news/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52790 - "GET /api/stocks/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52789 - "GET /api/news/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52794 - "GET /api/news/maruti-suzuki-india-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52797 - "GET /api/news/maruti-suzuki-india-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52795 - "GET /api/stocks/maruti-suzuki-india-ltd/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52806 - "GET /api/stocks/bharat-heavy-electricals-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52808 - "GET /api/news/maruti-suzuki-india-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52808 - "GET /api/news/maruti-suzuki-india-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52808 - "GET /api/news/bharat-heavy-electricals-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52806 - "GET /api/stocks/bharat-heavy-electricals-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52810 - "GET /api/news/bharat-heavy-electricals-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52811 - "GET /api/stocks/bharat-heavy-electricals-ltd/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52837 - "GET /api/stocks/bharat-electronics-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52839 - "GET /api/news/bharat-heavy-electricals-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52839 - "GET /api/news/bharat-heavy-electricals-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52839 - "GET /api/news/bharat-electronics-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52837 - "GET /api/stocks/bharat-electronics-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52841 - "GET /api/news/bharat-electronics-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52842 - "GET /api/stocks/bharat-electronics-ltd/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52866 - "GET /api/stocks/nifty HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52867 - "GET /api/stocks/reliance-etf-gold-bees HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52868 - "GET /api/stocks/nippon-life-india-asset-management-ltd-nippon-india-silver-etf HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52867 - "OPTIONS /api/quotes/refresh-batch HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52869 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52870 - "GET /api/macro HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52871 - "OPTIONS /api/stocks/batch HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52072 - "POST /api/admin/log HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52084 - "GET /api/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52062 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52106 - "GET /api/macro HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52108 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52061 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52061 - "GET /api/stocks/nifty HTTP/1.1" 200 OK
+Error fetching targets for RELIANCE: Trendlyne returned status 404
+INFO:     127.0.0.1:52108 - "POST /api/stocks/batch HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52061 - "GET /api/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52106 - "GET /api/etfs HTTP/1.1" 200 OK
 
-[BACKEND] Starting refresh-batch for 19 slugs: ['reliance-industries-ltd', 'hdfc-bank-ltd', 'bharti-airtel-ltd', 'icici-bank-ltd', 'state-bank-of-india', 'tata-consultancy-services-ltd', 'bajaj-finance-ltd', 'larsen-toubro-ltd', 'life-insurance-corporation-of-india', 'hindustan-unilever-ltd', 'nifty', 'nifty-total-market-index', 'nifty-bank', 'nifty-midcap', 'nifty-smallcap-100', 'india-vix', 'nifty-it', 'nifty-metal', 'sp-bse-sensex']
-[BACKEND] Finished refresh-batch. Took 2.11 seconds.
+[BACKEND] Starting refresh-batch for 19 slugs: ['reliance-industries-ltd', 'hdfc-bank-ltd', 'bharti-airtel-ltd', 'icici-bank-ltd', 'state-bank-of-india', 'tata-consultancy-services-ltd', 'bajaj-finance-ltd', 'life-insurance-corporation-of-india', 'larsen-toubro-ltd', 'hindustan-unilever-ltd', 'nifty-metal', 'nifty-it', 'nifty', 'sp-bse-sensex', 'nifty-total-market-index', 'nifty-midcap', 'nifty-smallcap-100', 'nifty-bank', 'india-vix']
+[BACKEND] Finished refresh-batch. Took 1.80 seconds.
 
-INFO:     127.0.0.1:52871 - "POST /api/stocks/batch HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52867 - "POST /api/quotes/refresh-batch HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52866 - "GET /api/mutual_funds?limit=1000 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52903 - "OPTIONS /api/admin/log HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52114 - "GET /api/macro HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52061 - "GET /api/stocks/nifty HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52106 - "POST /api/stocks/batch HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52119 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52140 - "GET /api/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52149 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52151 - "GET /api/macro HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52159 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52165 - "GET /api/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52166 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52166 - "GET /api/stocks/nifty HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52165 - "POST /api/stocks/batch HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52168 - "GET /api/macro HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52173 - "GET /api/etfs HTTP/1.1" 200 OK
 
-[FRONTEND TRACE]:
-[0.0ms] Extracted 19 slugs
-[9544.6ms] fetchBatchLiveQuotes network call completed
-[1.4ms] allStocks cache update (6000+ items) completed
-[0.0ms] Individual stockData cache updates completed
-[9546.0ms] Total frontend handleSyncMarket execution time
+[BACKEND] Starting refresh-batch for 19 slugs: ['reliance-industries-ltd', 'hdfc-bank-ltd', 'bharti-airtel-ltd', 'icici-bank-ltd', 'state-bank-of-india', 'tata-consultancy-services-ltd', 'bajaj-finance-ltd', 'life-insurance-corporation-of-india', 'larsen-toubro-ltd', 'hindustan-unilever-ltd', 'nifty-metal', 'nifty-it', 'nifty', 'sp-bse-sensex', 'nifty-total-market-index', 'nifty-midcap', 'nifty-smallcap-100', 'nifty-bank', 'india-vix']
+INFO:     127.0.0.1:52184 - "GET /api/stocks HTTP/1.1" 200 OK
+[BACKEND] Finished refresh-batch. Took 6.03 seconds.
 
-INFO:     127.0.0.1:52903 - "POST /api/admin/log HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52909 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52925 - "GET /api/stocks/bharat-petroleum-corporation-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52925 - "GET /api/stocks/bharat-petroleum-corporation-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52927 - "GET /api/news/bharat-petroleum-corporation-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52927 - "GET /api/news/bharat-petroleum-corporation-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52928 - "GET /api/stocks/bharat-petroleum-corporation-ltd/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52945 - "OPTIONS /api/pairs HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52945 - "POST /api/pairs HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52945 - "POST /api/pairs HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52930 - "GET /api/news/bharat-petroleum-corporation-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52930 - "GET /api/news/bharat-petroleum-corporation-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53012 - "POST /api/pairs HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53014 - "GET /api/news/bharat-petroleum-corporation-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53014 - "GET /api/news/bharat-petroleum-corporation-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53022 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53024 - "GET /api/stocks/state-bank-of-india HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53025 - "GET /api/stocks/bharat-petroleum-corporation-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53023 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53023 - "GET /api/stocks/bharat-petroleum-corporation-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53022 - "GET /api/stocks/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53037 - "GET /api/news/bharat-petroleum-corporation-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53025 - "GET /api/stocks/bharat-petroleum-corporation-ltd/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53037 - "GET /api/news/bharat-petroleum-corporation-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53039 - "GET /api/news/bharat-petroleum-corporation-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53037 - "GET /api/news/bharat-petroleum-corporation-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53037 - "GET /api/news/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53022 - "GET /api/stocks/megasoft-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53039 - "GET /api/news/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53025 - "GET /api/stocks/megasoft-ltd/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53076 - "GET /api/stocks/nifty HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53077 - "GET /api/stocks/reliance-etf-gold-bees HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53078 - "GET /api/stocks/nippon-life-india-asset-management-ltd-nippon-india-silver-etf HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53079 - "GET /api/macro HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52185 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52187 - "GET /api/macro HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52185 - "GET /api/stocks/nifty HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52208 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52186 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52217 - "POST /api/stocks/batch HTTP/1.1" 200 OK
 
-[BACKEND] Starting refresh-batch for 19 slugs: ['reliance-industries-ltd', 'hdfc-bank-ltd', 'bharti-airtel-ltd', 'icici-bank-ltd', 'state-bank-of-india', 'tata-consultancy-services-ltd', 'bajaj-finance-ltd', 'larsen-toubro-ltd', 'life-insurance-corporation-of-india', 'hindustan-unilever-ltd', 'nifty', 'nifty-total-market-index', 'nifty-bank', 'nifty-midcap', 'nifty-smallcap-100', 'india-vix', 'nifty-it', 'nifty-metal', 'sp-bse-sensex']
-[BACKEND] Finished refresh-batch. Took 1.40 seconds.
+[BACKEND] Starting refresh-batch for 19 slugs: ['reliance-industries-ltd', 'hdfc-bank-ltd', 'bharti-airtel-ltd', 'icici-bank-ltd', 'state-bank-of-india', 'tata-consultancy-services-ltd', 'bajaj-finance-ltd', 'life-insurance-corporation-of-india', 'larsen-toubro-ltd', 'hindustan-unilever-ltd', 'nifty-metal', 'nifty-it', 'nifty', 'sp-bse-sensex', 'nifty-total-market-index', 'nifty-midcap', 'nifty-smallcap-100', 'nifty-bank', 'india-vix']
+[BACKEND] Finished refresh-batch. Took 4.28 seconds.
 
-INFO:     127.0.0.1:53080 - "POST /api/stocks/batch HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53079 - "GET /api/stocks/nifty-total-market-index HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53078 - "GET /api/stocks/nifty-midcap HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53077 - "GET /api/stocks/nifty-smallcap-100 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53076 - "POST /api/quotes/refresh-batch HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53079 - "GET /api/stocks/india-vix HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53078 - "GET /api/stocks/nifty-it HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53079 - "GET /api/stocks/sp-bse-sensex HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53077 - "GET /api/stocks/nifty-metal HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52188 - "GET /api/mutual_funds?limit=1000 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52187 - "POST /api/quotes/refresh-batch HTTP/1.1" 200 OK
 
 [FRONTEND TRACE]:
 [0.0ms] Extracted 19 slugs
-[8741.6ms] fetchBatchLiveQuotes network call completed
-[2.8ms] allStocks cache update (6000+ items) completed
+[39356.8ms] fetchBatchLiveQuotes network call completed
+[8.7ms] allStocks cache update (6000+ items) completed
 [0.3ms] Individual stockData cache updates completed
-[8744.7ms] Total frontend handleSyncMarket execution time
+[39365.8ms] Total frontend handleSyncMarket execution time
 
-INFO:     127.0.0.1:53102 - "POST /api/admin/log HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53081 - "GET /api/mutual_funds?limit=1000 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53141 - "GET /api/mutual_funds/119800 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53144 - "GET /api/mutual_funds/119091 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53262 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53286 - "GET /api/stocks/cyient-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53286 - "GET /api/stocks/cyient-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53288 - "GET /api/news/cyient-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53288 - "GET /api/news/cyient-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53289 - "GET /api/stocks/cyient-ltd/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53327 - "GET /api/stocks/amara-raja-batteries-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53329 - "GET /api/news/cyient-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53329 - "GET /api/news/cyient-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53329 - "GET /api/news/amara-raja-batteries-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53327 - "GET /api/stocks/amara-raja-batteries-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53331 - "GET /api/news/amara-raja-batteries-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53332 - "GET /api/stocks/amara-raja-batteries-ltd/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53366 - "GET /api/stocks/nifty HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53368 - "GET /api/news/amara-raja-batteries-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53368 - "GET /api/news/amara-raja-batteries-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53368 - "GET /api/news/nifty HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53366 - "GET /api/stocks/nifty/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53370 - "GET /api/news/nifty HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53371 - "GET /api/stocks/nifty/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56207 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56209 - "GET /api/stocks/nifty HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56210 - "GET /api/stocks/nifty/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56208 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56259 - "GET /api/stocks/reliance-industries-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56261 - "GET /api/news/nifty HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56261 - "GET /api/news/nifty HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56261 - "GET /api/news/reliance-industries-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56259 - "GET /api/stocks/reliance-industries-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56266 - "GET /api/news/reliance-industries-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56267 - "GET /api/stocks/reliance-industries-ltd/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56311 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56312 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56337 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56339 - "GET /api/stocks/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56340 - "GET /api/stocks/hcl-technologies-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56338 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56586 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56588 - "GET /api/stocks/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56589 - "GET /api/stocks/hcl-technologies-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56587 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56639 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56641 - "GET /api/stocks/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56642 - "GET /api/stocks/hcl-technologies-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56640 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56818 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56820 - "GET /api/stocks/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56821 - "GET /api/stocks/hcl-technologies-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56819 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56953 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56955 - "GET /api/stocks/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56956 - "GET /api/stocks/hcl-technologies-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56954 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57066 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57068 - "GET /api/stocks/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57069 - "GET /api/stocks/hcl-technologies-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57067 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57187 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57189 - "GET /api/stocks/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57190 - "GET /api/stocks/hcl-technologies-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57188 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57340 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57342 - "GET /api/stocks/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57343 - "GET /api/stocks/hcl-technologies-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57341 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57357 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57582 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57584 - "GET /api/stocks/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57585 - "GET /api/stocks/hcl-technologies-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57583 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57716 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57718 - "GET /api/stocks/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57719 - "GET /api/stocks/hcl-technologies-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57717 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57805 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57807 - "GET /api/stocks/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57808 - "GET /api/stocks/hcl-technologies-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57806 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58042 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58044 - "GET /api/stocks/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58045 - "GET /api/stocks/hcl-technologies-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58043 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58074 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58076 - "GET /api/stocks/state-bank-of-india HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58077 - "GET /api/stocks/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58075 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58075 - "GET /api/stocks/hcl-technologies-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58079 - "GET /api/news/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58079 - "GET /api/news/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58077 - "GET /api/stocks/hcl-technologies-ltd/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58142 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58144 - "GET /api/stocks/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58145 - "GET /api/stocks/hcl-technologies-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58143 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58314 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58316 - "GET /api/stocks/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58317 - "GET /api/stocks/hcl-technologies-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58315 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58330 - "GET /api/stocks/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58332 - "GET /api/news/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58334 - "GET /api/news/hcl-technologies-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58334 - "GET /api/news/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58330 - "GET /api/stocks/megasoft-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58332 - "GET /api/news/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58335 - "GET /api/stocks/megasoft-ltd/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58377 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58379 - "GET /api/stocks/state-bank-of-india HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58380 - "GET /api/stocks/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58378 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58378 - "GET /api/stocks/megasoft-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58382 - "GET /api/news/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58382 - "GET /api/news/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58380 - "GET /api/stocks/megasoft-ltd/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58393 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58395 - "GET /api/stocks/state-bank-of-india HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58396 - "GET /api/stocks/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58394 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58384 - "GET /api/news/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58394 - "GET /api/stocks/megasoft-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58384 - "GET /api/news/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58396 - "GET /api/stocks/megasoft-ltd/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58413 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58415 - "GET /api/stocks/state-bank-of-india HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58416 - "GET /api/stocks/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58414 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58414 - "GET /api/stocks/megasoft-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58418 - "GET /api/news/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58413 - "GET /api/stocks/megasoft-ltd/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58418 - "GET /api/news/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58596 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58598 - "GET /api/stocks/state-bank-of-india HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58599 - "GET /api/stocks/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58597 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58597 - "GET /api/stocks/megasoft-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58601 - "GET /api/news/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58599 - "GET /api/stocks/megasoft-ltd/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58603 - "GET /api/news/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58648 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58650 - "GET /api/stocks/state-bank-of-india HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58651 - "GET /api/stocks/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58649 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58649 - "GET /api/stocks/megasoft-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58653 - "GET /api/news/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58653 - "GET /api/news/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58648 - "GET /api/stocks/megasoft-ltd/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59159 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59161 - "GET /api/stocks/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59162 - "GET /api/stocks/megasoft-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59160 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59267 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59269 - "GET /api/stocks/state-bank-of-india HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59270 - "GET /api/stocks/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59268 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59268 - "GET /api/stocks/megasoft-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59272 - "GET /api/news/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59272 - "GET /api/news/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59270 - "GET /api/stocks/megasoft-ltd/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59313 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59315 - "GET /api/stocks/state-bank-of-india HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59316 - "GET /api/stocks/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59314 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59314 - "GET /api/stocks/megasoft-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59318 - "GET /api/news/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59318 - "GET /api/news/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59313 - "GET /api/stocks/megasoft-ltd/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59328 - "GET /api/stocks HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59330 - "GET /api/stocks/state-bank-of-india HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59331 - "GET /api/stocks/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59329 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59320 - "GET /api/news/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59329 - "GET /api/stocks/megasoft-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59320 - "GET /api/news/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59331 - "GET /api/stocks/megasoft-ltd/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59342 - "GET /api/stocks/reliance-industries-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59344 - "GET /api/news/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59344 - "GET /api/news/megasoft-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59344 - "GET /api/news/reliance-industries-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59342 - "GET /api/stocks/reliance-industries-ltd/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59346 - "GET /api/news/reliance-industries-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59347 - "GET /api/stocks/reliance-industries-ltd/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59365 - "GET /api/stocks/state-bank-of-india/related HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59366 - "GET /api/news/state-bank-of-india HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59369 - "GET /api/news/reliance-industries-ltd HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59366 - "GET /api/news/state-bank-of-india HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59367 - "GET /api/stocks/state-bank-of-india/targets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59371 - "GET /api/news/reliance-industries-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52258 - "POST /api/admin/log HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52269 - "GET /api/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52270 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52272 - "GET /api/macro HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52274 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52271 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52269 - "GET /api/stocks/nifty HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52274 - "POST /api/stocks/batch HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52273 - "GET /api/mutual_funds?limit=1000 HTTP/1.1" 200 OK
+
+[BACKEND] Starting refresh-batch for 19 slugs: ['reliance-industries-ltd', 'hdfc-bank-ltd', 'bharti-airtel-ltd', 'icici-bank-ltd', 'state-bank-of-india', 'tata-consultancy-services-ltd', 'bajaj-finance-ltd', 'life-insurance-corporation-of-india', 'larsen-toubro-ltd', 'hindustan-unilever-ltd', 'nifty-metal', 'nifty-it', 'nifty', 'sp-bse-sensex', 'nifty-total-market-index', 'nifty-midcap', 'nifty-smallcap-100', 'nifty-bank', 'india-vix']
+[BACKEND] Finished refresh-batch. Took 1.34 seconds.
+
+INFO:     127.0.0.1:52272 - "POST /api/quotes/refresh-batch HTTP/1.1" 200 OK
+
+[FRONTEND TRACE]:
+[0.1ms] Extracted 19 slugs
+[18690.4ms] fetchBatchLiveQuotes network call completed
+[4.3ms] allStocks cache update (6000+ items) completed
+[0.2ms] Individual stockData cache updates completed
+[18695.0ms] Total frontend handleSyncMarket execution time
+
+INFO:     127.0.0.1:52302 - "POST /api/admin/log HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52307 - "GET /api/stocks/state-bank-of-india HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52308 - "GET /api/stocks/sedemac-mechatronics-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52307 - "GET /api/stocks/sedemac-mechatronics-ltd/related HTTP/1.1" 200 OK
+News empty in DB, fetching live news for sedemac-mechatronics-ltd (SEDEMAC)...
+INFO:     127.0.0.1:52310 - "GET /api/news/sedemac-mechatronics-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52308 - "GET /api/quotes/live/sedemac-mechatronics-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52310 - "GET /api/news/sedemac-mechatronics-ltd HTTP/1.1" 200 OK
+Error fetching targets for SEDEMAC: Trendlyne returned status 404
+INFO:     127.0.0.1:52311 - "GET /api/stocks/sedemac-mechatronics-ltd/targets HTTP/1.1" 200 OK
+
+[BACKEND] Starting refresh-batch for 19 slugs: ['reliance-industries-ltd', 'hdfc-bank-ltd', 'bharti-airtel-ltd', 'icici-bank-ltd', 'state-bank-of-india', 'tata-consultancy-services-ltd', 'bajaj-finance-ltd', 'life-insurance-corporation-of-india', 'larsen-toubro-ltd', 'hindustan-unilever-ltd', 'nifty-metal', 'nifty-it', 'nifty', 'sp-bse-sensex', 'nifty-total-market-index', 'nifty-midcap', 'nifty-smallcap-100', 'nifty-bank', 'india-vix']
+[BACKEND] Finished refresh-batch. Took 1.21 seconds.
+
+INFO:     127.0.0.1:52341 - "POST /api/quotes/refresh-batch HTTP/1.1" 200 OK
+
+[FRONTEND TRACE]:
+[0.0ms] Extracted 19 slugs
+[1232.2ms] fetchBatchLiveQuotes network call completed
+[3.5ms] allStocks cache update (6000+ items) completed
+[0.1ms] Individual stockData cache updates completed
+[1235.8ms] Total frontend handleSyncMarket execution time
+
+INFO:     127.0.0.1:52362 - "POST /api/admin/log HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52372 - "GET /api/news/sedemac-mechatronics-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52372 - "GET /api/news/sedemac-mechatronics-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52373 - "GET /api/stocks/reliance-industries-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52370 - "GET /api/quotes/live/sedemac-mechatronics-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52372 - "GET /api/news/reliance-industries-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52370 - "GET /api/stocks/reliance-industries-ltd/related HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52372 - "GET /api/news/reliance-industries-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52373 - "GET /api/quotes/live/reliance-industries-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52375 - "GET /api/stocks/reliance-industries-ltd/targets HTTP/1.1" 200 OK
+
+[BACKEND] Starting refresh-batch for 19 slugs: ['reliance-industries-ltd', 'hdfc-bank-ltd', 'bharti-airtel-ltd', 'icici-bank-ltd', 'state-bank-of-india', 'tata-consultancy-services-ltd', 'bajaj-finance-ltd', 'life-insurance-corporation-of-india', 'larsen-toubro-ltd', 'hindustan-unilever-ltd', 'nifty-metal', 'nifty-it', 'nifty', 'sp-bse-sensex', 'nifty-total-market-index', 'nifty-midcap', 'nifty-smallcap-100', 'nifty-bank', 'india-vix']
+[BACKEND] Finished refresh-batch. Took 0.72 seconds.
+
+INFO:     127.0.0.1:52375 - "POST /api/quotes/refresh-batch HTTP/1.1" 200 OK
+
+[FRONTEND TRACE]:
+[0.0ms] Extracted 19 slugs
+[732.7ms] fetchBatchLiveQuotes network call completed
+[4.6ms] allStocks cache update (6000+ items) completed
+[0.2ms] Individual stockData cache updates completed
+[737.5ms] Total frontend handleSyncMarket execution time
+
+INFO:     127.0.0.1:52372 - "POST /api/admin/log HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52412 - "GET /api/stocks/nifty HTTP/1.1" 200 OK
+
+[BACKEND] Starting refresh-batch for 19 slugs: ['reliance-industries-ltd', 'hdfc-bank-ltd', 'bharti-airtel-ltd', 'icici-bank-ltd', 'state-bank-of-india', 'tata-consultancy-services-ltd', 'bajaj-finance-ltd', 'life-insurance-corporation-of-india', 'larsen-toubro-ltd', 'hindustan-unilever-ltd', 'nifty-metal', 'nifty-it', 'nifty', 'sp-bse-sensex', 'nifty-total-market-index', 'nifty-midcap', 'nifty-smallcap-100', 'nifty-bank', 'india-vix']
+[BACKEND] Finished refresh-batch. Took 1.51 seconds.
+
+INFO:     127.0.0.1:52449 - "POST /api/quotes/refresh-batch HTTP/1.1" 200 OK
+
+[FRONTEND TRACE]:
+[0.1ms] Extracted 19 slugs
+[1523.3ms] fetchBatchLiveQuotes network call completed
+[4.5ms] allStocks cache update (6000+ items) completed
+[0.5ms] Individual stockData cache updates completed
+[1528.4ms] Total frontend handleSyncMarket execution time
+
+INFO:     127.0.0.1:52472 - "POST /api/admin/log HTTP/1.1" 200 OK
+
+[BACKEND] Starting refresh-batch for 19 slugs: ['reliance-industries-ltd', 'hdfc-bank-ltd', 'bharti-airtel-ltd', 'icici-bank-ltd', 'state-bank-of-india', 'tata-consultancy-services-ltd', 'bajaj-finance-ltd', 'life-insurance-corporation-of-india', 'larsen-toubro-ltd', 'hindustan-unilever-ltd', 'nifty-metal', 'nifty-it', 'nifty', 'sp-bse-sensex', 'nifty-total-market-index', 'nifty-midcap', 'nifty-smallcap-100', 'nifty-bank', 'india-vix']
+[BACKEND] Finished refresh-batch. Took 1.59 seconds.
+
+INFO:     127.0.0.1:52540 - "POST /api/quotes/refresh-batch HTTP/1.1" 200 OK
+
+[FRONTEND TRACE]:
+[0.1ms] Extracted 19 slugs
+[1603.3ms] fetchBatchLiveQuotes network call completed
+[4.1ms] allStocks cache update (6000+ items) completed
+[0.3ms] Individual stockData cache updates completed
+[1607.8ms] Total frontend handleSyncMarket execution time
+
+INFO:     127.0.0.1:52561 - "POST /api/admin/log HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52578 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52580 - "GET /api/macro HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52579 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52603 - "OPTIONS /api/pairs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52603 - "POST /api/pairs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52604 - "OPTIONS /api/quotes/refresh-batch HTTP/1.1" 200 OK
+
+[BACKEND] Starting refresh-batch for 19 slugs: ['reliance-industries-ltd', 'hdfc-bank-ltd', 'bharti-airtel-ltd', 'icici-bank-ltd', 'state-bank-of-india', 'tata-consultancy-services-ltd', 'bajaj-finance-ltd', 'life-insurance-corporation-of-india', 'larsen-toubro-ltd', 'hindustan-unilever-ltd', 'nifty-metal', 'nifty-it', 'nifty', 'sp-bse-sensex', 'nifty-total-market-index', 'nifty-midcap', 'nifty-smallcap-100', 'nifty-bank', 'india-vix']
+[BACKEND] Finished refresh-batch. Took 0.83 seconds.
+
+INFO:     127.0.0.1:52604 - "POST /api/quotes/refresh-batch HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52638 - "OPTIONS /api/admin/log HTTP/1.1" 200 OK
+
+[FRONTEND TRACE]:
+[0.0ms] Extracted 19 slugs
+[843.4ms] fetchBatchLiveQuotes network call completed
+[3.8ms] allStocks cache update (6000+ items) completed
+[0.0ms] Individual stockData cache updates completed
+[847.2ms] Total frontend handleSyncMarket execution time
+
+INFO:     127.0.0.1:52638 - "POST /api/admin/log HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52649 - "GET /api/pairs/analyze?asset_a=sbin&asset_b=hdfcbank&lookback=252 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52652 - "POST /api/pairs HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:52721 - "POST /api/pairs HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:52722 - "POST /api/pairs HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:52726 - "POST /api/pairs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52728 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52730 - "GET /api/macro HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52729 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [65587]
+INFO:     Started server process [69116]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+[screener] ✅ Screener connection pre-warmed.
+INFO:     127.0.0.1:52735 - "POST /api/pairs HTTP/1.1" 200 OK
+
+[BACKEND] Starting refresh-batch for 19 slugs: ['reliance-industries-ltd', 'hdfc-bank-ltd', 'bharti-airtel-ltd', 'icici-bank-ltd', 'state-bank-of-india', 'tata-consultancy-services-ltd', 'bajaj-finance-ltd', 'life-insurance-corporation-of-india', 'larsen-toubro-ltd', 'hindustan-unilever-ltd', 'nifty-metal', 'nifty-it', 'nifty', 'sp-bse-sensex', 'nifty-total-market-index', 'nifty-midcap', 'nifty-smallcap-100', 'nifty-bank', 'india-vix']
+[BACKEND] Finished refresh-batch. Took 1.19 seconds.
+
+INFO:     127.0.0.1:52742 - "POST /api/quotes/refresh-batch HTTP/1.1" 200 OK
+
+[FRONTEND TRACE]:
+[0.0ms] Extracted 19 slugs
+[1213.9ms] fetchBatchLiveQuotes network call completed
+[4.5ms] allStocks cache update (6000+ items) completed
+[0.3ms] Individual stockData cache updates completed
+[1218.7ms] Total frontend handleSyncMarket execution time
+
+INFO:     127.0.0.1:52763 - "POST /api/admin/log HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52742 - "OPTIONS /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52766 - "OPTIONS /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52766 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52767 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52742 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52769 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52770 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52768 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52771 - "GET /api/mutual_funds?limit=100&sort_by=aum&sort_order=desc HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52773 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52775 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52774 - "GET /api/mutual_funds?limit=100&sort_by=aum&sort_order=desc HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52786 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52787 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52785 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52786 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52787 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52785 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52796 - "GET /api/mutual_funds?limit=100&sort_by=aum&sort_order=desc HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52797 - "GET /api/mutual_funds?limit=100&sort_by=aum&sort_order=desc HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52796 - "GET /api/mutual_funds/118955 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52808 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52807 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52806 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52807 - "GET /api/stocks/reliance-industries-ltd/related HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52806 - "GET /api/quotes/live/reliance-industries-ltd HTTP/1.1" 200 OK
+News empty in DB, fetching live news for reliance-industries-ltd (RELIANCE)...
+INFO:     127.0.0.1:52810 - "GET /api/news/reliance-industries-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52810 - "GET /api/news/reliance-industries-ltd HTTP/1.1" 200 OK
+Error fetching targets for RELIANCE: Trendlyne returned status 404
+INFO:     127.0.0.1:52808 - "GET /api/stocks/reliance-industries-ltd/targets HTTP/1.1" 200 OK
+
+[BACKEND] Starting refresh-batch for 19 slugs: ['reliance-industries-ltd', 'hdfc-bank-ltd', 'bharti-airtel-ltd', 'icici-bank-ltd', 'state-bank-of-india', 'tata-consultancy-services-ltd', 'bajaj-finance-ltd', 'life-insurance-corporation-of-india', 'larsen-toubro-ltd', 'hindustan-unilever-ltd', 'nifty-metal', 'nifty-it', 'nifty', 'sp-bse-sensex', 'nifty-total-market-index', 'nifty-midcap', 'nifty-smallcap-100', 'nifty-bank', 'india-vix']
+[BACKEND] Finished refresh-batch. Took 1.45 seconds.
+
+INFO:     127.0.0.1:52836 - "POST /api/quotes/refresh-batch HTTP/1.1" 200 OK
+
+[FRONTEND TRACE]:
+[0.0ms] Extracted 19 slugs
+[1469.8ms] fetchBatchLiveQuotes network call completed
+[5.1ms] allStocks cache update (6000+ items) completed
+[0.2ms] Individual stockData cache updates completed
+[1475.1ms] Total frontend handleSyncMarket execution time
+
+INFO:     127.0.0.1:52857 - "POST /api/admin/log HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52880 - "GET /api/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52881 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52883 - "GET /api/macro HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52889 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52883 - "GET /api/stocks/nifty HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52880 - "OPTIONS /api/stocks/batch HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52882 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
+
+[BACKEND] Starting refresh-batch for 19 slugs: ['reliance-industries-ltd', 'hdfc-bank-ltd', 'bharti-airtel-ltd', 'icici-bank-ltd', 'state-bank-of-india', 'tata-consultancy-services-ltd', 'bajaj-finance-ltd', 'life-insurance-corporation-of-india', 'larsen-toubro-ltd', 'hindustan-unilever-ltd', 'nifty-metal', 'nifty-it', 'nifty', 'sp-bse-sensex', 'nifty-total-market-index', 'nifty-midcap', 'nifty-smallcap-100', 'nifty-bank', 'india-vix']
+[BACKEND] Finished refresh-batch. Took 1.94 seconds.
+
+INFO:     127.0.0.1:52883 - "POST /api/stocks/batch HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52881 - "POST /api/quotes/refresh-batch HTTP/1.1" 200 OK
+
+[FRONTEND TRACE]:
+[0.0ms] Extracted 19 slugs
+[4553.1ms] fetchBatchLiveQuotes network call completed
+[6.2ms] allStocks cache update (6000+ items) completed
+[0.5ms] Individual stockData cache updates completed
+[4559.8ms] Total frontend handleSyncMarket execution time
+
+INFO:     127.0.0.1:52921 - "POST /api/admin/log HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52884 - "GET /api/mutual_funds?limit=1000 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52943 - "GET /api/mutual_funds?limit=100&sort_by=aum&sort_order=desc HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52944 - "GET /api/mutual_funds?limit=100&sort_by=aum&sort_order=desc HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52952 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52953 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52953 - "GET /api/etfs/sbietf-nifty HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52953 - "GET /api/quotes/live/sbietf-nifty HTTP/1.1" 200 OK
+
+[BACKEND] Starting refresh-batch for 19 slugs: ['reliance-industries-ltd', 'hdfc-bank-ltd', 'bharti-airtel-ltd', 'icici-bank-ltd', 'state-bank-of-india', 'tata-consultancy-services-ltd', 'bajaj-finance-ltd', 'life-insurance-corporation-of-india', 'larsen-toubro-ltd', 'hindustan-unilever-ltd', 'nifty-metal', 'nifty-it', 'nifty', 'sp-bse-sensex', 'nifty-total-market-index', 'nifty-midcap', 'nifty-smallcap-100', 'nifty-bank', 'india-vix']
+[BACKEND] Finished refresh-batch. Took 0.98 seconds.
+
+INFO:     127.0.0.1:52953 - "POST /api/quotes/refresh-batch HTTP/1.1" 200 OK
+
+[FRONTEND TRACE]:
+[0.0ms] Extracted 19 slugs
+[994.0ms] fetchBatchLiveQuotes network call completed
+[4.0ms] allStocks cache update (6000+ items) completed
+[0.1ms] Individual stockData cache updates completed
+[998.1ms] Total frontend handleSyncMarket execution time
+
+INFO:     127.0.0.1:52981 - "POST /api/admin/log HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52982 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52983 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52983 - "GET /api/quotes/live/sbietf-nifty HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52987 - "GET /api/mutual_funds?limit=100&sort_by=aum&sort_order=desc HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52988 - "GET /api/mutual_funds?limit=100&sort_by=aum&sort_order=desc HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52987 - "GET /api/mutual_funds/122639 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52998 - "POST /api/pairs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52999 - "GET /api/portfolio HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:52999 - "GET /api/portfolio HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:52999 - "GET /api/portfolio/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52999 - "GET /api/portfolio/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52999 - "OPTIONS /api/portfolio HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52999 - "POST /api/portfolio HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:53000 - "POST /api/portfolio HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:52999 - "OPTIONS /api/portfolio/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53000 - "OPTIONS /api/portfolio/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52999 - "POST /api/portfolio/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53001 - "POST /api/portfolio/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53002 - "GET /api/mutual_funds?limit=100&sort_by=aum&sort_order=desc HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53009 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53010 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53011 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53009 - "GET /api/mutual_funds?limit=100&sort_by=aum&sort_order=desc HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53013 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53012 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53002 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+
+[BACKEND] Starting refresh-batch for 19 slugs: ['reliance-industries-ltd', 'hdfc-bank-ltd', 'bharti-airtel-ltd', 'icici-bank-ltd', 'state-bank-of-india', 'tata-consultancy-services-ltd', 'bajaj-finance-ltd', 'life-insurance-corporation-of-india', 'larsen-toubro-ltd', 'hindustan-unilever-ltd', 'nifty-metal', 'nifty-it', 'nifty', 'sp-bse-sensex', 'nifty-total-market-index', 'nifty-midcap', 'nifty-smallcap-100', 'nifty-bank', 'india-vix']
+[BACKEND] Finished refresh-batch. Took 1.17 seconds.
+
+INFO:     127.0.0.1:53022 - "POST /api/quotes/refresh-batch HTTP/1.1" 200 OK
+
+[FRONTEND TRACE]:
+[0.0ms] Extracted 19 slugs
+[1187.5ms] fetchBatchLiveQuotes network call completed
+[4.8ms] allStocks cache update (6000+ items) completed
+[0.0ms] Individual stockData cache updates completed
+[1192.3ms] Total frontend handleSyncMarket execution time
+
+INFO:     127.0.0.1:53043 - "POST /api/admin/log HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53022 - "GET /api/stocks/sbietf-nifty HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:53044 - "GET /api/stocks/reliance-industries-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53043 - "GET /api/news/reliance-industries-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53022 - "GET /api/stocks/reliance-industries-ltd/related HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53043 - "GET /api/news/reliance-industries-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53044 - "GET /api/quotes/live/reliance-industries-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53045 - "GET /api/stocks/reliance-industries-ltd/targets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53101 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53102 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53110 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53111 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53110 - "OPTIONS /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53113 - "OPTIONS /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53111 - "GET /api/mutual_funds?limit=100&sort_by=aum&sort_order=desc HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53114 - "OPTIONS /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53113 - "GET /api/mutual_funds?limit=100&sort_by=aum&sort_order=desc HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53115 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53115 - "GET /api/portfolio HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:53115 - "GET /api/portfolio HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:53113 - "GET /api/portfolio/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53113 - "GET /api/portfolio/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53113 - "POST /api/portfolio HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:53113 - "POST /api/portfolio HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:53115 - "POST /api/portfolio/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53111 - "POST /api/portfolio/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53114 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53110 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53144 - "GET /api/mutual_funds?limit=100&sort_by=aum&sort_order=desc HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53145 - "GET /api/mutual_funds?limit=100&sort_by=aum&sort_order=desc HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53146 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53147 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53144 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53151 - "GET /api/news/reliance-industries-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53151 - "GET /api/news/reliance-industries-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53148 - "GET /api/quotes/live/reliance-industries-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53155 - "GET /api/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53156 - "GET /api/stocks/reliance-industries-ltd/related HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53167 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53168 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53166 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53250 - "OPTIONS /api/screener/mutual-funds HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53250 - "POST /api/screener/mutual-funds HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53251 - "POST /api/screener/mutual-funds HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53252 - "POST /api/screener/mutual-funds HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53252 - "POST /api/screener/mutual-funds HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53251 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53250 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53255 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53256 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53258 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53259 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53261 - "GET /api/news/reliance-industries-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53261 - "GET /api/news/reliance-industries-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53259 - "GET /api/quotes/live/reliance-industries-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53276 - "GET /api/stocks/reliance-industries-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53278 - "GET /api/stocks/reliance-industries-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53285 - "GET /api/stocks/nifty HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53286 - "GET /api/macro HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53287 - "OPTIONS /api/stocks/batch HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53286 - "POST /api/stocks/batch HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53289 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53290 - "OPTIONS /api/quotes/refresh-batch HTTP/1.1" 200 OK
+
+[BACKEND] Starting refresh-batch for 19 slugs: ['reliance-industries-ltd', 'hdfc-bank-ltd', 'bharti-airtel-ltd', 'icici-bank-ltd', 'state-bank-of-india', 'tata-consultancy-services-ltd', 'bajaj-finance-ltd', 'life-insurance-corporation-of-india', 'larsen-toubro-ltd', 'hindustan-unilever-ltd', 'nifty-metal', 'nifty-it', 'nifty', 'sp-bse-sensex', 'nifty-total-market-index', 'nifty-midcap', 'nifty-smallcap-100', 'nifty-bank', 'india-vix']
+[BACKEND] Finished refresh-batch. Took 1.86 seconds.
+
+INFO:     127.0.0.1:53310 - "GET /api/stocks/reliance-industries-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53286 - "POST /api/quotes/refresh-batch HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53313 - "OPTIONS /api/admin/log HTTP/1.1" 200 OK
+
+[FRONTEND TRACE]:
+[0.0ms] Extracted 19 slugs
+[5170.2ms] fetchBatchLiveQuotes network call completed
+[3.9ms] allStocks cache update (6000+ items) completed
+[0.2ms] Individual stockData cache updates completed
+[5174.3ms] Total frontend handleSyncMarket execution time
+
+INFO:     127.0.0.1:53313 - "POST /api/admin/log HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53288 - "GET /api/mutual_funds?limit=1000 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53324 - "GET /api/stocks/reliance-industries-ltd/targets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53344 - "GET /api/stocks/reliance-industries-ltd/related HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53345 - "GET /api/news/reliance-industries-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53342 - "GET /api/quotes/live/reliance-industries-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53346 - "GET /api/stocks/hdfc-bank-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53345 - "GET /api/news/reliance-industries-ltd HTTP/1.1" 200 OK
+News empty in DB, fetching live news for hdfc-bank-ltd (HDFCBANK)...
+INFO:     127.0.0.1:53345 - "GET /api/news/hdfc-bank-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53342 - "GET /api/stocks/hdfc-bank-ltd/related HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53346 - "GET /api/quotes/live/hdfc-bank-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53345 - "GET /api/news/hdfc-bank-ltd HTTP/1.1" 200 OK
+Error fetching targets for HDFCBANK: Trendlyne returned status 404
+INFO:     127.0.0.1:53344 - "GET /api/stocks/hdfc-bank-ltd/targets HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'screener_api.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [69116]
+INFO:     Started server process [73329]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'screener_api.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [73329]
+INFO:     Started server process [73542]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+[screener] ✅ Screener connection pre-warmed.
+INFO:     127.0.0.1:53398 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53399 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53402 - "POST /api/screener/mutual-funds HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53401 - "POST /api/screener/mutual-funds HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53399 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53400 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53398 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53398 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53400 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53410 - "OPTIONS /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53411 - "OPTIONS /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53411 - "GET /api/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53412 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53410 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53414 - "OPTIONS /api/screener/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53415 - "OPTIONS /api/screener/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53412 - "POST /api/screener/mutual-funds HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53410 - "POST /api/screener/mutual-funds HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53412 - "OPTIONS /api/screener/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53410 - "OPTIONS /api/screener/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53412 - "POST /api/screener/mutual-funds HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53410 - "POST /api/screener/mutual-funds HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53412 - "GET /api/portfolio HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:53410 - "POST /api/screener/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53412 - "POST /api/screener/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53412 - "POST /api/screener/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53410 - "POST /api/screener/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53412 - "GET /api/portfolio HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:53410 - "GET /api/portfolio/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53410 - "GET /api/portfolio/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53410 - "OPTIONS /api/portfolio HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53412 - "POST /api/portfolio HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:53410 - "POST /api/portfolio HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:53412 - "OPTIONS /api/portfolio/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53410 - "OPTIONS /api/portfolio/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53410 - "POST /api/portfolio/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53412 - "POST /api/portfolio/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53412 - "OPTIONS /api/pairs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53410 - "POST /api/pairs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53412 - "GET /api/portfolio HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:53416 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53415 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53414 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53411 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53412 - "GET /api/portfolio HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:53410 - "GET /api/portfolio/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53410 - "GET /api/portfolio/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53410 - "POST /api/portfolio HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:53410 - "POST /api/portfolio HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:53412 - "POST /api/portfolio/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53414 - "POST /api/portfolio/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53431 - "GET /api/mutual_funds?limit=100&sort_by=aum&sort_order=desc HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53435 - "GET /api/mutual_funds?limit=100&sort_by=aum&sort_order=desc HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53433 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53434 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53432 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53434 - "GET /api/mutual_funds?limit=100&sort_by=aum&sort_order=desc HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53436 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53431 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53433 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53435 - "GET /api/mutual_funds?limit=100&sort_by=aum&sort_order=desc HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53437 - "POST /api/screener/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53437 - "POST /api/screener/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53437 - "POST /api/screener/mutual-funds HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53437 - "POST /api/screener/mutual-funds HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53437 - "POST /api/screener/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53438 - "POST /api/screener/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53438 - "GET /api/portfolio HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:53438 - "GET /api/portfolio HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:53437 - "GET /api/portfolio/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53437 - "GET /api/portfolio/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53437 - "POST /api/portfolio HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:53437 - "POST /api/portfolio HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:53438 - "POST /api/portfolio/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53437 - "POST /api/portfolio/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53439 - "GET /api/portfolio HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:53439 - "GET /api/portfolio HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:53439 - "GET /api/portfolio/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53439 - "GET /api/portfolio/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53439 - "POST /api/portfolio HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:53439 - "POST /api/portfolio HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:53440 - "POST /api/portfolio/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53439 - "POST /api/portfolio/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53442 - "POST /api/screener/mutual-funds HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53442 - "POST /api/screener/mutual-funds HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53442 - "POST /api/screener/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53443 - "POST /api/screener/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53440 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53439 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53441 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53443 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53442 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53442 - "POST /api/screener/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53442 - "POST /api/screener/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53447 - "POST /api/screener/mutual-funds HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53448 - "POST /api/screener/mutual-funds HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53456 - "POST /api/screener/mutual-funds HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53457 - "POST /api/screener/mutual-funds HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53447 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53448 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53455 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53459 - "POST /api/screener/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53460 - "POST /api/screener/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53469 - "GET /api/stocks/nifty HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53470 - "GET /api/macro HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53471 - "POST /api/stocks/batch HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53473 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53470 - "GET /api/stocks/hdfc-bank-ltd/related HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53471 - "GET /api/stocks/hdfc-bank-ltd HTTP/1.1" 200 OK
+News empty in DB, fetching live news for hdfc-bank-ltd (HDFCBANK)...
+INFO:     127.0.0.1:53476 - "GET /api/news/hdfc-bank-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53469 - "GET /api/quotes/live/hdfc-bank-ltd HTTP/1.1" 200 OK
+
+[BACKEND] Starting refresh-batch for 19 slugs: ['reliance-industries-ltd', 'hdfc-bank-ltd', 'bharti-airtel-ltd', 'icici-bank-ltd', 'state-bank-of-india', 'tata-consultancy-services-ltd', 'bajaj-finance-ltd', 'life-insurance-corporation-of-india', 'larsen-toubro-ltd', 'hindustan-unilever-ltd', 'nifty-metal', 'nifty-it', 'nifty', 'sp-bse-sensex', 'nifty-total-market-index', 'nifty-midcap', 'nifty-smallcap-100', 'nifty-bank', 'india-vix']
+[BACKEND] Finished refresh-batch. Took 0.84 seconds.
+
+INFO:     127.0.0.1:53470 - "GET /api/stocks/reliance-industries-ltd HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'test_etf.py'. Reloading...
+INFO:     127.0.0.1:53472 - "GET /api/mutual_funds?limit=1000 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53476 - "GET /api/news/hdfc-bank-ltd HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     127.0.0.1:53474 - "POST /api/quotes/refresh-batch HTTP/1.1" 200 OK
+INFO:     Waiting for connections to close. (CTRL+C to force quit)
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [73542]
+WARNING:  WatchFiles detected changes in 'fix_dates.py'. Reloading...
+INFO:     Started server process [74465]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [74465]
+INFO:     Started server process [74482]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+[screener] ✅ Screener connection pre-warmed.
+News empty in DB, fetching live news for reliance-industries-ltd (RELIANCE)...
+INFO:     127.0.0.1:53501 - "GET /api/news/reliance-industries-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53510 - "GET /api/stocks/reliance-industries-ltd/related HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53525 - "GET /api/news/reliance-industries-ltd HTTP/1.1" 200 OK
+
+[FRONTEND TRACE]:
+[0.0ms] Extracted 19 slugs
+[23176.0ms] fetchBatchLiveQuotes network call completed
+[3.8ms] allStocks cache update (6000+ items) completed
+[0.3ms] Individual stockData cache updates completed
+[23180.1ms] Total frontend handleSyncMarket execution time
+
+INFO:     127.0.0.1:53513 - "POST /api/admin/log HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53511 - "GET /api/quotes/live/reliance-industries-ltd HTTP/1.1" 200 OK
+Error fetching targets for RELIANCE: Trendlyne returned status 404
+INFO:     127.0.0.1:53502 - "GET /api/stocks/reliance-industries-ltd/targets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53594 - "GET /api/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53595 - "GET /api/etfs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53597 - "GET /api/stocks/state-bank-of-india HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53598 - "GET /api/stocks/reliance-industries-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53596 - "GET /api/mutual_funds?limit=5000&minimal=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53598 - "GET /api/stocks/reliance-industries-ltd/related HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53596 - "GET /api/quotes/live/reliance-industries-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53609 - "GET /api/news/reliance-industries-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53609 - "GET /api/news/reliance-industries-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53597 - "GET /api/stocks/reliance-industries-ltd/targets HTTP/1.1" 200 OK

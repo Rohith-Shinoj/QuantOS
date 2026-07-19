@@ -21,9 +21,9 @@ def fetch_broker_targets_from_mc(slug: str, ticker: str):
     
     try:
         # Step 1: Hit Trendlyne research reports page for the ticker
-        # Trendlyne automatically handles routing /stock/RELIANCE
+        # Trendlyne automatically handles routing /stocks/RELIANCE
         search_query = ticker.split('-')[0].split('_')[0]
-        mc_link = f"https://trendlyne.com/research-reports/stock/{search_query}"
+        mc_link = f"https://trendlyne.com/research-reports/stocks/{search_query}"
         
         page_res = requests.get(mc_link, headers=headers, timeout=8)
         

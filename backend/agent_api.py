@@ -3,6 +3,77 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import json
 import asyncio
+from datetime import datetime
+from pydantic import BaseModel, Field
+from typing import List, Optional, Literal, Dict, Any
+
+# Pydantic Schemas for Pillar I Structured Outputs
+class TeardownSection(BaseModel):
+    dimension: str = Field(description="E.g., FUNDAMENTALS, MANAGEMENT & MACRO, VALUATION REALITY, TECHNICAL STRUCTURE, RISK FACTORS")
+    verdict: str = Field(description="Deep qualitative markdown text analysis")
+
+class FinalVerdict(BaseModel):
+    rating: Literal["BUY", "HOLD", "AVOID"]
+    conviction: int = Field(ge=0, le=10, description="Conviction score 0-10")
+    target_entry_price: Optional[str] = Field(description="The target entry price if applicable, or N/A")
+    summary: str = Field(description="One brutal, un-diplomatic summary line")
+
+class UIComponent(BaseModel):
+    type: str = Field(description="MUST be one of the strictly defined components from the registry")
+    data_json: str = Field(description="A STRINGIFIED JSON object containing the payload for the component. MUST be a valid JSON string, NOT a dict.")
+
+class TeardownResponse(BaseModel):
+    teardown_sections: List[TeardownSection]
+    final_verdict: FinalVerdict
+    ui_components: List[UIComponent]
+
+def distill_asset_data(abs_data: dict, rel_data: dict) -> dict:
+    """Safely compress DuckDB payloads focusing on high-signal metrics."""
+    distilled = {
+        "fundamentals": {},
+        "technicals": {},
+        "valuation": {},
+        "forensic": {}
+    }
+    if abs_data:
+        # Extract top level ratios
+        distilled["valuation"]["current_pe"] = abs_data.get("peRatio")
+        distilled["valuation"]["pb_ratio"] = abs_data.get("pbRatio")
+        distilled["fundamentals"]["roe"] = abs_data.get("roe")
+        distilled["fundamentals"]["debt_to_equity"] = abs_data.get("debtToEquity")
+        distilled["fundamentals"]["operating_cashflow"] = abs_data.get("operatingCashFlow")
+        
+        # Extract financial statement highlights (revenue, net profit, operating margin)
+        fs = abs_data.get("financialStatement", [])
+        if isinstance(fs, list):
+            fs_summary = {}
+            for row in fs:
+                title = row.get("title")
+                if title in ["Revenue", "Net Profit", "Operating Margin"]:
+                    # Just grab the last 4 quarters if available to avoid bloat
+                    q_data = row.get("quarterly", {})
+                    fs_summary[title] = list(q_data.items())[-4:] if isinstance(q_data, dict) else []
+            distilled["fundamentals"]["financial_statement_highlights"] = fs_summary
+
+    if rel_data:
+        technicals = rel_data.get("technical_state_signals", {})
+        if isinstance(technicals, dict):
+            distilled["technicals"]["rsi"] = technicals.get("rsi_normalized")
+            distilled["technicals"]["distance_from_sma50"] = technicals.get("distance_from_sma50")
+            distilled["technicals"]["volatility_squeeze"] = technicals.get("volatility_squeeze_index")
+            
+        forensics = rel_data.get("shareholding_momentum_vectors", {})
+        if isinstance(forensics, dict):
+            distilled["forensic"]["promoter_pledge_delta"] = forensics.get("promoter_pledge_delta")
+            distilled["forensic"]["institutional_accumulation_qoq"] = forensics.get("institutional_accumulation_qoq")
+            
+        health = rel_data.get("health_scores", {})
+        if isinstance(health, dict):
+            distilled["forensic"]["piotroski_score"] = health.get("piotroski_f_score")
+            distilled["valuation"]["graham_number_value"] = health.get("graham_number_value")
+            distilled["forensic"]["altman_z_proxy"] = health.get("altman_z_proxy")
+            
+    return {k: v for k, v in distilled.items() if v}
 
 # Import the compiled LangGraph apps
 from agent_engine.graph import app as graph_app
@@ -275,91 +346,154 @@ async def stream_agent_events(ticker: str, query: str, history: list = None):
             yield f"data: {json.dumps({'type': 'debug_log', 'log': f'[DB] Successfully fetched deep qualitative data for {ticker}'})}\n\n"
             yield f"data: {json.dumps({'type': 'debug_log', 'log': '[LLM] Bypassing LangGraph... Initiating single-shot qualitative analysis...'})}\n\n"
             
+            distilled_payload = distill_asset_data(abs_data, rel_data)
+            
             from agent_engine.registry import COMPONENT_REGISTRY
+            registry_keys = list(COMPONENT_REGISTRY.keys())
             registry_str = ""
             for key, val in COMPONENT_REGISTRY.items():
                 if key != "narrative_insight":
                     registry_str += f"- {key}: {val['description']}\n  Expected Schema: {val['schema']}\n\n"
                     
-            if history and len(history) > 0:
+            current_date_str = datetime.now().strftime("%Y %B")
+            # Determine if this is a genuine follow-up (more than 1 user message in history) or a general macro qualitative query
+            user_messages = [h for h in (history or []) if h.get("role") == "user" and str(h.get("content", "")).strip()]
+            is_follow_up = len(user_messages) > 1 or ticker == "SCREEN"
+                    
+            if is_follow_up:
                 hist_str = ""
                 for h in history:
                     role = h.get("role", "user")
                     hist_str += f"{role.upper()}: {h.get('content', '')}\n\n"
                 
                 prompt = f"CONVERSATION HISTORY:\n{hist_str}\n\n"
-                prompt += f"The user asked a follow-up question about {ticker}: '{query}'\n\n"
-                prompt += f"Deep Database Extract for {ticker}:\n"
-                prompt += f"Absolute Fundamentals: {json.dumps(abs_data)[:5000]}...\n"
-                prompt += f"Relative Metrics: {json.dumps(rel_data)[:5000]}...\n\n"
+                
+                if ticker == "SCREEN":
+                    prompt += f"The user asked a macro or general market question: '{query}'\n\n"
+                else:
+                    prompt += f"The user asked a follow-up question about {ticker}: '{query}'\n\n"
+                    prompt += f"Deep Database Extract for {ticker}:\n{json.dumps(distilled_payload)}\n\n"
                 prompt += """
                 You are a Qualitative Analysis Engine and Expert Institutional Portfolio Manager.
                 Answer the user's follow-up question in a highly structured, aesthetically pleasing markdown format (similar to chatting to a premium AI assistant).
                 Use bullet points, bold text, and clear paragraphs. Provide deep, fundamental-oriented insights with strong conviction.
                 DO NOT output JSON. Output raw markdown text.
                 """
+                
+                model = ChatGoogleGenerativeAI(
+                    model="gemini-3.1-flash-lite",
+                    temperature=0.1
+                )
+                try:
+                    raw_text = ""
+                    async for chunk in model.astream([HumanMessage(content=prompt)]):
+                        content = chunk.content
+                        if isinstance(content, list):
+                            text_chunk = "".join(block.get("text", "") for block in content if isinstance(block, dict))
+                        else:
+                            text_chunk = str(content)
+                            
+                        if text_chunk:
+                            raw_text += text_chunk
+                            yield f"data: {json.dumps({'type': 'token', 'content': text_chunk})}\n\n"
+                            
+                    try:
+                        import re
+                        match = re.search(r'\{.*\}', raw_text, re.DOTALL)
+                        if match:
+                            raw_text = match.group(0)
+                        parsed_json = json.loads(raw_text)
+                        yield f"data: {json.dumps({'type': 'debug_log', 'log': '[LLM] Qualitative JSON parsed successfully!'})}\n\n"
+                    except Exception as e:
+                        yield f"data: {json.dumps({'type': 'debug_log', 'log': f'[LLM] Follow-up processed as Markdown.'})}\n\n"
+                except Exception as e:
+                    yield f"data: {json.dumps({'type': 'debug_log', 'log': f'[LLM] Unavailable: {type(e).__name__}: {str(e)}'})}\n\n"
+
             else:
                 prompt = f"The user asked about {ticker}: '{query}'\n\n"
-                prompt += f"Deep Database Extract for {ticker}:\n"
-                prompt += f"Absolute Fundamentals: {json.dumps(abs_data)[:5000]}...\n"
-                prompt += f"Relative Metrics: {json.dumps(rel_data)[:5000]}...\n\n"
+                prompt += f"Deep Database Extract for {ticker}:\n{json.dumps(distilled_payload)}\n\n"
                 prompt += f"""
-                You are a Qualitative Analysis Engine and Expert Institutional Portfolio Manager.
-                A user asked about {ticker}: "{query}"
+                You are an objective Institutional Fiduciary and a Prudent Quantitative Analyst. Your goal is to guide the user towards fundamentally sound investments. I am providing you with deeply distilled financial metrics, fundamental aggregates, relative technical signals, and valuation ratios for {ticker}.
+
+                Evaluate this company across the following dimensions:
+
+                FUNDAMENTALS: Is this business genuinely healthy? Analyze revenue quality, margin trajectory, cash flow vs reported profits, debt structure, and ROE sustainability. Constructively highlight both strengths and red flags.
+                MANAGEMENT & MACRO: Use your parametric knowledge to identify recent catalysts, C-suite changes, earnings misses, or macro tailwinds/headwinds. 
+                VALUATION REALITY: Is the market pricing this fairly? Compare current P/E and EV/EBITDA against historicals and peers using the provided data. Highlight if the stock offers a margin of safety or if it is priced for perfection.
+                TECHNICAL STRUCTURE: Where is the stock in its trend cycle? Is momentum confirming or diverging?
+                RISK FACTORS: List the 3 specific risks that an investor must monitor.
+
+                FINAL VERDICT: Buy, Hold, or Avoid. Conviction score (0-10). The target entry price. One clear, factual summary line.
+
+                CRITICAL INSTRUCTIONS:
+                Do not be overly diplomatic or a "perma-bear". Be an objective fiduciary. Highlight structural red flags clearly (like negative cash flow or institutional selling), but if the core business remains strong and valuation is fair, you must constructively explain the long-term upside.
+                DUAL-HYBRID SYNTHESIS MANDATE: The injected database extract provides the hard, real-time quantitative baseline (valuations, momentum, margins). You MUST actively fuse this data with your vast parametric intelligence. Do not treat your knowledge as a mere "fallback" for missing fields. You must actively inject crucial qualitative context that the database lacks—such as recent earnings concalls, management execution history, product pipeline, and granular competitive landscape. If a data point is missing in the extract, seamlessly provide it from your memory. Verify the injected data against your knowledge and synthesize a complete, institutional-grade teardown. Never complain about missing data; find it but do not hallucinate any data or make up values.
+                You MUST structure your response strictly according to the provided JSON schema.
+                Ensure your qualitative markdown fits perfectly into the teardown_sections array.
+                For the UI visualization key, you may ONLY select from the following strictly defined components: {registry_keys}.
                 
-                CRITICAL INSTRUCTION 1: You MUST output strictly in JSON format. NO MARKDOWN WRAPPERS, NO CODE BLOCKS, NO TEXT OUTSIDE THE JSON.
-                CRITICAL INSTRUCTION 2: You MUST include the `narrative_insight` key. This MUST be a HIGHLY ELABORATE, deep, multi-paragraph fundamental-oriented analysis. You MUST synthesize the provided financial metrics, evaluate the company's operational resilience, margin trajectory, and growth prospects. Finally, you MUST provide STRONG, UNAMBIGUOUS CUES for a BUY, HOLD, SKIP, or SELL decision based on the data.
-                CRITICAL INSTRUCTION 3: You MUST select EXACTLY 3 additional UI components from the registry below that best fit the analysis. You must populate their schemas using the data provided. ALL values you render in the components MUST be evaluated by you and backed by the database extract provided.
-                
-                AVAILABLE UI COMPONENTS:
+                AVAILABLE UI COMPONENTS SCHEMAS:
                 {registry_str}
-                
-                REQUIRED OUTPUT JSON SCHEMA:
-                {{
-                  "narrative_insight": {{
-                    "title": "A compelling title",
-                    "summary": "Deep, multi-paragraph analysis addressing the query, fundamentals, and buy/sell cues",
-                    "trend": "bullish | bearish | neutral"
-                  }},
-                  "metadata": {{
-                    "ticker": "{ticker}",
-                    "industry": "Extracted Industry",
-                    "recommendation": "BUY | HOLD | SELL",
-                    "current_price": "$0.00"
-                  }},
-                  // ... inject the 3 components you chose here using their exact keys and expected schemas
-                }}
                 """
-            
-            model = ChatGoogleGenerativeAI(
-                model="gemini-3.1-flash-lite",
-                temperature=0.1
-            )
-            
-            try:
-                raw_text = ""
-                async for chunk in model.astream([HumanMessage(content=prompt)]):
-                    content = chunk.content
-                    if isinstance(content, list):
-                        text_chunk = "".join(block.get("text", "") for block in content if isinstance(block, dict))
-                    else:
-                        text_chunk = str(content)
-                        
-                    if text_chunk:
-                        raw_text += text_chunk
-                        yield f"data: {json.dumps({'type': 'token', 'content': text_chunk})}\n\n"
-                        
+                
                 try:
-                    import re
-                    match = re.search(r'\{.*\}', raw_text, re.DOTALL)
-                    if match:
-                        raw_text = match.group(0)
-                    parsed_json = json.loads(raw_text)
-                    yield f"data: {json.dumps({'type': 'debug_log', 'log': '[LLM] Qualitative JSON parsed successfully!'})}\n\n"
+                    from google import genai
+                    from google.genai import types
+                    import os
+                    
+                    # Fallback to GOOGLE_API_KEY which LangChain uses
+                    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+                    client = genai.Client(api_key=api_key)
+                    
+                    config = types.GenerateContentConfig(
+                        response_schema=TeardownResponse,
+                        response_mime_type="application/json",
+                        temperature=0.1
+                    )
+                    
+                    yield f"data: {json.dumps({'type': 'debug_log', 'log': '[LLM] Generating Teardown with Native Structured Outputs...'})}\n\n"
+                    
+                    # We will use sync call in a thread pool to avoid blocking the event loop
+                    # Note: we explicitly pass our configured client that has the key
+
+                    loop = asyncio.get_event_loop()
+                    response = await loop.run_in_executor(
+                        None,
+                        lambda: client.models.generate_content(
+                            model="gemini-2.5-flash",
+                            contents=prompt,
+                            config=config
+                        )
+                    )
+                    
+                    # The response is guaranteed to match the schema
+                    raw_text = response.text
+                    
+                    # Intercept the JSON to fix data_json -> data for the frontend
+                    try:
+                        parsed_resp = json.loads(raw_text)
+                        for comp in parsed_resp.get("ui_components", []):
+                            if "data_json" in comp:
+                                try:
+                                    comp["data"] = json.loads(comp["data_json"])
+                                except Exception:
+                                    comp["data"] = {}
+                                del comp["data_json"]
+                        raw_text = json.dumps(parsed_resp)
+                    except Exception as parse_e:
+                        print(f"Warning: Failed to rewrite data_json: {parse_e}")
+                    
+                    # Chunk it to simulate streaming for the frontend parser
+                    chunk_size = 100
+                    for i in range(0, len(raw_text), chunk_size):
+                        chunk = raw_text[i:i+chunk_size]
+                        yield f"data: {json.dumps({'type': 'token', 'content': chunk})}\n\n"
+                        await asyncio.sleep(0.01)
+                        
+                    yield f"data: {json.dumps({'type': 'debug_log', 'log': '[LLM] Teardown JSON parsed successfully!'})}\n\n"
+                    
                 except Exception as e:
-                    yield f"data: {json.dumps({'type': 'debug_log', 'log': f'[LLM] Qualitative JSON parse failed: {str(e)}'})}\n\n"
-            except Exception as e:
-                yield f"data: {json.dumps({'type': 'debug_log', 'log': f'[LLM] Unavailable: {type(e).__name__}: {str(e)}'})}\n\n"
+                    yield f"data: {json.dumps({'type': 'debug_log', 'log': f'[LLM] Unavailable or Schema Failure: {type(e).__name__}: {str(e)}'})}\n\n"
 
             yield f"data: {json.dumps({'type': 'done'})}\n\n"
             return

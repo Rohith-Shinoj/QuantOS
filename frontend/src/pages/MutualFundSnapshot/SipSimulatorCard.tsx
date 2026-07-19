@@ -44,21 +44,21 @@ export const SipSimulatorCard = ({ fund }: { fund: any }) => {
   const wealthGained = futureValue - totalInvested;
 
   return (
-    <div className="bg-[#111114] border border-white/5 p-5 rounded-xl flex flex-col h-full overflow-hidden">
+    <div className="bg-surface border border-border p-5 rounded-xl flex flex-col h-full overflow-hidden">
       <div className="flex justify-between items-start mb-6 shrink-0">
         <h3 className="text-sm font-semibold text-text-primary flex items-center gap-1.5 group relative w-fit cursor-help">
-          SIP Compounding Simulator <HelpCircle size={14} className="text-text-secondary hover:text-white transition-colors" />
-          <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-64 bg-[#1a1a24] text-white text-[10px] p-2 rounded shadow-xl z-50 normal-case tracking-normal border border-white/10 font-normal leading-relaxed">
+          SIP Compounding Simulator <HelpCircle size={14} className="text-text-secondary hover:text-text-primary transition-colors" />
+          <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-64 bg-surface-hover text-text-primary text-[10px] p-2 rounded shadow-xl z-50 normal-case tracking-normal border border-border font-normal leading-relaxed">
             Simulates the future value of a Systematic Investment Plan over a chosen period using the fund's historical CAGR ({cagr.toFixed(2)}%).
           </div>
         </h3>
         {/* Toggle */}
-        <div className="flex bg-[#1a1a24] rounded-md p-0.5 border border-white/10 shrink-0">
+        <div className="flex bg-surface-hover rounded-md p-0.5 border border-border shrink-0">
           {[5, 10, 15, 20].map((p) => (
             <button
               key={p}
               onClick={() => setPeriod(p)}
-              className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-colors ${period === p ? 'bg-[#27272a] text-white' : 'text-text-secondary hover:text-white'}`}
+              className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-colors ${period === p ? 'bg-[#27272a] text-text-primary' : 'text-text-secondary hover:text-text-primary'}`}
             >
               {p}Y
             </button>
@@ -72,7 +72,7 @@ export const SipSimulatorCard = ({ fund }: { fund: any }) => {
           <div className="flex flex-col gap-2">
             <div className="flex justify-between text-xs font-medium">
               <span className="text-text-secondary">Monthly SIP</span>
-              <span className="text-white">₹{sip.toLocaleString()}</span>
+              <span className="text-text-primary">₹{sip.toLocaleString()}</span>
             </div>
             <input 
               type="range" min="500" max="100000" step="500" 
@@ -83,7 +83,7 @@ export const SipSimulatorCard = ({ fund }: { fund: any }) => {
           <div className="flex flex-col gap-2">
             <div className="flex justify-between text-xs font-medium">
               <span className="text-text-secondary">Annual Step-Up</span>
-              <span className="text-white">{stepUp}%</span>
+              <span className="text-text-primary">{stepUp}%</span>
             </div>
             <input 
               type="range" min="0" max="50" step="1" 
@@ -95,7 +95,7 @@ export const SipSimulatorCard = ({ fund }: { fund: any }) => {
 
         {/* Results */}
         <div className="flex gap-4 items-center">
-           <div className="flex-1 flex flex-col gap-1 p-3 bg-white/5 rounded-lg border border-white/5">
+           <div className="flex-1 flex flex-col gap-1 p-3 bg-white/5 rounded-lg border border-border">
              <span className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">Invested</span>
              <span className="text-base font-bold font-mono">{formatCurrency(totalInvested)}</span>
            </div>

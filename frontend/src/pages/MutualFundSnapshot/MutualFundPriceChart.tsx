@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { createChart, ColorType, CrosshairMode, LineStyle } from 'lightweight-charts';
-import { BrainCircuit, RefreshCw, HelpCircle, Calendar, Lock } from 'lucide-react';
+import { BrainCircuit, RefreshCw, HelpCircle, Calendar, Lock, ChevronDown } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchStockData } from '../../api';
 
@@ -105,8 +105,12 @@ export const MutualFundPriceChart = ({ fund, setIsAIOverlayOpen }: { fund: any, 
     const ohlcv = niftyRaw?.absolute?.OHLCV || [];
     const data = ([...ohlcv].reverse().map((d: any) => {
       if (!d || !d.Date) return null;
-      const [day, month, year] = d.Date.split('-');
-      return { time: `${year}-${month}-${day}`, value: d.Close };
+      let timeStr = d.Date;
+      const parts = d.Date.split('-');
+      if (parts.length === 3 && parts[2].length === 4) {
+        timeStr = `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+      return { time: timeStr, value: d.Close };
     }).filter(Boolean) as any[]).sort((a: any, b: any) => new Date(a.time).getTime() - new Date(b.time).getTime());
     
     // Fill to today to match parsedData padding
@@ -121,8 +125,12 @@ export const MutualFundPriceChart = ({ fund, setIsAIOverlayOpen }: { fund: any, 
     const ohlcv = sectorRaw?.absolute?.OHLCV || [];
     const data = ([...ohlcv].reverse().map((d: any) => {
       if (!d || !d.Date) return null;
-      const [day, month, year] = d.Date.split('-');
-      return { time: `${year}-${month}-${day}`, value: d.Close };
+      let timeStr = d.Date;
+      const parts = d.Date.split('-');
+      if (parts.length === 3 && parts[2].length === 4) {
+        timeStr = `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+      return { time: timeStr, value: d.Close };
     }).filter(Boolean) as any[]).sort((a: any, b: any) => new Date(a.time).getTime() - new Date(b.time).getTime());
 
     // Fill to today to match parsedData padding
@@ -372,7 +380,7 @@ export const MutualFundPriceChart = ({ fund, setIsAIOverlayOpen }: { fund: any, 
            html += `
             <div class="flex justify-between gap-4">
               <span class="text-text-secondary">NAV</span> 
-              <span class="text-white font-bold text-right">₹${price.toFixed(2)}</span>
+              <span class="text-text-primary font-bold text-right">₹${price.toFixed(2)}</span>
             </div>
           `;
         }
@@ -417,7 +425,8 @@ export const MutualFundPriceChart = ({ fund, setIsAIOverlayOpen }: { fund: any, 
 
     if (seriesRef.current.nifty) {
       seriesRef.current.nifty.applyOptions({ visible: showNifty });
-        seriesRef.current.upperBand?.applyOptions({ visible: showBands });
+      seriesRef.current.sector?.applyOptions({ visible: showSector });
+      seriesRef.current.upperBand?.applyOptions({ visible: showBands });
       seriesRef.current.lowerBand?.applyOptions({ visible: showBands });
       seriesRef.current.sma?.applyOptions({ visible: showBands });
 
@@ -476,6 +485,14 @@ export const MutualFundPriceChart = ({ fund, setIsAIOverlayOpen }: { fund: any, 
       const years = (new Date(parsedData[parsedData.length - 1].time).getTime() - new Date(parsedData[0].time).getTime()) / (365 * 24 * 60 * 60 * 1000);
       const cagr = years > 0 ? (Math.pow(endPrice / startPrice, 1 / years) - 1) * 100 : 0;
       setPeriodStats({ change: endPrice - startPrice, percentChange: ((endPrice - startPrice) / startPrice) * 100, cagr, currentPrice: endPrice });
+      
+      if (seriesRef.current?.nifty && niftyData.length > 0) {
+        seriesRef.current.nifty.applyOptions({ baseValue: { type: 'price', price: getStartPriceForOverlay(niftyData, startRange) } });
+      }
+      if (seriesRef.current?.sector && sectorData.length > 0) {
+        seriesRef.current.sector.applyOptions({ baseValue: { type: 'price', price: getStartPriceForOverlay(sectorData, startRange) } });
+      }
+
       if (seriesRef.current?.baseline) {
         seriesRef.current.baseline.applyOptions({ baseValue: { type: 'price', price: startPrice } });
         if (baseLineRef.current) seriesRef.current.baseline.removePriceLine(baseLineRef.current);
@@ -559,6 +576,16 @@ export const MutualFundPriceChart = ({ fund, setIsAIOverlayOpen }: { fund: any, 
     
     // Update baseline value to start of visible range for ALL synced series
     const baseValueConfig = { type: 'price' as const, price: startPrice };
+    if (seriesRef.current?.lowerBand) seriesRef.current.lowerBand.applyOptions({ baseValue: baseValueConfig });
+    if (seriesRef.current?.sma) seriesRef.current.sma.applyOptions({ baseValue: baseValueConfig });
+
+    if (seriesRef.current?.nifty && niftyData.length > 0) {
+      seriesRef.current.nifty.applyOptions({ baseValue: { type: 'price', price: getStartPriceForOverlay(niftyData, startRange) } });
+    }
+    if (seriesRef.current?.sector && sectorData.length > 0) {
+      seriesRef.current.sector.applyOptions({ baseValue: { type: 'price', price: getStartPriceForOverlay(sectorData, startRange) } });
+    }
+
     if (seriesRef.current?.baseline) {
       seriesRef.current.baseline.applyOptions({ baseValue: baseValueConfig });
       if (baseLineRef.current) seriesRef.current.baseline.removePriceLine(baseLineRef.current);
@@ -615,15 +642,18 @@ export const MutualFundPriceChart = ({ fund, setIsAIOverlayOpen }: { fund: any, 
               {fund.amc?.substring(0, 2) || 'MF'}
             </div>
           )}
-          <div className="flex flex-col justify-center gap-0.5">
+          <div className="flex flex-col justify-center gap-0.5 flex-1 min-w-0">
             <div className="flex items-center gap-3">
-              <h3 className="text-2xl font-extrabold text-white tracking-tight leading-none truncate max-w-[400px]">{fund.fund_name || fund.scheme_name}</h3>
+              <h3 className="text-2xl font-extrabold text-text-primary tracking-tight leading-none truncate max-w-[400px]">{fund.fund_name || fund.scheme_name}</h3>
               <span className="px-2 py-0.5 mt-0.5 rounded bg-surface border border-border text-[10px] text-text-secondary font-semibold uppercase tracking-wider">
                 {fund.sub_category || fund.category || 'Mutual Fund'}
               </span>
             </div>
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-lg font-bold text-white leading-none">₹{currentNav.toFixed(2)}</span>
+              <span className="px-2 py-0.5 rounded bg-yellow-500/20 border border-yellow-500/30 text-[10px] font-bold text-yellow-400 tracking-wider">
+                {fund.ticker || fund.scheme_code || 'N/A'}
+              </span>
+              <span className="text-lg font-bold text-text-primary leading-none ml-2">₹{currentNav.toFixed(2)}</span>
               <span className={`text-sm font-semibold leading-none ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
                 {isPositive ? '+' : ''}{navChange.toFixed(2)} ({isPositive ? '+' : ''}{return1d.toFixed(2)}%) <span className="text-[10px] font-bold text-text-secondary ml-0.5">1D</span>
               </span>
@@ -640,52 +670,79 @@ export const MutualFundPriceChart = ({ fund, setIsAIOverlayOpen }: { fund: any, 
         <div className="flex flex-col items-end gap-2">
 
           {/* Toggles */}
-          <div className="flex items-center gap-2 text-[10px] font-bold relative">
-            <span className="text-text-secondary mr-1 group flex items-center gap-1 cursor-help relative z-50">
-              <HelpCircle size={12} className="text-text-secondary hover:text-white transition-colors" />
-              VIEW:
-            </span>
-              <button 
-              onClick={() => setViewMode('line')}
-              className={`px-3 py-1.5 rounded transition-all border ${viewMode === 'line' ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' : 'bg-surface text-text-secondary border-border hover:bg-surface-hover hover:text-text-primary'}`}
-            >
-              NAV 
-            </button>
-            <button 
-              onClick={() => setViewMode('baseline')}
-              className={`px-3 py-1.5 rounded transition-all border ${viewMode === 'baseline' ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' : 'bg-surface text-text-secondary border-border hover:bg-surface-hover hover:text-text-primary'}`}
-            >
-              Baseline Area
-            </button>
-            <span className="text-text-secondary mx-2">|</span>
-            <span className="text-text-secondary mr-1">OVERLAYS:</span>
-            <button 
-              onClick={() => {
-                const nextState = !showNifty;
-                setShowNifty(nextState);
-                if (nextState) setShowBands(false);
-              }}
-              className={`px-3 py-1.5 rounded transition-all border ${showNifty ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' : 'bg-surface text-text-secondary border-border hover:bg-surface-hover hover:text-text-primary'}`}
-            >
-              vs Nifty 50
-            </button>
-            <button 
-              onClick={() => {
-                const nextState = !showSector;
-                setShowSector(nextState);
-                if (nextState) setShowBands(false);
-              }}
-              className={`px-3 py-1.5 rounded transition-all border ${showSector ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' : 'bg-surface text-text-secondary border-border hover:bg-surface-hover hover:text-text-primary'}`}
-            >
-              Sector ({getSectorName(sectorSlug)})
-            </button>
+          <div className="flex items-center gap-2 text-[10px] font-bold relative z-50 w-full pb-1 justify-start sm:justify-end flex-wrap">
+            
+            {/* 1. Views Dropdown */}
+            <div className="relative group/view">
+              <button className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-border bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-hover whitespace-nowrap transition-all">
+                Views <ChevronDown size={12} />
+              </button>
+              <div className="absolute top-full left-0 mt-1 w-40 bg-surface border border-border rounded shadow-xl opacity-0 invisible group-hover/view:opacity-100 group-hover/view:visible transition-all z-50 flex flex-col p-1">
+                <button 
+                  onClick={() => setViewMode('line')}
+                  className={`px-3 py-2 text-left rounded text-[10px] font-bold ${viewMode === 'line' ? 'bg-indigo-500/20 text-indigo-400' : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'}`}
+                >
+                  NAV
+                </button>
+                <button 
+                  onClick={() => setViewMode('baseline')}
+                  className={`px-3 py-2 text-left rounded text-[10px] font-bold ${viewMode === 'baseline' ? 'bg-indigo-500/20 text-indigo-400' : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'}`}
+                >
+                  Baseline Area
+                </button>
+              </div>
+            </div>
+
+            <span className="text-text-secondary mx-1">|</span>
+
+            {/* 2. Overlays Dropdown */}
+            <div className="relative group/overlay">
+              <button className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-border bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-hover whitespace-nowrap transition-all">
+                Overlays <ChevronDown size={12} />
+              </button>
+              <div className="absolute top-full left-0 mt-1 w-52 bg-surface border border-border rounded shadow-xl opacity-0 invisible group-hover/overlay:opacity-100 group-hover/overlay:visible transition-all z-50 flex flex-col p-1">
+                <button 
+                  onClick={() => {
+                    const nextState = !showNifty;
+                    setShowNifty(nextState);
+                    if (nextState) setShowBands(false);
+                  }}
+                  className={`px-3 py-2 text-left rounded text-[10px] font-bold ${showNifty ? 'bg-yellow-500/20 text-yellow-400' : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'}`}
+                >
+                  vs Nifty 50
+                </button>
+                <button 
+                  onClick={() => {
+                    const nextState = !showSector;
+                    setShowSector(nextState);
+                    if (nextState) setShowBands(false);
+                  }}
+                  className={`px-3 py-2 text-left rounded text-[10px] font-bold ${showSector ? 'bg-purple-500/20 text-purple-400' : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'}`}
+                >
+                  Sector ({getSectorName(sectorSlug)})
+                </button>
+                <button 
+                  onClick={() => {
+                    const nextState = !showBands;
+                    setShowBands(nextState);
+                    if (nextState) { setShowNifty(false); setShowSector(false); }
+                  }}
+                  className={`px-3 py-2 text-left rounded text-[10px] font-bold ${showBands ? 'bg-emerald-500/20 text-emerald-400' : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'}`}
+                >
+                  Volatility Bands
+                </button>
+              </div>
+            </div>
+
             <div className="w-px h-4 bg-border mx-1"></div>
+
+            {/* AI Analysis */}
             {setIsAIOverlayOpen && (
               <>
                 {localStorage.getItem('admin_mode') === 'true' ? (
                   <button 
                     onClick={() => setIsAIOverlayOpen(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded transition-all border bg-indigo-500/10 text-indigo-400 border-indigo-500/30 hover:bg-indigo-500/20 shadow-[0_0_10px_rgba(99,102,241,0.15)]"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded transition-all border whitespace-nowrap bg-purple-500/10 text-purple-300 border-purple-500/50 hover:bg-purple-500/20 shadow-[0_0_8px_#a855f7]"
                   >
                     <BrainCircuit size={14} /> AI Analysis
                   </button>
@@ -693,27 +750,17 @@ export const MutualFundPriceChart = ({ fund, setIsAIOverlayOpen }: { fund: any, 
                   <div className="group relative">
                     <button 
                       disabled
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded transition-all border bg-surface text-text-secondary opacity-50 border-border cursor-not-allowed"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded transition-all border whitespace-nowrap bg-surface text-text-secondary opacity-50 border-border cursor-not-allowed"
                     >
                       <BrainCircuit size={14} /> AI Analysis <Lock size={10} className="ml-0.5 opacity-70" />
                     </button>
-                    <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-[#1e1e24] border border-white/10 p-2 rounded text-[10px] w-48 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 text-text-secondary font-mono pointer-events-none text-center">
+                    <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-surface-hover border border-border p-2 rounded text-[10px] w-48 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 text-text-secondary font-mono pointer-events-none text-center">
                       Due to increased demand, AI Analyst Desk is currently restricted to Enterprise / Internal use only.
                     </div>
                   </div>
                 )}
               </>
             )}
-            <button 
-              onClick={() => {
-                const nextState = !showBands;
-                setShowBands(nextState);
-                if (nextState) { setShowNifty(false); setShowSector(false); }
-              }}
-              className={`px-3 py-1.5 rounded transition-all border ${showBands ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' : 'bg-surface text-text-secondary border-border hover:bg-surface-hover hover:text-text-primary'}`}
-            >
-              Volatility Bands
-            </button>
           </div>
 
           {/* Timeframes & Stats */}
@@ -766,7 +813,7 @@ export const MutualFundPriceChart = ({ fund, setIsAIOverlayOpen }: { fund: any, 
       {/* Chart Area */}
       <div className="flex-1 min-h-0 relative">
         <div ref={chartContainerRef} className="absolute inset-0" />
-        <div ref={tooltipRef} className="absolute z-50 pointer-events-none text-[11px] bg-[#111114]/95 backdrop-blur-md p-2 rounded-lg border border-white/10 opacity-0 shadow-xl transition-opacity duration-150 min-w-[120px]"></div>
+        <div ref={tooltipRef} className="absolute z-50 pointer-events-none text-[11px] bg-surface/95 backdrop-blur-md p-2 rounded-lg border border-border opacity-0 shadow-xl transition-opacity duration-150 min-w-[120px]"></div>
       </div>
     </div>
   );

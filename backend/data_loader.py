@@ -55,8 +55,6 @@ def init_db(target_dir):
             industry VARCHAR,
             inst_accum DOUBLE,
             volatility_squeeze DOUBLE,
-            qes_flag INTEGER,
-            tax_divergence DOUBLE,
             pledge_delta DOUBLE,
             absolute_data JSON,
             relative_data JSON
@@ -73,17 +71,7 @@ def init_db(target_dir):
         abs_json_str = json.dumps(abs_data) if abs_data else None
         rel_json_str = json.dumps(rel_data) if rel_data else None
         
-        # Temporal & Price Viability Gate (Phase 1 Filter)
-        ohlcv = abs_data.get("OHLCV", [])
-        if not ohlcv or len(ohlcv) < 252:
-            continue
-            
-        try:
-            current_price = float(ohlcv[-1].get("Close", 0))
-            if current_price < 5.0:
-                continue
-        except Exception:
-            continue
+        # Removed Temporal & Price Viability Gate to allow ALL stocks including delisted ones.
             
         # Helper to ensure we don't insert string dashes ('--') into DOUBLE columns
         def safe_float(val):
@@ -123,60 +111,34 @@ def init_db(target_dir):
         industry = rel_data.get("meta_features", {}).get("industry_name")
         inst_accum = safe_float(rel_data.get("shareholding_momentum_vectors", {}).get("institutional_accumulation_qoq"))
         v_squeeze = safe_float(rel_data.get("risk_and_forensic_signals", {}).get("volatility_squeeze_index"))
-        qes_flag = safe_int(rel_data.get("risk_and_forensic_signals", {}).get("qes_forensic_red_flag"))
-        tax_div = safe_float(rel_data.get("risk_and_forensic_signals", {}).get("tax_profit_divergence"))
         pledge_d = safe_float(rel_data.get("shareholding_momentum_vectors", {}).get("promoter_pledge_delta"))
 
         insert_data.append((
             slug, ticker, name, market_cap_type, market_cap, pe_ratio, 
-            day_change, industry, inst_accum, v_squeeze, qes_flag,
-            tax_div, pledge_d, abs_json_str, rel_json_str
+            day_change, industry, inst_accum, v_squeeze,
+            pledge_d, abs_json_str, rel_json_str
         ))
         
         if len(insert_data) >= 500:
-            con.executemany("INSERT INTO stocks_staging VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", insert_data)
+            con.executemany("INSERT INTO stocks_staging VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", insert_data)
             insert_data = []
             
     if insert_data:
-        con.executemany("INSERT INTO stocks_staging VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", insert_data)
+        con.executemany("INSERT INTO stocks_staging VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", insert_data)
             
     import glob
-    import datetime
-    
-    snapshot_files = sorted(glob.glob("datasets/snapshots/snapshot_*.parquet"))
-    t_minus1_file = None
-    if snapshot_files:
-        today = datetime.datetime.now()
-        best_diff = 999999
-        for f in snapshot_files:
-            basename = os.path.basename(f).replace('snapshot_', '').replace('.parquet', '')
-            try:
-                d = datetime.datetime.strptime(basename, '%Y-%m-%d')
-                diff = abs((today - d).days - 365)
-                if diff < best_diff:
-                    best_diff = diff
-                    t_minus1_file = f
-            except: pass
-            
-    if t_minus1_file:
-        print(f"Joining T-1 Historical Snapshot: {t_minus1_file}")
-        con.execute(f"CREATE TABLE historical_snap AS SELECT slug, absolute_data as abs_tminus1 FROM '{t_minus1_file}'")
-    else:
-        con.execute("CREATE TABLE historical_snap AS SELECT '' as slug, '' as abs_tminus1")
-        
-    print("Calculating Global RS Ratings and Joining T-1 Data...")
+    print("Calculating Global RS Ratings...")
     con.execute("""
         CREATE TABLE stocks AS 
         WITH ranked AS (
             SELECT 
                 s.*,
-                h.abs_tminus1,
+                NULL as abs_tminus1,
                 PERCENT_RANK() OVER (
                     PARTITION BY (CASE WHEN CAST(json_extract_string(s.relative_data, '$.relative_strength_signals.rs_nifty_52w') AS DOUBLE) IS NOT NULL THEN 1 ELSE 0 END)
                     ORDER BY CAST(json_extract_string(s.relative_data, '$.relative_strength_signals.rs_nifty_52w') AS DOUBLE) ASC
                 ) as raw_rank
             FROM stocks_staging s
-            LEFT JOIN historical_snap h ON s.slug = h.slug
         )
         SELECT 
             *,
@@ -205,6 +167,15 @@ def init_db(target_dir):
         print(f"Exporting Mutual Funds to {mf_parquet_path}...")
         con.execute(f"COPY mutual_funds TO '{mf_parquet_path}' (FORMAT PARQUET)")
         
+    # ETFs Processing
+    etf_json_path = os.path.join(target_dir, "etfs.json")
+    if os.path.exists(etf_json_path):
+        print("Processing ETFs...")
+        etf_parquet_path = os.path.join(target_dir, "etfs.parquet")
+        con.execute(f"CREATE TABLE etfs AS SELECT * FROM read_json_auto('{etf_json_path}', maximum_object_size=33554432)")
+        print(f"Exporting ETFs to {etf_parquet_path}...")
+        con.execute(f"COPY etfs TO '{etf_parquet_path}' (FORMAT PARQUET)")
+        
     print("Extracting real seed data for OLAP Timeseries tables (daily_prices, daily_index_prices)...")
     
     # 1. Extract NIFTY daily index prices for the last 5 years
@@ -212,7 +183,7 @@ def init_db(target_dir):
         CREATE TABLE daily_index_prices AS
         SELECT 
             'NIFTY50' as index_name,
-            strptime(json_extract_string(candle, '$.Date'), '%d-%m-%Y')::DATE as date,
+            strptime(json_extract_string(candle, '$.Date'), '%Y-%m-%d')::DATE as date,
             json_extract_string(candle, '$.Close')::DOUBLE as close
         FROM (
             SELECT UNNEST(from_json(absolute_data->>'$.OHLCV', '["JSON"]')) as candle
@@ -228,7 +199,7 @@ def init_db(target_dir):
         CREATE TABLE daily_prices AS
         SELECT 
             ticker,
-            strptime(json_extract_string(candle, '$.Date'), '%d-%m-%Y')::DATE as date,
+            strptime(json_extract_string(candle, '$.Date'), '%Y-%m-%d')::DATE as date,
             json_extract_string(candle, '$.Close')::DOUBLE as close,
             json_extract_string(candle, '$.Close')::DOUBLE as adj_close,
             json_extract_string(candle, '$.Volume')::DOUBLE as volume
@@ -324,6 +295,12 @@ def init_db(target_dir):
     # Check if mutual_funds exists in memory, and if so, copy it to the duckdb file
     try:
         con.execute("CREATE TABLE IF NOT EXISTS db.mutual_funds AS SELECT * FROM mutual_funds")
+    except duckdb.CatalogException:
+        pass
+        
+    # Check if etfs exists in memory, and if so, copy it to the duckdb file
+    try:
+        con.execute("CREATE TABLE IF NOT EXISTS db.etfs AS SELECT * FROM etfs")
     except duckdb.CatalogException:
         pass
         

@@ -1,3 +1,4 @@
+import { InsufficientDataBadge } from './InsufficientDataBadge';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowUp, ArrowDown, ArrowUpDown, Download, ExternalLink, TrendingUp, TrendingDown } from 'lucide-react';
@@ -19,7 +20,7 @@ interface Props {
 const METRIC_LABELS: Record<string, string> = {};
 
 function fmtVal(key: string, val: any): React.ReactNode {
-  if (val === null || val === undefined) return <span className="text-white/20">—</span>;
+  if (val === null || val === undefined) return <InsufficientDataBadge size="sm" />;
 
   const k = key.toLowerCase();
 
@@ -43,20 +44,20 @@ function fmtVal(key: string, val: any): React.ReactNode {
     }
     if (isPrice) return <span>₹{val.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>;
     if (isPct) {
-      const color = val > 0 ? 'text-emerald-400' : val < 0 ? 'text-red-400' : 'text-white/50';
+      const color = val > 0 ? 'text-emerald-400' : val < 0 ? 'text-red-400' : 'text-text-primary/50';
       return <span className={color}>{val > 0 ? '+' : ''}{val.toFixed(2)}%</span>;
     }
     // Ratio / score
     return <span>{val.toFixed(2)}</span>;
   }
   if (typeof val === 'boolean') return <span className={val ? 'text-emerald-400' : 'text-red-400'}>{val ? 'Yes' : 'No'}</span>;
-  return <span className="text-white/80">{String(val)}</span>;
+  return <span className="text-text-primary/80">{String(val)}</span>;
 }
 
 function DayChangeBadge({ val }: { val: string | null }) {
-  if (!val) return <span className="text-white/20">—</span>;
+  if (!val) return <InsufficientDataBadge size="sm" />;
   const pct = parseFloat(String(val).replace(/[^-\d.]/g, ''));
-  if (isNaN(pct)) return <span className="text-white/50 text-xs">{val}</span>;
+  if (isNaN(pct)) return <span className="text-text-primary/50 text-xs">{val}</span>;
   const isPos = pct >= 0;
   return (
     <span className={`flex items-center gap-0.5 text-xs font-semibold ${isPos ? 'text-emerald-400' : 'text-red-400'}`}>
@@ -77,7 +78,7 @@ export const ScreenerResultsTable: React.FC<Props> = ({
 
   const handleRowClick = (row: any) => {
     if (mode === 'stocks' && row.slug) {
-      navigate(`/terminal/${row.slug}`);
+      navigate(`/stocks/${row.slug}`);
     } else if (mode === 'mutual_funds' && row.scheme_code) {
       navigate(`/mutual-funds/${row.scheme_code}`);
     }
@@ -143,7 +144,7 @@ export const ScreenerResultsTable: React.FC<Props> = ({
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-3">
         <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">
-          <ArrowUpDown size={28} className="text-white/20" />
+          <ArrowUpDown size={28} className="text-text-primary/20" />
         </div>
         <p className="text-text-secondary text-sm">No results match your filters.</p>
         <p className="text-text-secondary/60 text-xs">Try relaxing a filter or removing one.</p>
@@ -152,7 +153,7 @@ export const ScreenerResultsTable: React.FC<Props> = ({
   }
 
   const SortIcon = ({ col }: { col: string }) => {
-    if (sortBy !== col) return <ArrowUpDown size={11} className="text-white/30 hover:text-white transition-colors cursor-pointer" />;
+    if (sortBy !== col) return <ArrowUpDown size={11} className="text-text-primary/30 hover:text-text-primary transition-colors cursor-pointer" />;
     return sortOrder === 'asc'
       ? <ArrowUp size={11} className="text-alpha cursor-pointer" />
       : <ArrowDown size={11} className="text-alpha cursor-pointer" />;
@@ -161,14 +162,14 @@ export const ScreenerResultsTable: React.FC<Props> = ({
   return (
     <div className="flex flex-col h-full">
       {/* Export bar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-white/5 bg-[#0d0d10] shrink-0">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-canvas shrink-0">
         <span className="text-xs text-text-secondary">
-          <span className="text-white font-semibold">{total.toLocaleString()}</span> results
-          {total > 100 && <> &mdash; page <span className="text-white">{page}</span> of <span className="text-white">{totalPages}</span></>}
+          <span className="text-text-primary font-semibold">{total.toLocaleString()}</span> results
+          {total > 100 && <> &mdash; page <span className="text-text-primary">{page}</span> of <span className="text-text-primary">{totalPages}</span></>}
         </span>
         <button
           onClick={exportCSV}
-          className="flex items-center gap-1.5 px-3 py-1 rounded text-xs font-medium text-text-secondary hover:text-white hover:bg-white/5 border border-white/10 transition-all"
+          className="flex items-center gap-1.5 px-3 py-1 rounded text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-white/5 border border-border transition-all"
         >
           <Download size={12} /> Export CSV
         </button>
@@ -178,28 +179,28 @@ export const ScreenerResultsTable: React.FC<Props> = ({
       <div className="overflow-auto flex-1 relative custom-scrollbar">
         <table className="w-full text-left border-collapse whitespace-nowrap">
           <thead className="sticky top-0 z-10">
-            <tr className="bg-[#0f0f13] border-b border-white/8">
+            <tr className="bg-surface-hover border-b border-border">
               {/* Row number */}
-              <th className="pl-4 pr-2 py-2.5 text-[10px] font-bold text-white/30 uppercase w-10">#</th>
+              <th className="pl-4 pr-2 py-2.5 text-[10px] font-bold text-text-primary/30 uppercase w-10">#</th>
               {/* Logo */}
               <th className="px-2 py-2.5 w-10" />
               {/* Ticker / Name */}
               {mode === 'stocks' ? (
                 <>
                   <th
-                    className="px-3 py-2.5 text-[10px] font-bold text-white/50 uppercase cursor-pointer hover:text-alpha group select-none min-w-[80px]"
+                    className="px-3 py-2.5 text-[10px] font-bold text-text-primary/50 uppercase cursor-pointer hover:text-alpha group select-none min-w-[80px]"
                     onClick={() => onSort?.('ticker')}
                   >
                     <div className="flex items-center gap-1">Ticker <SortIcon col="ticker" /></div>
                   </th>
                   <th
-                    className="px-3 py-2.5 text-[10px] font-bold text-white/50 uppercase cursor-pointer hover:text-alpha group select-none min-w-[160px]"
+                    className="px-3 py-2.5 text-[10px] font-bold text-text-primary/50 uppercase cursor-pointer hover:text-alpha group select-none min-w-[160px]"
                     onClick={() => onSort?.('name')}
                   >
                     <div className="flex items-center gap-1">Name <SortIcon col="name" /></div>
                   </th>
                   <th
-                    className="px-3 py-2.5 text-[10px] font-bold text-white/50 uppercase cursor-pointer hover:text-alpha group select-none min-w-[80px]"
+                    className="px-3 py-2.5 text-[10px] font-bold text-text-primary/50 uppercase cursor-pointer hover:text-alpha group select-none min-w-[80px]"
                     onClick={() => onSort?.('market_cap_type')}
                   >
                     <div className="flex items-center gap-1">Cap <SortIcon col="market_cap_type" /></div>
@@ -208,19 +209,19 @@ export const ScreenerResultsTable: React.FC<Props> = ({
               ) : (
                 <>
                   <th
-                    className="px-3 py-2.5 text-[10px] font-bold text-white/50 uppercase cursor-pointer hover:text-alpha group select-none min-w-[200px]"
+                    className="px-3 py-2.5 text-[10px] font-bold text-text-primary/50 uppercase cursor-pointer hover:text-alpha group select-none min-w-[200px]"
                     onClick={() => onSort?.('fund_name')}
                   >
                     <div className="flex items-center gap-1">Fund Name <SortIcon col="fund_name" /></div>
                   </th>
                   <th
-                    className="px-3 py-2.5 text-[10px] font-bold text-white/50 uppercase cursor-pointer hover:text-alpha group select-none min-w-[80px]"
+                    className="px-3 py-2.5 text-[10px] font-bold text-text-primary/50 uppercase cursor-pointer hover:text-alpha group select-none min-w-[80px]"
                     onClick={() => onSort?.('category')}
                   >
                     <div className="flex items-center gap-1">Category <SortIcon col="category" /></div>
                   </th>
                   <th
-                    className="px-3 py-2.5 text-[10px] font-bold text-white/50 uppercase cursor-pointer hover:text-alpha group select-none min-w-[80px]"
+                    className="px-3 py-2.5 text-[10px] font-bold text-text-primary/50 uppercase cursor-pointer hover:text-alpha group select-none min-w-[80px]"
                     onClick={() => onSort?.('risk')}
                   >
                     <div className="flex items-center gap-1">Risk <SortIcon col="risk" /></div>
@@ -231,7 +232,7 @@ export const ScreenerResultsTable: React.FC<Props> = ({
               {extraCols.map(col => (
                 <th
                   key={col}
-                  className="px-3 py-2.5 text-[10px] font-bold text-white/50 uppercase cursor-pointer hover:text-alpha group select-none text-right min-w-[100px]"
+                  className="px-3 py-2.5 text-[10px] font-bold text-text-primary/50 uppercase cursor-pointer hover:text-alpha group select-none text-right min-w-[100px]"
                   onClick={() => onSort?.(col)}
                 >
                   <div className="flex items-center justify-end gap-1">
@@ -251,7 +252,7 @@ export const ScreenerResultsTable: React.FC<Props> = ({
                 className="border-b border-white/[0.04] hover:bg-white/[0.03] cursor-pointer group transition-colors"
               >
                 {/* Row number */}
-                <td className="pl-4 pr-2 py-2 text-[11px] text-white/20 tabular-nums">
+                <td className="pl-4 pr-2 py-2 text-[11px] text-text-primary/20 tabular-nums">
                   {(page - 1) * 100 + i + 1}
                 </td>
 
@@ -261,7 +262,7 @@ export const ScreenerResultsTable: React.FC<Props> = ({
                     <img
                       src={row.logo_url}
                       alt=""
-                      className="w-7 h-7 rounded-md object-contain bg-white/5 border border-white/10 p-0.5"
+                      className="w-7 h-7 rounded-md object-contain bg-white/5 border border-border p-0.5"
                       onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                     />
                   ) : (
@@ -278,7 +279,7 @@ export const ScreenerResultsTable: React.FC<Props> = ({
                       <span className="text-xs font-bold text-alpha">{row.ticker}</span>
                     </td>
                     <td className="px-3 py-2 max-w-[200px]">
-                      <span className="text-xs text-white truncate block">{row.name}</span>
+                      <span className="text-xs text-text-primary truncate block">{row.name}</span>
                     </td>
                     <td className="px-3 py-2">
                       <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-sm ${
@@ -293,8 +294,8 @@ export const ScreenerResultsTable: React.FC<Props> = ({
                 ) : (
                   <>
                     <td className="px-3 py-2 max-w-[220px]">
-                      <span className="text-xs font-semibold text-white truncate block">{row.fund_name}</span>
-                      <span className="text-[10px] text-white/40 truncate block">{row.scheme_name}</span>
+                      <span className="text-xs font-semibold text-text-primary truncate block">{row.fund_name}</span>
+                      <span className="text-[10px] text-text-primary/40 truncate block">{row.scheme_name}</span>
                     </td>
                     <td className="px-3 py-2">
                       <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-sm bg-blue-500/15 text-blue-400">{row.category}</span>
@@ -319,7 +320,7 @@ export const ScreenerResultsTable: React.FC<Props> = ({
 
                 {/* External link icon */}
                 <td className="pr-3 py-2 text-right opacity-0 group-hover:opacity-100 transition-opacity">
-                  <ExternalLink size={12} className="text-white/40" />
+                  <ExternalLink size={12} className="text-text-primary/40" />
                 </td>
               </tr>
             ))}
@@ -329,7 +330,7 @@ export const ScreenerResultsTable: React.FC<Props> = ({
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between px-4 py-2.5 border-t border-white/5 bg-[#0d0d10] shrink-0">
+        <div className="flex items-center justify-between px-4 py-2.5 border-t border-border bg-canvas shrink-0">
           <button
             disabled={page <= 1}
             onClick={() => onPageChange?.(page - 1)}
@@ -351,8 +352,8 @@ export const ScreenerResultsTable: React.FC<Props> = ({
                   onClick={() => onPageChange?.(p)}
                   className={`w-7 h-7 text-xs font-medium rounded-md transition-colors ${
                     p === page
-                      ? 'bg-alpha text-white'
-                      : 'text-text-secondary hover:text-white hover:bg-white/5'
+                      ? 'bg-alpha text-text-primary'
+                      : 'text-text-secondary hover:text-text-primary hover:bg-white/5'
                   }`}
                 >
                   {p}

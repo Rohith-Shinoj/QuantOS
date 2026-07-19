@@ -47,83 +47,78 @@ export const TopStrip = ({ data }: { data: any }) => {
   const isPositive = dayChange?.toString().includes('+') || (!dayChange?.toString().includes('-') && parseFloat(dayChange) > 0);
 
   return (
-    <div className="bg-surface p-6 rounded-lg border border-border flex justify-between items-center print-header">
-      <div>
-        <div className="flex items-center gap-3">
-          <StockLogo ticker={abs.ticker || ''} className="w-10 h-10 shadow-md" textClass="text-sm" fallbackClass="bg-canvas border border-border text-text-primary" />
-          <h1 className="text-3xl font-bold text-text-primary">{abs.ticker || 'N/A'}</h1>
-          {isDelisted && (
-            <span className="px-2 py-1 bg-red-500/20 text-red-500 text-xs font-bold rounded flex items-center gap-1 border border-red-500/30">
-              <AlertTriangle size={14} /> Currently Delisted
+    <div className="bg-surface border border-border rounded-xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shrink-0 print-header">
+      <div className="flex items-center gap-4">
+        <StockLogo ticker={abs.ticker || ''} className="w-14 h-14 rounded bg-white object-contain p-1 shadow-md" textClass="text-sm" fallbackClass="w-14 h-14 rounded bg-surface border border-border text-text-primary flex items-center justify-center font-bold text-lg shadow-md" />
+        <div className="flex flex-col justify-center gap-0.5">
+          <div className="flex items-center gap-3">
+            <h3 className="text-2xl font-extrabold text-text-primary tracking-tight leading-none truncate max-w-[400px]">{abs.ticker || 'N/A'}</h3>
+            <span className="px-2 py-0.5 mt-0.5 rounded bg-surface-hover border border-border text-[10px] text-text-secondary font-semibold uppercase tracking-wider">
+              {meta.industry_name || 'Industry'}
             </span>
-          )}
-          {qesFlag && !isDelisted ? (
-            <span className="px-2 py-1 bg-beta/20 text-beta text-xs font-bold rounded flex items-center gap-1">
-              <ShieldAlert size={14} /> High Risk
-            </span>
-          ) : !isDelisted ? (
-            <span className="px-2 py-1 bg-alpha/20 text-alpha text-xs font-bold rounded flex items-center gap-1">
-              <ShieldCheck size={14} /> Cleared
-            </span>
-          ) : null}
-        </div>
-        <p className="text-text-secondary mt-1 text-sm font-medium">
-          {abs.displayName || 'Unknown Company'} • {meta.industry_name || 'Industry'} • {abs.cappedType || meta.cap_type || 'Cap Size'}
-        </p>
-        
-        {currentPrice && (
-          <div className="flex items-center gap-4 mt-3">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl font-bold text-text-primary">₹{currentPrice}</span>
-              <span className={`text-sm font-semibold ${!isPositive ? 'text-beta' : 'text-alpha'}`}>
-                {dayChange}
+            {isDelisted && (
+              <span className="px-2 py-0.5 mt-0.5 rounded bg-red-500/20 text-red-500 text-[10px] font-bold flex items-center gap-1 border border-red-500/30">
+                <AlertTriangle size={12} /> DELISTED
               </span>
-            </div>
-            <div className="h-4 w-px bg-border mx-1"></div>
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-medium text-text-secondary tracking-wide uppercase">
-                {lastUpdated}
+            )}
+            {qesFlag && !isDelisted ? (
+              <span className="px-2 py-0.5 mt-0.5 bg-red-500/20 text-red-500 text-[10px] font-bold rounded flex items-center gap-1 border border-red-500/30">
+                <ShieldAlert size={12} /> HIGH RISK
               </span>
-              <button 
+            ) : !isDelisted ? (
+              <span className="px-2 py-0.5 mt-0.5 bg-emerald-500/20 text-emerald-400 text-[10px] font-bold rounded flex items-center gap-1 border border-emerald-500/30">
+                <ShieldCheck size={12} /> CLEARED
+              </span>
+            ) : null}
+          </div>
+          
+          <div className="flex items-center gap-2 mt-1">
+             <span className="text-lg font-bold text-text-primary leading-none">₹{currentPrice}</span>
+             <span className={`text-sm font-semibold leading-none ${!isPositive ? 'text-red-400' : 'text-emerald-400'}`}>
+                {dayChange} <span className="text-[10px] font-bold text-text-secondary ml-0.5">1D</span>
+             </span>
+             <button 
                 onClick={handleRefresh}
                 disabled={isRefreshing || isDelisted}
-                className="flex items-center gap-1.5 px-2.5 py-1 bg-surface-hover hover:bg-border border border-border rounded text-xs font-semibold text-text-primary transition-all disabled:opacity-50"
-              >
-                <RefreshCw size={12} className={isRefreshing ? "animate-spin" : ""} />
-                Refresh
-              </button>
-            </div>
+                className="ml-2 flex items-center gap-1.5 px-2 py-1 bg-surface-hover hover:bg-white/5 border border-border rounded text-[10px] font-semibold text-text-primary transition-all disabled:opacity-50"
+             >
+                <RefreshCw size={10} className={isRefreshing ? "animate-spin" : ""} />
+                Sync
+             </button>
+             <span className="ml-2 text-[10px] font-medium text-text-secondary tracking-wide uppercase">
+                {lastUpdated}
+             </span>
           </div>
-        )}
+        </div>
       </div>
 
-      <div className="flex items-center gap-8">
+      <div className="flex flex-wrap items-center justify-end gap-2 text-[10px] font-bold">
         <button 
           onClick={() => window.print()}
-          className="flex items-center gap-2 px-4 py-2 bg-canvas hover:bg-surface-hover border border-border rounded-lg text-sm font-medium transition-colors print:hidden"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-hover hover:bg-white/5 border border-border rounded text-[10px] font-semibold text-text-primary transition-colors print:hidden"
         >
-          <Printer size={16} />
-          Print Tear Sheet
+          <Printer size={12} />
+          Print
         </button>
 
         {forward1y === 1 && (
-           <div className="flex items-center gap-2 px-3 py-1 bg-alpha/10 text-alpha border border-alpha/20 rounded">
-             <TrendingUp size={16} />
-             <span className="text-sm font-semibold">1Y Bull Target Active</span>
+           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-alpha/10 text-alpha border border-alpha/20 rounded">
+             <TrendingUp size={12} />
+             <span>1Y Bull Target Active</span>
            </div>
         )}
         
         {qesFlag && (
-          <div className="flex items-center gap-2 px-3 py-1 bg-warning/10 text-warning border border-warning/20 rounded" title="Negative operating cash flow paired with high profit growth.">
-            <AlertTriangle size={16} />
-            <span className="text-sm font-semibold">QES Forensic Flag</span>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-warning/10 text-warning border border-warning/20 rounded" title="Negative operating cash flow paired with high profit growth.">
+            <AlertTriangle size={12} />
+            <span>QES Forensic Flag</span>
           </div>
         )}
 
         {circuitRisk > 1000 && (
-          <div className="flex items-center gap-2 px-3 py-1 bg-beta/10 text-beta border border-beta/20 rounded" title="High volume + High delivery + Low volatility = Illiquidity Trap Risk">
-            <ShieldAlert size={16} />
-            <span className="text-sm font-semibold">High Circuit Risk ({Math.round(circuitRisk)})</span>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-beta/10 text-beta border border-beta/20 rounded" title="High volume + High delivery + Low volatility = Illiquidity Trap Risk">
+            <ShieldAlert size={12} />
+            <span>High Circuit Risk ({Math.round(circuitRisk)})</span>
           </div>
         )}
       </div>

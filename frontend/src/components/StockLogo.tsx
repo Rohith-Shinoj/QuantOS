@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 interface StockLogoProps {
   ticker: string;
   name?: string;
+  logoUrl?: string;
   className?: string;
   textClass?: string;
   fallbackClass?: string;
@@ -11,6 +12,7 @@ interface StockLogoProps {
 export const StockLogo: React.FC<StockLogoProps> = ({ 
   ticker, 
   name, 
+  logoUrl,
   className = "w-8 h-8", 
   textClass = "text-[10px]",
   fallbackClass = "bg-surface-hover text-text-primary"
@@ -38,12 +40,14 @@ export const StockLogo: React.FC<StockLogoProps> = ({
     );
   }
 
+  const imgSrc = logoUrl || `/logos/${finalTicker}.webp`;
+
   return (
-    <div className={`rounded-lg flex items-center justify-center overflow-hidden shrink-0 ${className}`}>
+    <div className={`rounded-lg flex items-center justify-center overflow-hidden shrink-0 bg-white ${className}`}>
       <img 
-        src={`/logos/${finalTicker}.webp`} 
+        src={imgSrc} 
         alt={displayName}
-        className="w-full h-full object-contain"
+        className="w-full h-full object-contain p-1"
         onError={() => setError(true)}
       />
     </div>

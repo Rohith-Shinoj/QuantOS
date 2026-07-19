@@ -11,6 +11,8 @@ import { PairTrading } from './pages/PairTrading';
 import { PortfolioTracker } from './pages/PortfolioTracker';
 import { Watchlists } from './pages/Watchlists';
 import { LandingPage } from './pages/LandingPage';
+import { ETFs } from './pages/ETFs';
+import { ETFSnapshot } from './pages/ETFSnapshot';
 import { AIResearchDesk } from './pages/AIResearchDesk';
 import { MutualFunds } from './pages/MutualFunds';
 import { MutualFundSnapshot } from './pages/MutualFundSnapshot';
@@ -45,9 +47,11 @@ function App() {
           <Route path="portfolio" element={<PortfolioTracker />} />
           <Route path="mutual-funds" element={<MutualFunds />} />
           <Route path="watchlists" element={<Watchlists />} />
-          <Route path="terminal/:slug" element={<TerminalLayout />} />
-          <Route path="stock/:slug" element={<TerminalLayout />} />
-          <Route path="mutual-funds/:code" element={<MutualFundSnapshot />} />
+          <Route path="/stocks/:slug" element={<TerminalLayout />} />
+          <Route path="/etf" element={<ETFs />} />
+          <Route path="/etf/:slug" element={<ETFSnapshot />} />
+
+          <Route path="/mutual-funds/:slug" element={<MutualFundSnapshot />} />
         </Route>
       </Routes>
     </Router>

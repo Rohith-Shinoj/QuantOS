@@ -38,10 +38,10 @@ export const AssetAllocationCard = ({ fund }: { fund: any }) => {
   const cashLength = (cash / total) * circumference;
 
   return (
-    <div className="bg-[#111114] border border-white/5 p-5 rounded-xl flex flex-col justify-between h-full overflow-hidden">
+    <div className="bg-surface border border-border p-5 rounded-xl flex flex-col justify-between h-full overflow-hidden">
       <h3 className="text-sm font-semibold text-text-primary mb-6 flex items-center gap-1.5 shrink-0 group relative w-fit cursor-help">
-        Asset Allocation & Style Box <HelpCircle size={14} className="text-text-secondary hover:text-white transition-colors" />
-        <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-64 bg-[#1a1a24] text-white text-[10px] p-2 rounded shadow-xl z-50 normal-case tracking-normal border border-white/10 font-normal leading-relaxed">
+        Asset Allocation & Style Box <HelpCircle size={14} className="text-text-secondary hover:text-text-primary transition-colors" />
+        <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-64 bg-surface-hover text-text-primary text-[10px] p-2 rounded shadow-xl z-50 normal-case tracking-normal border border-border font-normal leading-relaxed">
           Morningstar-style 9-grid box classifying the fund's investment style, alongside the actual asset class split.
         </div>
       </h3>
@@ -60,7 +60,7 @@ export const AssetAllocationCard = ({ fund }: { fund: any }) => {
               <span>Mid</span>
               <span>Small</span>
             </div>
-            <div className="grid grid-cols-3 grid-rows-3 flex-1 h-48 border border-white/10 rounded-lg overflow-hidden bg-white/5">
+            <div className="grid grid-cols-3 grid-rows-3 flex-1 h-48 border border-border rounded-lg overflow-hidden bg-white/5">
               {[0, 1, 2].map(r => (
                 [0, 1, 2].map(c => {
                    const isHighlighted = (r === sizeIndex && c === styleIndex);
@@ -78,7 +78,7 @@ export const AssetAllocationCard = ({ fund }: { fund: any }) => {
           </div>
         </div>
 
-        <hr className="border-white/5" />
+        <hr className="border-border" />
 
         {/* Asset Class Split */}
         <div className="flex items-center gap-6 px-2">
@@ -100,15 +100,15 @@ export const AssetAllocationCard = ({ fund }: { fund: any }) => {
            <div className="flex flex-col gap-3 flex-1">
              <div className="flex justify-between items-center text-xs font-bold">
                <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> Equity</div>
-               <span className="font-mono text-white">{equity.toFixed(1)}%</span>
+               <span className="font-mono text-text-primary">{equity.toFixed(1)}%</span>
              </div>
              <div className="flex justify-between items-center text-xs font-bold">
                <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-blue-500"></div> Debt</div>
-               <span className="font-mono text-white">{debt.toFixed(1)}%</span>
+               <span className="font-mono text-text-primary">{debt.toFixed(1)}%</span>
              </div>
              <div className="flex justify-between items-center text-xs font-bold">
                <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-slate-400"></div> Cash</div>
-               <span className="font-mono text-white">{cash.toFixed(1)}%</span>
+               <span className="font-mono text-text-primary">{cash.toFixed(1)}%</span>
              </div>
            </div>
         </div>

@@ -183,15 +183,15 @@ export const QueryBuilder: React.FC<QueryBuilderProps> = ({ tokens, onChange, me
       }, {} as Record<string, typeof metrics>);
 
       return (
-        <div className="absolute top-full left-0 mt-2 w-80 bg-[#17171d] border border-white/[0.08] rounded-xl shadow-2xl overflow-hidden z-50 max-h-80 overflow-y-auto custom-scrollbar">
+        <div className="absolute top-full left-0 mt-2 w-80 bg-surface-hover border border-border rounded-xl shadow-2xl overflow-hidden z-50 max-h-80 overflow-y-auto custom-scrollbar">
           {search === '' && expectedType === 'metric_or_bracket' && (
             <div className="px-3 py-2 border-b border-white/[0.05] flex gap-2">
-               <button onClick={() => addToken({ type: 'bracket', value: '(' })} className="px-3 py-1 bg-white/5 hover:bg-white/10 rounded font-mono text-white/50 hover:text-white transition-colors">(</button>
+               <button onClick={() => addToken({ type: 'bracket', value: '(' })} className="px-3 py-1 bg-white/5 hover:bg-white/10 rounded font-mono text-text-primary/50 hover:text-text-primary transition-colors">(</button>
             </div>
           )}
           {expectedType === 'value_or_metric' && (
             <div className="p-3 border-b border-white/[0.05]">
-                <div className="text-[10px] text-white/40 font-medium mb-1">Type a value and press Enter, OR select a metric below:</div>
+                <div className="text-[10px] text-text-primary/40 font-medium mb-1">Type a value and press Enter, OR select a metric below:</div>
                 <div className="flex items-center gap-1.5 text-xs text-alpha">
                   <CornerDownLeft size={12} /> Press Enter for raw value
                 </div>
@@ -199,7 +199,7 @@ export const QueryBuilder: React.FC<QueryBuilderProps> = ({ tokens, onChange, me
           )}
           {Object.entries(grouped).map(([group, ms]) => (
             <div key={group}>
-              <div className={`px-3 pt-2.5 pb-1 text-[10px] font-bold uppercase tracking-wider ${groupColors[group] ?? 'text-white/30'}`}>
+              <div className={`px-3 pt-2.5 pb-1 text-[10px] font-bold uppercase tracking-wider ${groupColors[group] ?? 'text-text-primary/30'}`}>
                 {group}
               </div>
               {ms.map(m => (
@@ -208,7 +208,7 @@ export const QueryBuilder: React.FC<QueryBuilderProps> = ({ tokens, onChange, me
                     onClick={() => {
                       addToken({ type: 'metric', value: m.key, label: m.label, options: m.options, metricType: m.type, description: m.description });
                     }}
-                    className="flex-1 text-left text-xs text-white/70 group-hover/item:text-white"
+                    className="flex-1 text-left text-xs text-text-primary/70 group-hover/item:text-text-primary"
                   >
                     {m.label}
                   </button>
@@ -220,7 +220,7 @@ export const QueryBuilder: React.FC<QueryBuilderProps> = ({ tokens, onChange, me
             </div>
           ))}
           {Object.keys(grouped).length === 0 && (
-             <div className="p-4 text-xs text-white/30 text-center">No metrics found.</div>
+             <div className="p-4 text-xs text-text-primary/30 text-center">No metrics found.</div>
           )}
         </div>
       );
@@ -230,8 +230,8 @@ export const QueryBuilder: React.FC<QueryBuilderProps> = ({ tokens, onChange, me
       const prevMetric = tokens[activeIndex - 1];
       const validOps = prevMetric.metricType === 'string' ? ['=', '!='] : OPS;
       return (
-        <div className="absolute top-full left-0 mt-2 w-32 bg-[#17171d] border border-white/[0.08] rounded-xl shadow-2xl overflow-hidden z-50">
-          <div className="px-2 py-1.5 text-[9px] uppercase font-bold text-white/30 tracking-widest border-b border-white/5">Operator</div>
+        <div className="absolute top-full left-0 mt-2 w-32 bg-surface-hover border border-border rounded-xl shadow-2xl overflow-hidden z-50">
+          <div className="px-2 py-1.5 text-[9px] uppercase font-bold text-text-primary/30 tracking-widest border-b border-border">Operator</div>
           <div className="p-1 flex flex-col gap-0.5">
             {validOps.map(op => (
               <button
@@ -249,12 +249,12 @@ export const QueryBuilder: React.FC<QueryBuilderProps> = ({ tokens, onChange, me
 
     if (expectedType === 'logic_or_bracket') {
       return (
-        <div className="absolute top-full left-0 mt-2 w-32 bg-[#17171d] border border-white/[0.08] rounded-xl shadow-2xl overflow-hidden z-50">
+        <div className="absolute top-full left-0 mt-2 w-32 bg-surface-hover border border-border rounded-xl shadow-2xl overflow-hidden z-50">
           <div className="p-1 flex flex-col gap-0.5">
-            <button onClick={() => addToken({ type: 'logic', value: 'AND' })} className="w-full text-left px-3 py-1.5 text-xs font-bold text-white/70 hover:text-white hover:bg-white/10 rounded transition-colors">AND</button>
-            <button onClick={() => addToken({ type: 'logic', value: 'OR' })} className="w-full text-left px-3 py-1.5 text-xs font-bold text-white/70 hover:text-white hover:bg-white/10 rounded transition-colors">OR</button>
+            <button onClick={() => addToken({ type: 'logic', value: 'AND' })} className="w-full text-left px-3 py-1.5 text-xs font-bold text-text-primary/70 hover:text-text-primary hover:bg-white/10 rounded transition-colors">AND</button>
+            <button onClick={() => addToken({ type: 'logic', value: 'OR' })} className="w-full text-left px-3 py-1.5 text-xs font-bold text-text-primary/70 hover:text-text-primary hover:bg-white/10 rounded transition-colors">OR</button>
             <div className="h-px bg-white/10 my-0.5" />
-            <button onClick={() => addToken({ type: 'bracket', value: ')' })} className="w-full text-left px-3 py-1.5 text-xs font-mono text-white/50 hover:text-white hover:bg-white/10 rounded transition-colors">)</button>
+            <button onClick={() => addToken({ type: 'bracket', value: ')' })} className="w-full text-left px-3 py-1.5 text-xs font-mono text-text-primary/50 hover:text-text-primary hover:bg-white/10 rounded transition-colors">)</button>
           </div>
         </div>
       );
@@ -281,15 +281,15 @@ export const QueryBuilder: React.FC<QueryBuilderProps> = ({ tokens, onChange, me
         onFocus={() => setShowDropdown(true)}
         onKeyDown={handleKeyDown}
         placeholder={tokens.length === 0 ? "Build query (e.g. ROE > 15 AND Live Price > 100)" : getPlaceholder()}
-        className="w-full bg-transparent text-sm text-white outline-none placeholder-white/20 px-1 py-1"
+        className="w-full bg-transparent text-sm text-text-primary outline-none placeholder-white/20 px-1 py-1"
       />
       {renderDropdown()}
     </div>
   );
 
   return (
-    <div className="flex-1 min-h-[44px] flex items-center bg-[#0d0d12] border border-white/[0.06] rounded-xl px-2.5 py-1.5 gap-1.5 flex-wrap" ref={containerRef}>
-      <Search size={14} className="text-white/30 shrink-0 ml-1" />
+    <div className="flex-1 min-h-[44px] flex items-center bg-surface-hover border border-border rounded-xl px-2.5 py-1.5 gap-1.5 flex-wrap" ref={containerRef}>
+      <Search size={14} className="text-text-primary/30 shrink-0 ml-1" />
       
       {/* Dynamic Token Render with cursor insertion */}
       {visualGroups.map((vg) => {
@@ -332,9 +332,9 @@ export const QueryBuilder: React.FC<QueryBuilderProps> = ({ tokens, onChange, me
             return (
               <div 
                 className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium cursor-pointer group ${
-                  t.type === 'bracket' ? 'text-white/50 font-mono text-sm' :
-                  t.type === 'logic' ? 'text-white/40 uppercase text-[10px] tracking-widest bg-white/5' :
-                  t.type === 'metric' ? 'bg-alpha/10 text-white/80 border border-alpha/20' :
+                  t.type === 'bracket' ? 'text-text-primary/50 font-mono text-sm' :
+                  t.type === 'logic' ? 'text-text-primary/40 uppercase text-[10px] tracking-widest bg-white/5' :
+                  t.type === 'metric' ? 'bg-alpha/10 text-text-primary/80 border border-alpha/20' :
                   t.type === 'operator' ? 'text-alpha font-mono' :
                   'text-alpha bg-alpha/5 border border-alpha/10'
                 }`}
@@ -345,7 +345,7 @@ export const QueryBuilder: React.FC<QueryBuilderProps> = ({ tokens, onChange, me
                 }}
               >
                 {t.label || t.value}
-                <div onClick={(e) => { e.stopPropagation(); removeAt(vg.startIndex); }} className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity text-white/40 hover:text-red-400">
+                <div onClick={(e) => { e.stopPropagation(); removeAt(vg.startIndex); }} className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity text-text-primary/40 hover:text-red-400">
                    <X size={10} />
                 </div>
               </div>
@@ -365,7 +365,7 @@ export const QueryBuilder: React.FC<QueryBuilderProps> = ({ tokens, onChange, me
       {activeIndex === tokens.length && renderInputBox()}
 
       {tokens.length > 0 && (
-         <button onClick={() => { onChange([]); setActiveIndex(0); }} className="ml-auto text-[10px] text-white/30 hover:text-white uppercase font-bold tracking-wider px-2 py-1 rounded bg-white/5 transition-colors">
+         <button onClick={() => { onChange([]); setActiveIndex(0); }} className="ml-auto text-[10px] text-text-primary/30 hover:text-text-primary uppercase font-bold tracking-wider px-2 py-1 rounded bg-white/5 transition-colors">
             Clear
          </button>
       )}
