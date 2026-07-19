@@ -271,7 +271,7 @@ def calculate_historical_returns(ohlcv_json_str: str):
         return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
 
 @app.get("/api/stocks")
-async def list_stocks():
+def list_stocks():
     global _search_cache
     if _search_cache:
         return _search_cache
@@ -353,7 +353,7 @@ async def get_stock(slug: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/etfs")
-async def list_etfs(limit: int = 1000):
+def list_etfs(limit: int = 1000):
     try:
         con = get_db()
         # Ensure etfs table exists before querying
@@ -400,7 +400,7 @@ async def list_etfs(limit: int = 1000):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/etfs/{slug}")
-async def get_etf(slug: str):
+def get_etf(slug: str):
     try:
         con = get_db()
         try:
@@ -556,7 +556,7 @@ async def get_stocks_batch(req: BatchStockRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/macro")
-async def get_macro_data():
+def get_macro():
     try:
         con = get_db()
         query = """
