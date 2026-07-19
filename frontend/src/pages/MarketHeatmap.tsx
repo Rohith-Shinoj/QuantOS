@@ -316,14 +316,14 @@ export const MarketHeatmap = () => {
 
       {/* Heatmap Container */}
       <div className="flex-1 relative w-full h-full min-h-0 bg-canvas overflow-hidden" ref={containerRef}>
-        {!rootNode && (
+        {/* {!rootNode && (
           <div className="text-text-primary p-4 font-mono text-sm">
             DEBUG INFO: <br/>
             dimensions: {dimensions.width}x{dimensions.height} <br/>
             stocks loaded: {stocks ? stocks.length : 'loading...'} <br/>
             filtered: {stocks ? stocks.filter((s: any) => (s.marketCap || 0) > 0).length : 0} <br/>
           </div>
-        )}
+        )} */}
         {rootNode && rootNode.leaves().length === 0 && (
           <div className="text-text-primary p-4 font-mono text-sm">
             DEBUG: rootNode has 0 leaves!

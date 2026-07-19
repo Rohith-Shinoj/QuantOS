@@ -1,6 +1,6 @@
 import os
 from fastapi import FastAPI, HTTPException, WebSocket, Header, Depends
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 import duckdb
 import json
@@ -1272,3 +1272,4 @@ def get_broker_targets(slug: str):
     except Exception as e:
         print(f"Error fetching broker targets for {slug}: {e}")
         return {"targets": []}
+

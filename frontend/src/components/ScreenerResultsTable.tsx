@@ -6,7 +6,7 @@ import { ArrowUp, ArrowDown, ArrowUpDown, Download, ExternalLink, TrendingUp, Tr
 interface Props {
   data: any[];
   isLoading: boolean;
-  mode?: 'stocks' | 'mutual_funds';
+  mode?: 'stocks' | 'mutual_funds' | 'etfs';
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
   onSort?: (key: string) => void;

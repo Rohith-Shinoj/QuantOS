@@ -16,6 +16,9 @@ export interface DashboardData {
   financial_matrix?: any;
   peer_valuation?: any;
   macro_stress_test?: any;
+  teardown_sections?: any[];
+  final_verdict?: any;
+  ui_components?: any[];
 }
 
 export type ChatMessage = {
