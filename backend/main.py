@@ -68,6 +68,8 @@ def get_db():
     if _db_con is None:
         # For Parquet, we connect to an in-memory DB and query the file
         _db_con = duckdb.connect(":memory:")
+        _db_con.execute("PRAGMA threads=2;")
+        _db_con.execute("PRAGMA memory_limit='1GB';")
         # We can also create a view to make queries cleaner
         _db_con.execute(f"CREATE OR REPLACE VIEW stocks AS SELECT * FROM '{DB_PATH}'")
         if os.path.exists(MF_DB_PATH):
