@@ -138,7 +138,7 @@ const HorizontalStockCards = ({ title, stocks }: { title: string, stocks: any[] 
         {stocks.map(s => {
           const change = parseDayChange(s.day_change);
           return (
-            <Link key={s.slug} to={`/stocks/${s.slug}`} className="min-w-[240px] bg-surface border border-border rounded-xl p-4 hover:border-alpha/50 transition-colors flex flex-col justify-between group">
+            <Link key={s.slug} to={s.is_mf ? `/mutual-funds/${s.slug}` : (s.is_etf || s.type === 'ETF' ? `/etf/${s.slug}` : `/stocks/${s.slug}`)} className="min-w-[240px] bg-surface border border-border rounded-xl p-4 hover:border-alpha/50 transition-colors flex flex-col justify-between group">
               <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-3">
                   <StockLogo ticker={s.ticker} className="w-8 h-8" textClass="text-xs" fallbackClass="bg-canvas border border-border text-alpha" />
@@ -320,7 +320,7 @@ const ComplexMarketCard = ({ stock }: { stock: any }) => {
   const displayColor = change.isPositive ? 'text-alpha' : 'text-beta';
 
   return (
-    <Link to={`/stocks/${slug}`} className="bg-surface border border-border rounded-xl flex flex-col h-[380px] overflow-hidden group">
+    <Link to={stock.is_mf ? `/mutual-funds/${slug}` : (stock.is_etf || stock.type === 'ETF' ? `/etf/${slug}` : `/stocks/${slug}`)} className="bg-surface border border-border rounded-xl flex flex-col h-[380px] overflow-hidden group">
       <div className="p-4 flex-1 flex flex-col border-b border-border cursor-pointer hover:bg-surface-hover transition-colors">
         <div className="flex justify-between items-start">
           <div className="flex items-center gap-2 overflow-hidden pr-2">
@@ -688,7 +688,7 @@ const StockListGrid = ({ stocks }: { stocks: any[] }) => {
         {data.map((s: any) => {
           const change = parseDayChange(s.day_change);
           return (
-            <Link key={s.slug} to={`/stocks/${s.slug}`} className="flex justify-between items-center p-3 hover:bg-surface border-b border-border/30 last:border-0 rounded-lg group transition-colors">
+            <Link key={s.slug} to={s.is_mf ? `/mutual-funds/${s.slug}` : (s.is_etf || s.type === 'ETF' ? `/etf/${s.slug}` : `/stocks/${s.slug}`)} className="flex justify-between items-center p-3 hover:bg-surface border-b border-border/30 last:border-0 rounded-lg group transition-colors">
               <div className="flex items-center gap-4">
                 <StockLogo ticker={s.ticker} className="w-8 h-8 group-hover:opacity-80 transition-opacity" textClass="text-[10px]" fallbackClass="bg-surface border border-border text-alpha group-hover:bg-alpha/10 transition-colors" />
                 <div className="overflow-hidden">
@@ -1054,7 +1054,7 @@ export const LandingPage = () => {
                     <Link 
                       key={s.slug} 
                       className={`flex justify-between items-center p-3 rounded-lg cursor-pointer transition-colors mb-1 hover:bg-canvas border border-transparent`}
-                      to={`/stocks/${s.slug}`}
+                      to={s.is_mf ? `/mutual-funds/${s.slug}` : (s.is_etf || s.type === 'ETF' ? `/etf/${s.slug}` : `/stocks/${s.slug}`)}
                     >
                       <div className="flex items-center gap-3 overflow-hidden pr-2">
                         <StockLogo 
@@ -1085,7 +1085,7 @@ export const LandingPage = () => {
 
           {/* Row 2: Secondary Indicators */}
           {coreAssets.slice(0, 3).map((asset: any) => (
-            <Link key={asset.slug} to={`/stocks/${asset.slug}`} className="col-span-12 md:col-span-4 min-w-0 min-h-0 block cursor-pointer transition-transform hover:-translate-y-1">
+            <Link key={asset.slug} to={asset.is_mf ? `/mutual-funds/${asset.slug}` : (asset.is_etf || asset.type === 'ETF' ? `/etf/${asset.slug}` : `/stocks/${asset.slug}`)} className="col-span-12 md:col-span-4 min-w-0 min-h-0 block cursor-pointer transition-transform hover:-translate-y-1">
               <IndexMarketCard stock={asset} isActive={false} stockData={batchStockData?.[asset.slug]} isLoading={isBatchLoading} />
             </Link>
           ))}

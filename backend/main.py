@@ -36,11 +36,7 @@ app = FastAPI(title="Quant Dashboard API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "https://finugreek.rohithshinoj.com"
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -277,17 +273,62 @@ def calculate_historical_returns(ohlcv_json_str: str):
     except Exception:
         return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
 
-@app.get("/api/stocks")
-def list_stocks():
-    global _search_cache
-    if _search_cache:
-        return _search_cache
-        
+@app.get("/api/search_index")
+def get_search_index():
     try:
         con = get_db()
-        # Compute performance metrics in SQL to avoid loading full OHLCV JSON into Python.
-        # This is critical for low-memory systems — the OHLCV blobs are huge.
-        query = """
+        
+        # Super lightweight query just for search autocomplete - NO JSON PARSING
+        stocks = con.execute("SELECT slug, ticker, name, 'Stock' as type FROM stocks").fetchall()
+        etfs = con.execute("SELECT slug, ticker, name, 'ETF' as type FROM etfs").fetchall() if os.path.exists(ETF_DB_PATH) else []
+        mfs = con.execute("SELECT scheme_code, search_id, scheme_name, 'Mutual Fund' as type FROM mutual_funds").fetchall() if os.path.exists(MF_DB_PATH) else []
+        
+        results = []
+        for r in stocks:
+            results.append({"slug": r[0], "ticker": r[1], "name": r[2], "type": r[3]})
+        for r in etfs:
+            results.append({"slug": r[0], "ticker": r[1], "name": r[2], "type": r[3]})
+        for r in mfs:
+            results.append({"slug": r[0], "ticker": r[1], "name": r[2], "type": r[3]})
+            
+        return results
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/stocks")
+def list_stocks(page: int = 1, limit: int = 50, category: str = None, sort_by: str = "marketCap", sort_order: str = "desc"):
+    try:
+        con = get_db()
+        
+        offset = (page - 1) * limit
+        
+        # Base query
+        where_clause = ""
+        params = []
+        
+        if category:
+            # Map index names to limits or conditions if they don't explicitly exist in data
+            if "Nifty 50 Index" in category:
+                limit = 50
+            elif "Nifty Next 50" in category:
+                limit = 50
+                offset = 50
+            elif "BSE Sensex" in category:
+                limit = 30
+            elif "Nifty 500" in category:
+                limit = 500
+            elif category != "Entire Market":
+                # Fallback to industry/market_cap filter
+                where_clause = "WHERE industry ILIKE ? OR market_cap_type ILIKE ?"
+                params.extend([f"%{category}%", f"%{category}%"])
+                
+        # Total count for pagination
+        count_query = f"SELECT COUNT(*) FROM stocks {where_clause}"
+        with db_lock:
+            total_count = con.execute(count_query, params).fetchone()[0]
+        
+        # Data query
+        query = f"""
             SELECT 
                 slug, ticker, name, market_cap_type, market_cap, 
                 pe_ratio, day_change, industry, inst_accum, 
@@ -301,9 +342,13 @@ def list_stocks():
                 TRY_CAST(json_extract_string(relative_data,'$.price_returns.1y_return') AS DOUBLE),
                 TRY_CAST(json_extract_string(relative_data,'$.price_returns.ytd_return') AS DOUBLE)
             FROM stocks
+            {where_clause}
+            ORDER BY market_cap DESC
+            LIMIT ? OFFSET ?
         """
+        
         with db_lock:
-            result = con.execute(query).fetchall()
+            result = con.execute(query, params + [limit, offset]).fetchall()
         
         local_cache = []
         for r in result:
@@ -329,8 +374,12 @@ def list_stocks():
                 "perf_ytd": r[18] or 0.0
             })
             
-        _search_cache = local_cache
-        return _search_cache
+        return {
+            "data": local_cache,
+            "total": total_count,
+            "page": page,
+            "limit": limit
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -360,25 +409,26 @@ async def get_stock(slug: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/etfs")
-def list_etfs(limit: int = 1000):
+def list_etfs(page: int = 1, limit: int = 50):
     try:
         con = get_db()
         # Ensure etfs table exists before querying
         try:
             con.execute("SELECT 1 FROM etfs LIMIT 1")
         except:
-            return []
+            return {"data": [], "total": 0, "page": page, "limit": limit}
         
+        offset = (page - 1) * limit
+        
+        # Total count
+        with db_lock:
+            total_count = con.execute("SELECT COUNT(*) FROM etfs").fetchone()[0]
+            
         # ETF Parquet uses camelCase columns (marketCap, peRatio, dayChange, livePrice)
         # not snake_case — this must match the schema from read_json_auto() in data_loader.py
-        query = "SELECT slug, ticker, name, marketCap, peRatio, livePrice, dayChange, type, header, stats FROM etfs"
-        if limit > 0:
-            query += f" LIMIT ?"
-            with db_lock:
-                result = con.execute(query, (limit,)).fetchall()
-        else:
-            with db_lock:
-                result = con.execute(query).fetchall()
+        query = "SELECT slug, ticker, name, marketCap, peRatio, livePrice, dayChange, type, header, stats FROM etfs LIMIT ? OFFSET ?"
+        with db_lock:
+            result = con.execute(query, (limit, offset)).fetchall()
         
         etfs = []
         for r in result:
@@ -404,7 +454,13 @@ def list_etfs(limit: int = 1000):
                 "header": header_val,
                 "stats": stats_val
             })
-        return etfs
+            
+        return {
+            "data": etfs,
+            "total": total_count,
+            "page": page,
+            "limit": limit
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

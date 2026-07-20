@@ -27,14 +27,19 @@ export const fetchLandingWidgets = async () => {
   return response.data;
 };
 
-export const fetchAllStocks = async () => {
-  const response = await axios.get(`${API_BASE_URL}/stocks`);
+export const fetchSearchIndex = async () => {
+  const response = await axios.get(`${API_BASE_URL}/search_index`);
   return response.data;
 };
 
-export const fetchETFs = async () => {
-  const response = await axios.get(`${API_BASE_URL}/etfs`);
-  return response.data;
+export const fetchAllStocks = async (params?: any) => {
+  const response = await axios.get(`${API_BASE_URL}/stocks`, { params });
+  return response.data.data ? response.data.data : response.data;
+};
+
+export const fetchETFs = async (params?: any) => {
+  const response = await axios.get(`${API_BASE_URL}/etfs`, { params });
+  return response.data.data ? response.data.data : response.data;
 };
 
 export const fetchETFData = async (slug: string) => {
