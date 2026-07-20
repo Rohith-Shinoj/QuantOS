@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchAllStocks, fetchMutualFunds, fetchETFs } from '../api';
 
@@ -15,9 +15,33 @@ export interface SearchResult {
 }
 
 export function useSearch(query: string, activeFilter: string | string[] = 'All') {
-  const { data: stocks } = useQuery({ queryKey: ['allStocks'], queryFn: fetchAllStocks });
-  const { data: etfs } = useQuery({ queryKey: ['allETFsSearch'], queryFn: fetchETFs });
-  const { data: mfsResp } = useQuery({ queryKey: ['allMFsSearch'], queryFn: () => fetchMutualFunds({ limit: 5000, minimal: true }) });
+  const [shouldFetch, setShouldFetch] = useState(false);
+  
+  useEffect(() => {
+    // Sequence the heavy search dictionary downloads 2.5s AFTER the app loads
+    // so critical page widgets (Home/Screener) get 100% priority and don't timeout.
+    const timer = setTimeout(() => setShouldFetch(true), 2500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const { data: stocks } = useQuery({ 
+    queryKey: ['allStocks'], 
+    queryFn: fetchAllStocks,
+    enabled: shouldFetch,
+    staleTime: Infinity
+  });
+  const { data: etfs } = useQuery({ 
+    queryKey: ['allETFsSearch'], 
+    queryFn: fetchETFs,
+    enabled: shouldFetch,
+    staleTime: Infinity
+  });
+  const { data: mfsResp } = useQuery({ 
+    queryKey: ['allMFsSearch'], 
+    queryFn: () => fetchMutualFunds({ limit: 5000, minimal: true }),
+    enabled: shouldFetch,
+    staleTime: Infinity
+  });
   const mfs = (mfsResp as any)?.data;
 
   const results = useMemo(() => {
