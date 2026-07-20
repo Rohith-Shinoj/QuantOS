@@ -407,12 +407,10 @@ def build_query(table: str, registry: dict, req: ScreenerRequest,
 
     main_sql = f"""
     SELECT {', '.join(selects)}
-    FROM (
-        SELECT * FROM {table}
-        WHERE {where_sql}
-        {order_sql}
-        LIMIT {req.limit} OFFSET {offset}
-    ) subq
+    FROM {table}
+    WHERE {where_sql}
+    {order_sql}
+    LIMIT {req.limit} OFFSET {offset}
     """
     count_sql = f"SELECT COUNT(*) FROM {table} WHERE {where_sql}"
     return main_sql, count_sql, params
