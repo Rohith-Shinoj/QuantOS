@@ -258,6 +258,11 @@ def _init_con() -> duckdb.DuckDBPyConnection:
         raise RuntimeError(f"Parquet not found: {db_parquet_actual}")
         
     con = duckdb.connect(":memory:")
+    con.execute("PRAGMA threads=1;")
+    con.execute("PRAGMA memory_limit='1GB';")
+    con.execute("SET preserve_insertion_order=false;")
+    con.execute("PRAGMA temp_directory='./duckdb_temp_spill';")
+    
     con.execute(f"CREATE OR REPLACE VIEW stocks AS SELECT * FROM '{db_parquet_actual}'")
     
     if os.path.exists(mf_parquet_actual):

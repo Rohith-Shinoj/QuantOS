@@ -9,8 +9,6 @@ import { GlobalSearch } from '../components/GlobalSearch';
 import { Skeleton } from '../components/Skeleton';
 import type { ApexOptions } from 'apexcharts';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-
 const filterSeriesByTimeframe = (seriesData: {x: number, y: number}[], timeframe: string, customRange?: {start: string, end: string}) => {
   if (seriesData.length === 0) return { filtered: [], min: 0, max: 0 };
   const now = seriesData[seriesData.length - 1].x;
@@ -958,7 +956,8 @@ export const LandingPage = () => {
       trace.push(`[${(performance.now() - tCache2).toFixed(1)}ms] Individual stockData cache updates completed`);
       trace.push(`[${(performance.now() - tStart).toFixed(1)}ms] Total frontend handleSyncMarket execution time`);
       
-      fetch(`${API_BASE_URL}/api/admin/log`, {
+      const VITE_API_BASE = import.meta.env.VITE_API_URL || '/api';
+      fetch(`${VITE_API_BASE}/admin/log`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: trace.join('\n') })
@@ -1127,7 +1126,7 @@ export const LandingPage = () => {
         <MarketSectors macro={macro} />
 
         {/* True Quant Data Grid replacing Community Ideas & Images */}
-        <StockListGrid stocks={safeStocks} />
+        <StockListGrid stocks={[...instAccumStocks, ...highMomentumStocks]} />
 
       </div>
     </div>

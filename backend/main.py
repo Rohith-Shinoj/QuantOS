@@ -72,8 +72,8 @@ def get_db():
         # For Parquet, we connect to an in-memory DB and query the file
         _db_con = duckdb.connect(":memory:")
         _db_con.execute("PRAGMA threads=1;")
-        _db_con.execute("PRAGMA preserve_insertion_order=false;")
-        _db_con.execute("PRAGMA memory_limit='2GB';")
+        _db_con.execute("PRAGMA memory_limit='1GB';")
+        _db_con.execute("SET preserve_insertion_order=false;")
         _db_con.execute("PRAGMA temp_directory='./duckdb_temp_spill';")
         # We can also create a view to make queries cleaner
         _db_con.execute(f"CREATE OR REPLACE VIEW stocks AS SELECT * FROM '{DB_PATH}'")
@@ -285,6 +285,8 @@ def list_stocks():
         
     try:
         con = get_db()
+        # Compute performance metrics in SQL to avoid loading full OHLCV JSON into Python.
+        # This is critical for low-memory systems — the OHLCV blobs are huge.
         query = """
             SELECT 
                 slug, ticker, name, market_cap_type, market_cap, 
@@ -292,7 +294,12 @@ def list_stocks():
                 volatility_squeeze, rs_rating,
                 absolute_data->>'$."live price"',
                 absolute_data->>'$.roe',
-                absolute_data->>'$.OHLCV'
+                TRY_CAST(json_extract_string(relative_data,'$.price_returns.1w_return') AS DOUBLE),
+                TRY_CAST(json_extract_string(relative_data,'$.price_returns.1m_return') AS DOUBLE),
+                TRY_CAST(json_extract_string(relative_data,'$.price_returns.3m_return') AS DOUBLE),
+                TRY_CAST(json_extract_string(relative_data,'$.price_returns.6m_return') AS DOUBLE),
+                TRY_CAST(json_extract_string(relative_data,'$.price_returns.1y_return') AS DOUBLE),
+                TRY_CAST(json_extract_string(relative_data,'$.price_returns.ytd_return') AS DOUBLE)
             FROM stocks
         """
         with db_lock:
@@ -300,8 +307,6 @@ def list_stocks():
         
         local_cache = []
         for r in result:
-            vol, vol_1w, vol_1m, t_1d, t_1w, t_1m, p_1w, p_1m, p_3m, p_6m, p_1y, p_ytd = calculate_historical_returns(r[13])
-            
             local_cache.append({
                 "slug": r[0], 
                 "ticker": r[1], 
@@ -316,18 +321,12 @@ def list_stocks():
                 "rs_rating": r[10],
                 "livePrice": r[11],
                 "roe": r[12] if r[12] is not None else 0.0,
-                "volume": vol,
-                "vol_1w": vol_1w,
-                "vol_1m": vol_1m,
-                "turnover_1d": t_1d,
-                "turnover_1w": t_1w,
-                "turnover_1m": t_1m,
-                "perf_1w": p_1w,
-                "perf_1m": p_1m,
-                "perf_3m": p_3m,
-                "perf_6m": p_6m,
-                "perf_1y": p_1y,
-                "perf_ytd": p_ytd
+                "perf_1w": r[13] or 0.0,
+                "perf_1m": r[14] or 0.0,
+                "perf_3m": r[15] or 0.0,
+                "perf_6m": r[16] or 0.0,
+                "perf_1y": r[17] or 0.0,
+                "perf_ytd": r[18] or 0.0
             })
             
         _search_cache = local_cache
@@ -369,8 +368,10 @@ def list_etfs(limit: int = 1000):
             con.execute("SELECT 1 FROM etfs LIMIT 1")
         except:
             return []
-            
-        query = "SELECT slug, ticker, name, marketCap, pe_ratio, absolute_data->>'$.\"live price\"', day_change, type, absolute_data->>'$.header', absolute_data->>'$.stats' FROM etfs"
+        
+        # ETF Parquet uses camelCase columns (marketCap, peRatio, dayChange, livePrice)
+        # not snake_case — this must match the schema from read_json_auto() in data_loader.py
+        query = "SELECT slug, ticker, name, marketCap, peRatio, livePrice, dayChange, type, header, stats FROM etfs"
         if limit > 0:
             query += f" LIMIT ?"
             with db_lock:

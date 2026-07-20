@@ -6,8 +6,6 @@ import {
 import { ScreenerResultsTable } from '../components/ScreenerResultsTable';
 import { QueryBuilder, type QueryToken } from '../components/QueryBuilder';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface Metric { key: string; label: string; group: string; type: string; options?: string[]; }
 
@@ -125,11 +123,12 @@ export const Screener: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
+      const VITE_API_BASE = import.meta.env.VITE_API_URL || '/api';
       const endpoint = mode === 'stocks'
-        ? `${API_BASE_URL}/api/screener/stocks`
+        ? `${VITE_API_BASE}/screener/stocks`
         : mode === 'etfs'
-          ? `${API_BASE_URL}/api/screener/etfs`
-          : `${API_BASE_URL}/api/screener/mutual-funds`;
+          ? `${VITE_API_BASE}/screener/etfs`
+          : `${VITE_API_BASE}/screener/mutual-funds`;
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
