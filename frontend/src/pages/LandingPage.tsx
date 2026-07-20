@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, ChevronRight, BarChart2, Info, TrendingUp, TrendingDown, ArrowRight, Activity, ArrowUpRight, BrainCircuit, RefreshCw, Calendar } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchAllStocks, fetchStockData, fetchMacroData, fetchBatchLiveQuotes, fetchBatchStockData, fetchMutualFunds, fetchETFs } from '../api';
+import { fetchLandingWidgets, fetchStockData, fetchMacroData, fetchBatchLiveQuotes, fetchBatchStockData } from '../api';
 import Chart from 'react-apexcharts';
 import { StockLogo } from '../components/StockLogo';
 import { GlobalSearch } from '../components/GlobalSearch';
@@ -605,15 +605,10 @@ const IndexMarketCard = ({ stock, isActive, stockData, isLoading }: { stock: any
   );
 };
 
-const MarketSectors = ({ macro, stocks }: { macro: any, stocks: any[] }) => {
+const MarketSectors = ({ macro }: { macro: any }) => {
   const sectors = macro?.sectors || [];
-  const [expandedSector, setExpandedSector] = useState<string | null>(null);
 
   if (!sectors.length) return null;
-
-  const sectorStocks = expandedSector 
-    ? stocks.filter(s => s.industry === expandedSector).sort((a,b) => b.marketCap - a.marketCap).slice(0, 6)
-    : [];
 
   return (
     <div className="mb-16 relative">
@@ -624,8 +619,7 @@ const MarketSectors = ({ macro, stocks }: { macro: any, stocks: any[] }) => {
         {sectors.map((sec: any, i: number) => (
           <div 
             key={i} 
-            onClick={() => setExpandedSector(expandedSector === sec.name ? null : sec.name)}
-            className={`min-w-[220px] bg-surface border rounded-xl p-4 flex flex-col justify-between transition-colors cursor-pointer group ${expandedSector === sec.name ? 'border-alpha bg-surface-hover shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'border-border hover:border-alpha/50'}`}
+            className={`min-w-[220px] bg-surface border rounded-xl p-4 flex flex-col justify-between transition-colors border-border hover:border-alpha/50`}
           >
             <div className="text-[10px] font-bold text-text-secondary mb-3">SECTOR MOMENTUM</div>
             <div className="flex items-center gap-3 mb-4">
@@ -666,35 +660,6 @@ const MarketSectors = ({ macro, stocks }: { macro: any, stocks: any[] }) => {
         ))}
       </div>
 
-      {expandedSector && (
-        <div className="mt-4 p-6 bg-surface border border-alpha/30 rounded-xl animate-in slide-in-from-top-2 fade-in duration-200">
-           <h3 className="text-lg font-bold text-text-primary mb-6 flex items-center gap-2">
-             <div className="w-2 h-2 bg-alpha rounded-full"></div> {expandedSector} Constituents
-           </h3>
-           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-             {sectorStocks.map(s => {
-               const change = parseDayChange(s.day_change);
-               return (
-                 <Link key={s.slug} to={`/stocks/${s.slug}`} className="bg-canvas border border-border p-4 rounded-lg hover:border-alpha/50 group transition-colors flex justify-between items-center">
-                   <div className="flex items-center gap-3 overflow-hidden">
-                     <StockLogo ticker={s.ticker} className="w-8 h-8" textClass="text-[10px]" fallbackClass="bg-surface border border-border text-alpha" />
-                     <div className="overflow-hidden">
-                       <div className="font-bold text-sm text-text-primary group-hover:text-alpha truncate">{s.name}</div>
-                       <div className="text-[10px] text-text-secondary uppercase">{s.ticker}</div>
-                     </div>
-                   </div>
-                   <div className="text-right shrink-0">
-                     <div className="text-xs font-bold text-text-primary mb-1">{formatMCap(s.marketCap)}</div>
-                     <div className={`text-[10px] font-bold ${change.isPositive ? 'text-alpha' : 'text-beta'}`}>
-                       {change.isPositive ? '+' : '-'}{change.pct}
-                     </div>
-                   </div>
-                 </Link>
-               );
-             })}
-           </div>
-        </div>
-      )}
     </div>
   );
 };
@@ -862,32 +827,45 @@ export const LandingPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: stocks } = useQuery({ queryKey: ['allStocks'], queryFn: fetchAllStocks });
+  const { data: landingWidgets } = useQuery({ queryKey: ['landingWidgets'], queryFn: fetchLandingWidgets });
   const { data: macro } = useQuery({ queryKey: ['macroData'], queryFn: fetchMacroData });
   
-  const safeStocks = (stocks || []).filter((s: any) => 
-    s && s.ticker && s.ticker !== 'N/A' && s.name && s.marketCap
-  );
+  const majorStocks = landingWidgets?.market_caps || [];
+  const instAccumStocks = landingWidgets?.inst_accum || [];
+  const highMomentumStocks = landingWidgets?.rs_rating || [];
+  const topFunds = (landingWidgets?.top_mfs || []).map((mf: any) => ({
+    slug: mf.slug,
+    ticker: mf.name,
+    livePrice: '0',
+    day_change: `${mf.return3y || 0}%`,
+    logo_url: null,
+    is_mf: true
+  }));
+  const topETFs = (landingWidgets?.top_etfs || []).map((etf: any) => ({
+    slug: etf.slug,
+    ticker: etf.ticker,
+    name: etf.name,
+    livePrice: '0',
+    day_change: etf.day_change || '0.00 (0.00%)',
+    logo_url: null
+  }));
+  
+  const safeStocks = landingWidgets?.indices || [];
 
-  const fallbackSlug = (stocks || []).find((s: any) => s.slug === 'nifty')?.slug || safeStocks[0]?.slug;
+  const fallbackSlug = landingWidgets?.indices?.find((s: any) => s.slug === 'nifty')?.slug || safeStocks[0]?.slug;
   const [summarySlug, setSummarySlug] = useState<string | null>(null);
 
   const activeSlug = summarySlug || fallbackSlug;
-
-  const majorStocks = [...safeStocks].sort((a, b) => b.marketCap - a.marketCap).slice(0, 10);
   
-  const indexAssets = useMemo(() => {
-    if (!stocks) return [];
-    return stocks.filter((s: any) => KNOWN_INDICES.includes(s.slug));
-  }, [stocks]);
+  const indexAssets = landingWidgets?.indices || [];
 
   const coreSlugs = ['india-vix', 'sp-bse-sensex', 'multi-commodity-exchange-of-india-ltd'];
-  const coreAssets = coreSlugs.map(s => (stocks || []).find((stock: any) => stock.slug === s)).filter(Boolean);
+  const coreAssets = coreSlugs.map(s => (landingWidgets?.indices || []).find((stock: any) => stock.slug === s)).filter(Boolean);
 
   const sectorAssets = indexAssets.filter((a: any) => !['nifty', 'sp-bse-sensex', 'india-vix'].includes(a.slug));
   
   const commoditySlugs = ['reliance-etf-gold-bees', 'nippon-life-india-asset-management-ltd-nippon-india-silver-etf'];
-  const commodityAssets = commoditySlugs.map(s => (stocks || []).find((stock: any) => stock.slug === s)).filter(Boolean);
+  const commodityAssets = commoditySlugs.map(s => (landingWidgets?.indices || []).find((stock: any) => stock.slug === s)).filter(Boolean);
 
   const indicesToFetch = useMemo(() => {
     return Array.from(new Set([
@@ -911,25 +889,6 @@ export const LandingPage = () => {
     enabled: indicesToFetch.length > 0,
     staleTime: Infinity
   });
-  const { data: mfsResp } = useQuery({ queryKey: ['allMFs'], queryFn: () => fetchMutualFunds({ limit: 1000 }), staleTime: Infinity });
-  const topFunds = ((mfsResp as any)?.data || []).slice(0, 10).map((mf: any) => ({
-    slug: mf.scheme_code || mf.direct_search_id,
-    ticker: mf.fund_name || mf.scheme_name,
-    livePrice: mf.nav ? String(mf.nav) : '0',
-    day_change: `${mf.return1y || 0}%`,
-    logo_url: mf.logo_url,
-    is_mf: true
-  }));
-
-  const { data: etfsResp } = useQuery({ queryKey: ['allETFs'], queryFn: fetchETFs, staleTime: Infinity });
-  const topETFs = (etfsResp || []).sort((a: any, b: any) => (b.marketCap || 0) - (a.marketCap || 0)).slice(0, 10).map((etf: any) => ({
-    slug: etf.slug,
-    ticker: etf.ticker,
-    name: etf.name,
-    livePrice: etf.livePrice ? String(etf.livePrice) : '0',
-    day_change: etf.dayChange || '0.00 (0.00%)',
-    logo_url: etf.header?.logoUrl
-  }));
 
   const [tickerMode, setTickerMode] = useState<'stocks' | 'etfs' | 'indices' | 'funds'>('stocks');
   const activeTickerItems = tickerMode === 'stocks' ? majorStocks.slice(0, 10) : (tickerMode === 'etfs' ? topETFs : (tickerMode === 'indices' ? indexAssets : topFunds));
@@ -951,9 +910,9 @@ export const LandingPage = () => {
       trace.push(`[${(performance.now() - tFetch).toFixed(1)}ms] fetchBatchLiveQuotes network call completed`);
       
       const tCache1 = performance.now();
-      queryClient.setQueryData(['allStocks'], (old: any) => {
+      queryClient.setQueryData(['landingWidgets'], (old: any) => {
         if (!old) return old;
-        return old.map((stock: any) => {
+        const updateArray = (arr: any[]) => arr.map((stock: any) => {
           const q = quotes[stock.slug];
           if (q) {
             const isZero = q.dayChange === 0 && q.dayChangePerc === 0;
@@ -965,8 +924,16 @@ export const LandingPage = () => {
           }
           return stock;
         });
+        
+        return {
+          ...old,
+          market_caps: updateArray(old.market_caps || []),
+          inst_accum: updateArray(old.inst_accum || []),
+          rs_rating: updateArray(old.rs_rating || []),
+          indices: updateArray(old.indices || [])
+        };
       });
-      trace.push(`[${(performance.now() - tCache1).toFixed(1)}ms] allStocks cache update (6000+ items) completed`);
+      trace.push(`[${(performance.now() - tCache1).toFixed(1)}ms] landingWidgets cache update completed`);
       
       const tCache2 = performance.now();
       slugsToSync.forEach(slug => {
@@ -1155,7 +1122,7 @@ export const LandingPage = () => {
         </div> {/* End of Main 12-Column Grid Wrapper */}
 
         {/* Sectors Horizontal List with Expandable Interaction */}
-        <MarketSectors macro={macro} stocks={safeStocks} />
+        <MarketSectors macro={macro} />
 
         {/* True Quant Data Grid replacing Community Ideas & Images */}
         <StockListGrid stocks={safeStocks} />

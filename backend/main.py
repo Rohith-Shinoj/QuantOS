@@ -63,6 +63,9 @@ _db_con = None
 _search_cache = []
 _news_cache = {}
 
+import threading
+db_lock = threading.Lock()
+
 def get_db():
     global _db_con
     if _db_con is None:
@@ -291,7 +294,8 @@ def list_stocks():
                 absolute_data->>'$.OHLCV'
             FROM stocks
         """
-        result = con.execute(query).fetchall()
+        with db_lock:
+            result = con.execute(query).fetchall()
         
         local_cache = []
         for r in result:
@@ -365,14 +369,14 @@ def list_etfs(limit: int = 1000):
         except:
             return []
             
-        query = """
-            SELECT 
-                slug, ticker, name, marketCap, peRatio, livePrice, 
-                dayChange, type, header, stats
-            FROM etfs
-            LIMIT ?
-        """
-        result = con.execute(query, (limit,)).fetchall()
+        query = "SELECT slug, ticker, name, market_cap, pe_ratio, absolute_data->>'$.\"live price\"', day_change, type, absolute_data->>'$.header', absolute_data->>'$.stats' FROM etfs"
+        if limit > 0:
+            query += f" LIMIT ?"
+            with db_lock:
+                result = con.execute(query, (limit,)).fetchall()
+        else:
+            with db_lock:
+                result = con.execute(query).fetchall()
         
         etfs = []
         for r in result:
@@ -572,7 +576,6 @@ def get_macro():
             FROM stocks 
             WHERE slug = 'state-bank-of-india'
         """
-        result = con.execute(query).fetchone()
         
         sector_query = """
             SELECT 
@@ -586,12 +589,6 @@ def get_macro():
             ORDER BY avg_inst_accum DESC NULLS LAST
             LIMIT 10
         """
-        sectors = con.execute(sector_query).fetchall()
-
-        # Intelligence Layer 3: Smart Money Absorption Signals
-        # We look for:
-        # 1. Significant Institutional Accumulation (> 0.2% change)
-        # 2. Positive HNI Absorption (Retail is liquidating)
         absorption_query = """
             SELECT 
                 slug, 
@@ -603,7 +600,11 @@ def get_macro():
             ORDER BY inst_accum DESC
             LIMIT 12
         """
-        absorption = con.execute(absorption_query).fetchall()
+
+        with db_lock:
+            result = con.execute(query).fetchone()
+            sectors = con.execute(sector_query).fetchall()
+            absorption = con.execute(absorption_query).fetchall()
 
         return {
             "regime": {
@@ -1215,8 +1216,9 @@ def get_mutual_funds(
         # Add pagination
         query += f" LIMIT {limit} OFFSET {offset}"
         
-        df = db.execute(query).df()
-        total_count = db.execute(count_query).fetchone()[0]
+        with db_lock:
+            df = db.execute(query).df()
+            total_count = db.execute(count_query).fetchone()[0]
         
         # Safely convert Pandas DataFrame (with nested structs/arrays) to pure Python dicts
         import json
@@ -1270,7 +1272,8 @@ def get_capture_ratios():
 def get_broker_targets(slug: str):
     try:
         con = get_db()
-        res_ticker = con.execute("SELECT ticker FROM stocks WHERE slug = ?", (slug,)).fetchone()
+        with db_lock:
+            res_ticker = con.execute("SELECT ticker FROM stocks WHERE slug = ?", (slug,)).fetchone()
         ticker = res_ticker[0] if res_ticker else slug.upper()
         
         from broker_scraper import fetch_broker_targets_from_mc
@@ -1280,3 +1283,36 @@ def get_broker_targets(slug: str):
         print(f"Error fetching broker targets for {slug}: {e}")
         return {"targets": []}
 
+@app.get("/api/landing_widgets")
+def get_landing_widgets():
+    try:
+        con = get_db()
+        with db_lock:
+            # Major Market Caps
+            market_caps = con.execute("SELECT slug, ticker, name, market_cap, day_change, pe_ratio FROM stocks ORDER BY market_cap DESC NULLS LAST LIMIT 10").fetchall()
+            
+            # Highest Institutional Accumulation
+            inst_accum = con.execute("SELECT slug, ticker, name, inst_accum, day_change, market_cap FROM stocks ORDER BY inst_accum DESC NULLS LAST LIMIT 10").fetchall()
+            
+            # High Momentum (RS Rating)
+            rs_rating = con.execute("SELECT slug, ticker, name, rs_rating, day_change, market_cap FROM stocks ORDER BY rs_rating DESC NULLS LAST LIMIT 10").fetchall()
+            
+            # Top Mutual Funds by AUM
+            top_mfs = con.execute("SELECT scheme_code, fund_name, category, return3y, aum FROM mutual_funds ORDER BY aum DESC NULLS LAST LIMIT 10").fetchall()
+            
+            # Top ETFs by Market Cap
+            top_etfs = con.execute("SELECT slug, ticker, name, dayChange, marketCap FROM etfs ORDER BY marketCap DESC NULLS LAST LIMIT 10").fetchall()
+
+            # Indices
+            indices = con.execute("SELECT slug, ticker, name, market_cap, day_change FROM stocks WHERE slug IN ('nifty', 'sp-bse-sensex', 'india-vix', 'nifty-bank', 'nifty-it', 'nifty-metal', 'nifty-smallcap-100', 'nifty-midcap', 'nifty-total-market-index')").fetchall()
+
+        return {
+            "market_caps": [{"slug": r[0], "ticker": r[1], "name": r[2], "marketCap": r[3], "day_change": r[4], "pe_ratio": r[5]} for r in market_caps],
+            "inst_accum": [{"slug": r[0], "ticker": r[1], "name": r[2], "inst_accum": r[3], "day_change": r[4], "marketCap": r[5]} for r in inst_accum],
+            "rs_rating": [{"slug": r[0], "ticker": r[1], "name": r[2], "rs_rating": r[3], "day_change": r[4], "marketCap": r[5]} for r in rs_rating],
+            "top_mfs": [{"slug": r[0], "name": r[1], "category": r[2], "return3y": r[3], "aum": r[4]} for r in top_mfs],
+            "top_etfs": [{"slug": r[0], "ticker": r[1], "name": r[2], "day_change": r[3], "marketCap": r[4]} for r in top_etfs],
+            "indices": [{"slug": r[0], "ticker": r[1], "name": r[2], "marketCap": r[3], "day_change": r[4]} for r in indices]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

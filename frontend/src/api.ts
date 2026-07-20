@@ -22,6 +22,11 @@ export const fetchStockData = async (slug: string) => {
   return response.data;
 };
 
+export const fetchLandingWidgets = async () => {
+  const response = await axios.get(`${API_BASE_URL}/landing_widgets`);
+  return response.data;
+};
+
 export const fetchAllStocks = async () => {
   const response = await axios.get(`${API_BASE_URL}/stocks`);
   return response.data;
