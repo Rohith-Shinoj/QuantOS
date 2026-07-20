@@ -14,8 +14,8 @@ export const NewsSentiment = ({ data }: { data: any }) => {
     const fetchNews = async () => {
       setIsLoadingNews(true);
       try {
-        const VITE_API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000';
-        const res = await fetch(`${VITE_API_BASE}/api/news/${slug}`);
+        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+        const res = await fetch(`${API_BASE_URL}/api/news/${slug}`);
         if (!res.ok) throw new Error("Failed to fetch");
         const result = await res.json();
         if (isMounted && result.raw_feed) {

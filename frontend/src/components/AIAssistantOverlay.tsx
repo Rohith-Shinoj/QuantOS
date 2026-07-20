@@ -4,6 +4,8 @@ import { useAIStore } from '../store/aiStore';
 import { X, Loader2, Database, Globe, BrainCircuit, Maximize2, Send } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 interface Props {
   ticker: string | undefined;
   isOpen: boolean;
@@ -44,7 +46,7 @@ export const AIAssistantOverlay: React.FC<Props> = ({ ticker, isOpen, onClose, d
     addEvent({ type: 'user_query', message: displayPrompt });
     
     try {
-      const response = await fetch('http://localhost:8000/api/agent/memo', {
+      const response = await fetch(`${API_BASE_URL}/api/agent/memo`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ticker: targetTicker, query: queryText, history: memoHistory })

@@ -71,7 +71,8 @@ def get_db():
     if _db_con is None:
         # For Parquet, we connect to an in-memory DB and query the file
         _db_con = duckdb.connect(":memory:")
-        _db_con.execute("PRAGMA threads=2;")
+        _db_con.execute("PRAGMA threads=1;")
+        _db_con.execute("PRAGMA preserve_insertion_order=false;")
         _db_con.execute("PRAGMA memory_limit='2GB';")
         _db_con.execute("PRAGMA temp_directory='./duckdb_temp_spill';")
         # We can also create a view to make queries cleaner
@@ -369,7 +370,7 @@ def list_etfs(limit: int = 1000):
         except:
             return []
             
-        query = "SELECT slug, ticker, name, market_cap, pe_ratio, absolute_data->>'$.\"live price\"', day_change, type, absolute_data->>'$.header', absolute_data->>'$.stats' FROM etfs"
+        query = "SELECT slug, ticker, name, marketCap, pe_ratio, absolute_data->>'$.\"live price\"', day_change, type, absolute_data->>'$.header', absolute_data->>'$.stats' FROM etfs"
         if limit > 0:
             query += f" LIMIT ?"
             with db_lock:

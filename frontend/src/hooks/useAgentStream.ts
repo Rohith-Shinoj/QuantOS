@@ -2,6 +2,8 @@ import type { ChatMessage } from '../store/aiStore';
 import { useAIStore } from '../store/aiStore';
 import { parse } from 'partial-json';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 export const useAgentStream = () => {
   const { 
     setProcessing, addMessage, updateLastMessageString, 
@@ -47,7 +49,7 @@ export const useAgentStream = () => {
       })).slice(-10); // Keep last 10 messages for context
 
       appendDebugLog(`[HTTP] Sending POST to /api/agent/research for ticker: ${ticker || 'GLOBAL'}`);
-      const response = await fetch('http://localhost:8000/api/agent/research', {
+      const response = await fetch(`${API_BASE_URL}/api/agent/research`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ticker, query, history })
