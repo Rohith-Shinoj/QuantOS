@@ -259,7 +259,7 @@ def _init_con() -> duckdb.DuckDBPyConnection:
         
     con = duckdb.connect(":memory:")
     con.execute("PRAGMA threads=1;")
-    con.execute("PRAGMA memory_limit='1GB';")
+    con.execute("PRAGMA memory_limit='4GB';")
     con.execute("SET preserve_insertion_order=false;")
     con.execute("PRAGMA temp_directory='./duckdb_temp_spill';")
     
