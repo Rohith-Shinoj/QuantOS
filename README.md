@@ -1,20 +1,8 @@
-# Finugreek Quant & Analytics Platform
+# Finugreek - AI Native Multimodal Market Analytics Platform
 
 Welcome to the Finugreek Quant & Analytics Platform. This document is the single source of truth for the codebase in its current form. It has been prepared by exhaustively crawling the existing file system, ignoring all historical conversations or deprecated roadmaps. 
 
 This repository is a full-stack, institutional-grade quantitative finance platform built to ingest raw market data, run advanced Machine Learning (XGBoost/PyTorch) inferences, calculate SHAP feature attributions, and display everything on a rich React/Vite dashboard powered by an LLM-driven AI Agent.
-
----
-
-## 🧭 Crucial Context Files for New Agents
-
-To instantly understand the features, data fields, and underlying schema of this platform, immediately inspect the following specific files:
-
-1. **For the Data Schema & Fields:** Run DuckDB queries against `datasets/active/market_data.parquet`. This file contains the deeply nested JSON payload (`absolute_data` and `relative_data`) housing all P/E ratios, OHLCV arrays, and quarterly financials.
-2. **For the ML Features:** Read `ml_engine/predictor.py`. Look specifically at the `fundamental_feats`, `momentum_feats`, and `forensic_feats` lists to understand exactly which fields are fed into the XGBoost models.
-3. **For Frontend API Contracts:** Read `frontend/src/api.ts` to see exactly what JSON shapes the React application expects from the backend.
-4. **For AI Agent Tools & State:** Read `backend/agent_api.py` and `backend/agent_engine/graph.py` to understand the LangGraph state machine and how Server-Sent Events (SSE) stream to the UI.
-5. **For Frontend Routing & Views:** Read `frontend/src/App.tsx` to understand the exact page structure and URL parameters (e.g., `/terminal/:slug`).
 
 ---
 
