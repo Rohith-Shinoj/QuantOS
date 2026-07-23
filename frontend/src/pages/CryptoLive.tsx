@@ -191,9 +191,9 @@ export const CryptoLive = () => {
             const msg = JSON.parse(event.data);
             if (msg.type === 'trade') {
               // The backend sends the trade data directly on the msg object (no nested 'data' key)
-              tradesQueueRef.current.push(msg as CryptoTrade);
+              tradesQueueRef.current.push(msg as Trade);
             } else if (msg.type === 'depth') {
-              setOrderBook(msg as OrderBook);
+              setOrderBook(msg as OrderBookData);
             } else if (msg.type === 'stats') {
               setStats(msg as CryptoStats);
             } else if (msg.type === 'ohlc') {
