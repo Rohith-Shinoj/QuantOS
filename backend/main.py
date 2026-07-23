@@ -65,18 +65,19 @@ db_lock = threading.Lock()
 def get_db():
     global _db_con
     if _db_con is None:
-        # For Parquet, we connect to an in-memory DB and query the file
-        _db_con = duckdb.connect(":memory:")
-        _db_con.execute("PRAGMA threads=1;")
-        _db_con.execute("PRAGMA memory_limit='1GB';")
-        _db_con.execute("SET preserve_insertion_order=false;")
-        _db_con.execute("PRAGMA temp_directory='./duckdb_temp_spill';")
-        # We can also create a view to make queries cleaner
-        _db_con.execute(f"CREATE OR REPLACE VIEW stocks AS SELECT * FROM '{DB_PATH}'")
-        if os.path.exists(MF_DB_PATH):
-            _db_con.execute(f"CREATE OR REPLACE VIEW mutual_funds AS SELECT * FROM '{MF_DB_PATH}'")
-        if os.path.exists(ETF_DB_PATH):
-            _db_con.execute(f"CREATE OR REPLACE VIEW etfs AS SELECT * FROM '{ETF_DB_PATH}'")
+        with db_lock:
+            if _db_con is None:
+                con = duckdb.connect(":memory:")
+                con.execute("PRAGMA threads=1;")
+                con.execute("PRAGMA memory_limit='1GB';")
+                con.execute("SET preserve_insertion_order=false;")
+                con.execute("PRAGMA temp_directory='./duckdb_temp_spill';")
+                con.execute(f"CREATE OR REPLACE VIEW stocks AS SELECT * FROM '{DB_PATH}'")
+                if os.path.exists(MF_DB_PATH):
+                    con.execute(f"CREATE OR REPLACE VIEW mutual_funds AS SELECT * FROM '{MF_DB_PATH}'")
+                if os.path.exists(ETF_DB_PATH):
+                    con.execute(f"CREATE OR REPLACE VIEW etfs AS SELECT * FROM '{ETF_DB_PATH}'")
+                _db_con = con
     return _db_con.cursor()
 
 def verify_admin_token(x_admin_token: str = Header(...)):
@@ -1350,10 +1351,10 @@ def get_landing_widgets():
             market_caps = con.execute("SELECT slug, ticker, name, market_cap, day_change, pe_ratio FROM stocks ORDER BY market_cap DESC NULLS LAST LIMIT 10").fetchall()
             
             # Highest Institutional Accumulation
-            inst_accum = con.execute("SELECT slug, ticker, name, inst_accum, day_change, market_cap FROM stocks ORDER BY inst_accum DESC NULLS LAST LIMIT 10").fetchall()
+            inst_accum = con.execute("SELECT slug, ticker, name, inst_accum, day_change, market_cap FROM stocks WHERE market_cap >= 5000 ORDER BY inst_accum DESC NULLS LAST LIMIT 10").fetchall()
             
             # High Momentum (RS Rating)
-            rs_rating = con.execute("SELECT slug, ticker, name, rs_rating, day_change, market_cap FROM stocks ORDER BY rs_rating DESC NULLS LAST LIMIT 10").fetchall()
+            rs_rating = con.execute("SELECT slug, ticker, name, rs_rating, day_change, market_cap FROM stocks WHERE market_cap >= 5000 ORDER BY rs_rating DESC NULLS LAST LIMIT 10").fetchall()
             
             # Top Mutual Funds by AUM
             top_mfs = con.execute("SELECT scheme_code, fund_name, category, return3y, aum FROM mutual_funds ORDER BY aum DESC NULLS LAST LIMIT 10").fetchall()

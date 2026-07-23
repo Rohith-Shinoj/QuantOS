@@ -405,12 +405,20 @@ def build_query(table: str, registry: dict, req: ScreenerRequest,
 
     offset = (req.page - 1) * req.limit
 
+    # Fix: DuckDB runs out of memory if we extract JSON fields in the SELECT
+    # clause for all 6,000 rows simultaneously before it applies the limit/offset.
+    # By wrapping it in a CTE, the WHERE/ORDER BY executes first, and JSON 
+    # parsing only runs on the final page of results (e.g. 100 rows).
     main_sql = f"""
+    WITH _top_rows AS (
+        SELECT *
+        FROM {table}
+        WHERE {where_sql}
+        {order_sql}
+        LIMIT {req.limit} OFFSET {offset}
+    )
     SELECT {', '.join(selects)}
-    FROM {table}
-    WHERE {where_sql}
-    {order_sql}
-    LIMIT {req.limit} OFFSET {offset}
+    FROM _top_rows
     """
     count_sql = f"SELECT COUNT(*) FROM {table} WHERE {where_sql}"
     return main_sql, count_sql, params
@@ -525,7 +533,7 @@ def _prewarm():
     except Exception as e:
         print(f"[screener] ⚠️  Pre-warm failed (will retry on first request): {e}")
 
-threading.Thread(target=_prewarm, daemon=True, name="screener-prewarm").start()
+# threading.Thread(target=_prewarm, daemon=True, name="screener-prewarm").start()
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  ETF METRICS REGISTRY

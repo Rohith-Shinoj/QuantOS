@@ -48,7 +48,7 @@ const formatNumber = (num: number) => {
 
 export const MarketHeatmap = () => {
   const navigate = useNavigate();
-  const [indexFilter, setIndexFilter] = useState('Nifty 500 Index');
+  const [indexFilter, setIndexFilter] = useState('Nifty 50 Index');
   const [sizeBy, setSizeBy] = useState('Market Cap');
   const [colorBy, setColorBy] = useState('Change 1D, %');
   const [groupBy, setGroupBy] = useState('Sector');
@@ -85,7 +85,7 @@ export const MarketHeatmap = () => {
 
   const { data: stocks, isLoading } = useQuery({
     queryKey: ['allStocks'],
-    queryFn: fetchAllStocks,
+    queryFn: () => fetchAllStocks({ limit: 1000 }),
   });
 
   const rootNode = useMemo(() => {
@@ -201,7 +201,7 @@ export const MarketHeatmap = () => {
   }
 
   return (
-    <div className="flex flex-col h-full bg-canvas text-text-primary overflow-hidden">
+    <div className="flex-1 w-full flex flex-col h-full bg-canvas text-text-primary overflow-hidden">
       {/* Top Navigation Bar */}
       <header className="flex-none px-4 py-2 flex flex-col gap-3 border-b border-border bg-canvas z-10 shrink-0">
         <h1 className="text-xl font-bold tracking-tight text-text-primary">Stock Heatmap</h1>
