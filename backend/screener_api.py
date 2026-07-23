@@ -20,7 +20,7 @@ STOCK_METRICS: dict[str, tuple] = {
 
     # ── IDENTITY ──────────────────────────────────────────────────────────
     "market_cap":      ("market_cap",       "Market Cap (Cr)",  "Identity", "numeric", "Total market value of a company's outstanding shares.", ""),
-    "market_cap_type": ("market_cap_type",  "Cap Type",         "Identity", "string",  "Classification of the company (e.g., Large Cap, Mid Cap).", "Identity."),
+    "market_cap_type": ("CASE WHEN market_cap >= 20000 THEN 'Large Cap' WHEN market_cap >= 5000 THEN 'Mid Cap' WHEN market_cap > 0 THEN 'Small Cap' ELSE 'Unknown' END",  "Cap Type",         "Identity", "string",  "Classification of the company (e.g., Large Cap, Mid Cap).", "Identity."),
     "industry":        ("industry",         "Industry",         "Identity", "string",  "The primary sector or industry in which the company operates.", "Identity."),
 
     # ── PRICE ─────────────────────────────────────────────────────────────
@@ -235,6 +235,7 @@ class ScreenerRequest(BaseModel):
     columns:    List[str] = []
     page:       int  = 1
     limit:      int  = 100
+    search:     str  = ""
 
 # ────────────────────────────────────────────────────────────────────────────
 #  HELPERS
@@ -402,6 +403,10 @@ def build_query(table: str, registry: dict, req: ScreenerRequest,
 
     where_sql = " ".join(where_sql_parts) if where_sql_parts else "1=1"
 
+    if hasattr(req, "search") and req.search:
+        search_escaped = req.search.replace("'", "''")
+        where_sql = f"({where_sql}) AND (name ILIKE '%{search_escaped}%' OR ticker ILIKE '%{search_escaped}%')"
+
     # ── ORDER BY clause ────────────────────────────────────────────────────
     order_sql = ""
     if req.sort_by in registry:
@@ -468,7 +473,7 @@ def screen_stocks(req: ScreenerRequest):
             "slug",
             "ticker",
             "name",
-            "market_cap_type",
+            "CASE WHEN market_cap >= 20000 THEN 'Large Cap' WHEN market_cap >= 5000 THEN 'Mid Cap' WHEN market_cap > 0 THEN 'Small Cap' ELSE 'Unknown' END AS market_cap_type",
             "industry",
             "json_extract_string(absolute_data,'$.header_raw.logoUrl') AS logo_url",
         ]
@@ -489,7 +494,8 @@ def screen_stocks(req: ScreenerRequest):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(500, str(e))
+        print(f"[screener] Error: {e}")
+        raise HTTPException(500, "An internal error occurred while processing the request.")
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -524,7 +530,8 @@ def screen_mf(req: ScreenerRequest):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(500, str(e))
+        print(f"[screener] Error: {e}")
+        raise HTTPException(500, "An internal error occurred while processing the request.")
 
 # ─── Pre-warm the connection at module import time ────────────────────────────
 # Runs in a background thread so FastAPI startup is not blocked.
@@ -550,7 +557,7 @@ ETF_METRICS: dict[str, tuple] = {
 
     # ── PRICE & RETURNS ───────────────────────────────────────────────────
     "live_price":     ("livePrice",     "Live Price (₹)",  "Price", "numeric", "Current market price of the ETF.", ""),
-    "day_change_pct": ("CASE WHEN dayChange LIKE '-%' THEN -TRY_CAST(REGEXP_EXTRACT(dayChange, '\\\\(([-0-9.]+)%\\\\)', 1) AS DOUBLE) ELSE TRY_CAST(REGEXP_EXTRACT(dayChange, '\\\\(([-0-9.]+)%\\\\)', 1) AS DOUBLE) END", "Day Change %",     "Price", "numeric", "Percentage price change over the last trading day.", ""),
+    "day_change_pct": ("CASE WHEN dayChange LIKE '-%' THEN -TRY_CAST(REGEXP_EXTRACT(dayChange, '\\(([-0-9.]+)%\\)', 1) AS DOUBLE) ELSE TRY_CAST(REGEXP_EXTRACT(dayChange, '\\(([-0-9.]+)%\\)', 1) AS DOUBLE) END", "Day Change %",     "Price", "numeric", "Percentage price change over the last trading day.", ""),
     "return_1m":  ("TRY_CAST(json_extract_string(stats,'$.returns.return1M')  AS DOUBLE)", "1M Return %",  "Price", "numeric", "ETF return over last 1 month.", ""),
     "return_3m":  ("TRY_CAST(json_extract_string(stats,'$.returns.return3M')  AS DOUBLE)", "3M Return %",  "Price", "numeric", "ETF return over last 3 months.", ""),
     "return_6m":  ("TRY_CAST(json_extract_string(stats,'$.returns.return6M')  AS DOUBLE)", "6M Return %",  "Price", "numeric", "ETF return over last 6 months.", ""),
@@ -607,7 +614,8 @@ def screen_etfs(req: ScreenerRequest):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(500, str(e))
+        print(f"[screener] Error: {e}")
+        raise HTTPException(500, "An internal error occurred while processing the request.")
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  ALL ASSETS SCREENER ENDPOINT
@@ -634,10 +642,10 @@ def screen_all(req: ScreenerRequest):
             slug, ticker, name, 'Stock' AS type,
             json_extract_string(absolute_data, '$.\"live price\"') AS live_price_raw,
             TRY_CAST(REPLACE(REPLACE(live_price_raw, '₹', ''), ',', '') AS DOUBLE) AS live_price,
-            TRY_CAST(regexp_extract(COALESCE(json_extract_string(absolute_data,'$.\"day change\"'),''),'\\\\(([-0-9.]+)%\\\\)',1) AS DOUBLE) AS day_change_pct,
+            TRY_CAST(regexp_extract(COALESCE(json_extract_string(absolute_data,'$.\"day change\"'),''),'\\(([-0-9.]+)%\\)',1) AS DOUBLE) AS day_change_pct,
             TRY_CAST(json_extract_string(absolute_data, '$.\"1y return\"') AS DOUBLE) AS return_1y,
             TRY_CAST(json_extract_string(absolute_data, '$.\"3y return\"') AS DOUBLE) AS return_3y,
-            json_extract_string(header,'$.logoUrl') AS logo_url
+            json_extract_string(absolute_data,'$.header_raw.logoUrl') AS logo_url
         FROM stocks
         UNION ALL
         SELECT 
@@ -654,10 +662,10 @@ def screen_all(req: ScreenerRequest):
             scheme_code AS slug, scheme_code AS ticker, fund_name AS name, 'Mutual Fund' AS type,
             CAST(nav AS VARCHAR) AS live_price_raw,
             TRY_CAST(nav AS DOUBLE) AS live_price,
-            CASE WHEN dayChange LIKE '-%' THEN -TRY_CAST(REGEXP_EXTRACT(dayChange, '\\(([-0-9.]+)%\\)', 1) AS DOUBLE) ELSE TRY_CAST(REGEXP_EXTRACT(dayChange, '\\(([-0-9.]+)%\\)', 1) AS DOUBLE) END AS day_change_pct,
-            TRY_CAST(json_extract_string(stats,'$.returns.return1Y')  AS DOUBLE) AS return_1y,
-            TRY_CAST(json_extract_string(stats,'$.returns.return3Y')  AS DOUBLE) AS return_3y,
-            json_extract_string(header,'$.logoUrl') AS logo_url
+            TRY_CAST(return1d AS DOUBLE) AS day_change_pct,
+            TRY_CAST(return1y AS DOUBLE) AS return_1y,
+            TRY_CAST(return3y AS DOUBLE) AS return_3y,
+            logo_url AS logo_url
         FROM mutual_funds
         """
 
@@ -686,4 +694,5 @@ def screen_all(req: ScreenerRequest):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(500, str(e))
+        print(f"[screener] Error: {e}")
+        raise HTTPException(500, "An internal error occurred while processing the request.")

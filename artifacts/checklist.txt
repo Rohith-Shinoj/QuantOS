@@ -1,5 +1,11 @@
-[.] Screener upgrade  - Search within screener
+[ ] Screener upgrade  - Search within screener
 [ ] MOST IMP: AI NATIVE - CLAUDE
 [ ] Backtest module
+[ ] Screener update - Missing values and All button
+[ ] Fix state handling of Portfolio and Watchlist
+[ ] Add missing sector logos
+[ ] Add F&O scraping
+[ ] CRITICAL: Integrate Kdb+ and Q language
+
 
 

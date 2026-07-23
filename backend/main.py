@@ -1388,7 +1388,7 @@ def get_landing_widgets():
             top_etfs = con.execute("SELECT slug, ticker, name, dayChange, marketCap FROM etfs ORDER BY marketCap DESC NULLS LAST LIMIT 10").fetchall()
 
             # Indices
-            indices = con.execute("SELECT slug, ticker, name, market_cap, day_change FROM stocks WHERE slug IN ('nifty', 'sp-bse-sensex', 'india-vix', 'nifty-bank', 'nifty-it', 'nifty-metal', 'nifty-smallcap-100', 'nifty-midcap', 'nifty-total-market-index')").fetchall()
+            indices = con.execute("SELECT slug, ticker, name, market_cap, day_change FROM stocks WHERE slug IN ('nifty', 'sp-bse-sensex', 'india-vix', 'nifty-bank', 'nifty-it', 'nifty-metal', 'nifty-smallcap-100', 'nifty-midcap', 'nifty-total-market-index', 'multi-commodity-exchange-of-india-ltd')").fetchall()
 
         return {
             "market_caps": [{"slug": r[0], "ticker": r[1], "name": r[2], "marketCap": r[3], "day_change": r[4], "pe_ratio": r[5]} for r in market_caps],

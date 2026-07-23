@@ -110,7 +110,7 @@ export const TopNavigation = () => {
             className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-hover hover:bg-border border border-border rounded text-[10px] font-semibold text-text-primary transition-all shrink-0"
           >
             <RefreshCw size={12} />
-            Sync
+            
           </button>
         )}
 

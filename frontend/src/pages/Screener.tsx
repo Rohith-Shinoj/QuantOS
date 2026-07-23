@@ -73,6 +73,8 @@ export const Screener: React.FC = () => {
   const [sortBy, setSortBy]     = useState<string>(DEFAULT_STOCK_SORT);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [page, setPage]         = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [allMetrics, setAllMetrics] = useState<Metric[]>([]);
   const [filterPanelOpen, setFilterPanelOpen] = useState<string | null>(null);
   const [columnPanelOpen, setColumnPanelOpen] = useState(false);
@@ -93,6 +95,14 @@ export const Screener: React.FC = () => {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
   // Reset everything when mode changes
   useEffect(() => {
     if (mode === 'stocks') {
@@ -110,6 +120,8 @@ export const Screener: React.FC = () => {
     }
     setQueryTokens([]);
     setPage(1);
+    setSearchQuery('');
+    setDebouncedSearchQuery('');
     setFilterPanelOpen(null);
     setPendingLogic(null);
   }, [mode]);
@@ -134,7 +146,7 @@ export const Screener: React.FC = () => {
   };
 
   const { data: queryData, isLoading, error: queryError, refetch: fetchResults } = useQuery({
-    queryKey: ['screener', mode, queryTokens, columns, sortBy, sortOrder, page],
+    queryKey: ['screener', mode, queryTokens, columns, sortBy, sortOrder, page, debouncedSearchQuery],
     queryFn: async () => {
       // Only fetch if query is empty or validly terminated
       if (queryTokens.length > 0) {
@@ -163,7 +175,8 @@ export const Screener: React.FC = () => {
           sort_by: sortBy,
           sort_order: sortOrder,
           page,
-          limit: 100
+          limit: 100,
+          search: debouncedSearchQuery
         })
       });
       
@@ -250,7 +263,7 @@ export const Screener: React.FC = () => {
 
         {/* Mode Toggle */}
         <div className="flex bg-surface-hover p-0.5 rounded-lg border border-border">
-          {(['stocks', 'etfs', 'mutual_funds', ] as const).map(m => (
+          {(['stocks', 'etfs', 'mutual_funds'] as const).map(m => (
             <button
               key={m}
               onClick={() => setMode(m)}
@@ -260,9 +273,7 @@ export const Screener: React.FC = () => {
                   : 'text-text-secondary hover:text-text-primary'
               }`}
             >
-              {/* {m === 'stocks' ? '📊 Stocks' : m === 'etfs' ? '📈 ETFs' : m === 'mutual_funds' ? '📉 Mutual Funds' : '🌐 All'} */}
               {m === 'stocks' ? '📊 Stocks' : m === 'etfs' ? '📈 ETFs' : '📉 Mutual Funds'}
-              
             </button>
           ))}
         </div>
@@ -328,46 +339,49 @@ export const Screener: React.FC = () => {
             />
          </div>
 
-         {/* Category quick buttons */}
-         <div className="flex items-center gap-1.5 flex-wrap" ref={filterPanelRef}>
-            <span className="text-[10px] text-text-primary/30 uppercase font-bold tracking-widest mr-2">Categories</span>
-            {(mode === 'stocks' ? GROUP_ORDER_STOCKS : mode === 'etfs' ? GROUP_ORDER_ETF : mode === 'mutual_funds' ? GROUP_ORDER_MF : GROUP_ORDER_ALL).map(group => {
-               const groupMetrics = allMetrics.filter(m => m.group === group);
-               if (!groupMetrics.length) return null;
-               
-               return (
-                  <button
-                     key={group}
-                     onClick={() => setFilterPanelOpen(v => v === group ? null : group)}
-                     className={`px-3 py-1 text-[10px] uppercase tracking-wider font-bold rounded border transition-all ${
-                        filterPanelOpen === group
-                           ? 'bg-alpha/10 border-alpha/30 text-text-primary'
-                           : 'bg-surface border-border text-text-secondary hover:text-text-primary hover:border-border'
-                     }`}
-                  >
-                     {group}
-                  </button>
-               );
-            })}
-         </div>
-
-         {/* Quick Insert Metrics for active group */}
-         {filterPanelOpen && (
-            <div className="flex flex-wrap gap-2 pt-2 border-t border-border mt-1">
-               {allMetrics.filter(m => m.group === filterPanelOpen).map(m => (
-                  <button
-                     key={m.key}
-                     onClick={() => {
-                        // Insert metric at end
-                        handleQueryChange([...queryTokens, { type: 'metric', value: m.key, label: m.label, options: m.options, metricType: m.type }]);
-                     }}
-                     className="px-2 py-1 bg-surface-hover hover:bg-alpha/20 border border-border hover:border-alpha/30 rounded text-xs text-text-primary/70 hover:text-text-primary transition-colors"
-                  >
-                     {m.label} <span className="opacity-0 group-hover:opacity-100 ml-1 text-alpha/50">+</span>
-                  </button>
-               ))}
+         {/* Categories and Metrics Container */}
+         <div className="flex flex-col" ref={filterPanelRef}>
+            {/* Category quick buttons */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+               <span className="text-[10px] text-text-primary/30 uppercase font-bold tracking-widest mr-2">Categories</span>
+               {(mode === 'stocks' ? GROUP_ORDER_STOCKS : mode === 'etfs' ? GROUP_ORDER_ETF : mode === 'mutual_funds' ? GROUP_ORDER_MF : GROUP_ORDER_ALL).map(group => {
+                  const groupMetrics = allMetrics.filter(m => m.group === group);
+                  if (!groupMetrics.length) return null;
+                  
+                  return (
+                     <button
+                        key={group}
+                        onClick={() => setFilterPanelOpen(v => v === group ? null : group)}
+                        className={`px-3 py-1 text-[10px] uppercase tracking-wider font-bold rounded border transition-all ${
+                           filterPanelOpen === group
+                              ? 'bg-alpha/10 border-alpha/30 text-text-primary'
+                              : 'bg-surface border-border text-text-secondary hover:text-text-primary hover:border-border'
+                        }`}
+                     >
+                        {group}
+                     </button>
+                  );
+               })}
             </div>
-         )}
+
+            {/* Quick Insert Metrics for active group */}
+            {filterPanelOpen && (
+               <div className="flex flex-wrap gap-2 pt-2 border-t border-border mt-1">
+                  {allMetrics.filter(m => m.group === filterPanelOpen).map(m => (
+                     <button
+                        key={m.key}
+                        onClick={() => {
+                           // Insert metric at end
+                           handleQueryChange([...queryTokens, { type: 'metric', value: m.key, label: m.label, options: m.options, metricType: m.type }]);
+                        }}
+                        className="px-2 py-1 bg-surface-hover hover:bg-alpha/20 border border-border hover:border-alpha/30 rounded text-xs text-text-primary/70 hover:text-text-primary transition-colors"
+                     >
+                        {m.label} <span className="opacity-0 group-hover:opacity-100 ml-1 text-alpha/50">+</span>
+                     </button>
+                  ))}
+               </div>
+            )}
+         </div>
       </div>
 
       {/* ── ERROR ──────────────────────────────────────────────────────────── */}
@@ -392,6 +406,8 @@ export const Screener: React.FC = () => {
           total={total}
           page={page}
           onPageChange={setPage}
+          searchQuery={searchQuery}
+          onSearch={setSearchQuery}
         />
       </div>
     </div>

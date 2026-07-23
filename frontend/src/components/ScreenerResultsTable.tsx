@@ -1,13 +1,12 @@
 import { InsufficientDataBadge } from './InsufficientDataBadge';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowUp, ArrowDown, ArrowUpDown, Download, ExternalLink, TrendingUp, TrendingDown } from 'lucide-react';
+import { ArrowUp, ArrowDown, ArrowUpDown, Download, ExternalLink, TrendingUp, TrendingDown, Search } from 'lucide-react';
 
 interface Props {
   data: any[];
   isLoading: boolean;
-  // mode?: 'stocks' | 'mutual_funds' | 'etfs' | 'all';
-  mode?: 'stocks' | 'mutual_funds' | 'etfs';
+  mode?: 'stocks' | 'mutual_funds' | 'etfs' | 'all';
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
   onSort?: (key: string) => void;
@@ -16,6 +15,8 @@ interface Props {
   total?: number;
   page?: number;
   onPageChange?: (p: number) => void;
+  searchQuery?: string;
+  onSearch?: (q: string) => void;
 }
 
 const METRIC_LABELS: Record<string, string> = {};
@@ -70,7 +71,8 @@ function DayChangeBadge({ val }: { val: string | null }) {
 
 export const ScreenerResultsTable: React.FC<Props> = ({
   data, isLoading, mode = 'stocks', sortBy = '', sortOrder = 'desc',
-  onSort, availableMetrics = [], columns = [], total = 0, page = 1, onPageChange
+  onSort, availableMetrics = [], columns = [], total = 0, page = 1, onPageChange,
+  searchQuery = '', onSearch
 }) => {
   const navigate = useNavigate();
 
@@ -92,7 +94,7 @@ export const ScreenerResultsTable: React.FC<Props> = ({
   } else if (mode === 'mutual_funds') {
     fixedCols = ['fund_name', 'category', 'risk'];
   } else if (mode === 'etfs') {
-    fixedCols = ['ticker', 'name', 'etf_type'];
+    fixedCols = ['ticker', 'name'];
   } else if (mode === 'all') {
     fixedCols = ['ticker', 'name', 'type'];
   }
@@ -102,6 +104,7 @@ export const ScreenerResultsTable: React.FC<Props> = ({
     ? Object.keys(data[0]).filter(k =>
         !fixedCols.includes(k) &&
         !['slug', 'logo_url', 'scheme_code', 'scheme_name', 'direct_search_id', 'industry', 'market_cap_type'].includes(k) &&
+        !(mode === 'etfs' && (k === 'type' || k === 'etf_type')) &&
         k !== 'name'
       )
     : columns.filter(c => !fixedCols.includes(c));
@@ -171,9 +174,21 @@ export const ScreenerResultsTable: React.FC<Props> = ({
     <div className="flex flex-col h-full">
       {/* Export bar */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-canvas shrink-0">
-        <span className="text-xs text-text-secondary">
-          <span className="text-text-primary font-semibold">{total.toLocaleString()}</span> results
-          {total > 100 && <> &mdash; page <span className="text-text-primary">{page}</span> of <span className="text-text-primary">{totalPages}</span></>}
+        <span className="text-xs text-text-secondary flex items-center gap-4">
+          <span>
+            <span className="text-text-primary font-semibold">{total.toLocaleString()}</span> results
+            {total > 100 && <> &mdash; page <span className="text-text-primary">{page}</span> of <span className="text-text-primary">{totalPages}</span></>}
+          </span>
+          <div className="relative">
+            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-secondary/50" />
+            <input 
+              type="text" 
+              placeholder="Search by name or ticker..." 
+              value={searchQuery}
+              onChange={e => onSearch?.(e.target.value)}
+              className="bg-canvas border border-border rounded pl-7 pr-2 py-1.5 text-xs text-text-primary placeholder:text-text-secondary/40 focus:outline-none focus:border-alpha focus:ring-1 focus:ring-alpha transition-all w-64"
+            />
+          </div>
         </span>
         <button
           onClick={exportCSV}
@@ -227,12 +242,6 @@ export const ScreenerResultsTable: React.FC<Props> = ({
                     onClick={() => onSort?.('name')}
                   >
                     <div className="flex items-center gap-1">Name <SortIcon col="name" /></div>
-                  </th>
-                  <th
-                    className="px-3 py-2.5 text-[10px] font-bold text-text-primary/50 uppercase cursor-pointer hover:text-alpha group select-none min-w-[80px]"
-                    onClick={() => onSort?.('type')}
-                  >
-                    <div className="flex items-center gap-1">Type <SortIcon col="type" /></div>
                   </th>
                 </>
               ) : mode === 'all' ? (
@@ -349,11 +358,6 @@ export const ScreenerResultsTable: React.FC<Props> = ({
                     </td>
                     <td className="px-3 py-2 max-w-[200px]">
                       <span className="text-xs text-text-primary truncate block">{row.name}</span>
-                    </td>
-                    <td className="px-3 py-2">
-                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-sm bg-blue-500/15 text-blue-400">
-                        {row.type || 'ETF'}
-                      </span>
                     </td>
                   </>
                 ) : mode === 'all' ? (
