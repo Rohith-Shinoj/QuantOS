@@ -334,14 +334,8 @@ def list_stocks(page: int = 1, limit: int = 50, category: str = None, sort_by: s
                 slug, ticker, name, market_cap_type, market_cap, 
                 pe_ratio, day_change, industry, inst_accum, 
                 volatility_squeeze, rs_rating,
-                absolute_data->>'$."live price"',
-                absolute_data->>'$.roe',
-                TRY_CAST(json_extract_string(relative_data,'$.price_returns.1w_return') AS DOUBLE),
-                TRY_CAST(json_extract_string(relative_data,'$.price_returns.1m_return') AS DOUBLE),
-                TRY_CAST(json_extract_string(relative_data,'$.price_returns.3m_return') AS DOUBLE),
-                TRY_CAST(json_extract_string(relative_data,'$.price_returns.6m_return') AS DOUBLE),
-                TRY_CAST(json_extract_string(relative_data,'$.price_returns.1y_return') AS DOUBLE),
-                TRY_CAST(json_extract_string(relative_data,'$.price_returns.ytd_return') AS DOUBLE)
+                absolute_data,
+                relative_data
             FROM stocks
             {where_clause}
             ORDER BY market_cap DESC
@@ -353,6 +347,24 @@ def list_stocks(page: int = 1, limit: int = 50, category: str = None, sort_by: s
         
         local_cache = []
         for r in result:
+            abs_str, rel_str = r[11], r[12]
+            abs_data = {}
+            rel_data = {}
+            if abs_str:
+                try: abs_data = json.loads(abs_str)
+                except: pass
+            if rel_str:
+                try: rel_data = json.loads(rel_str)
+                except: pass
+                
+            price_returns = rel_data.get("price_returns", {})
+            def get_ret(key):
+                try:
+                    val = price_returns.get(key)
+                    return float(val) if val is not None else 0.0
+                except:
+                    return 0.0
+                    
             local_cache.append({
                 "slug": r[0], 
                 "ticker": r[1], 
@@ -365,14 +377,14 @@ def list_stocks(page: int = 1, limit: int = 50, category: str = None, sort_by: s
                 "inst_accum": r[8],
                 "v_squeeze": r[9],
                 "rs_rating": r[10],
-                "livePrice": r[11],
-                "roe": r[12] if r[12] is not None else 0.0,
-                "perf_1w": r[13] or 0.0,
-                "perf_1m": r[14] or 0.0,
-                "perf_3m": r[15] or 0.0,
-                "perf_6m": r[16] or 0.0,
-                "perf_1y": r[17] or 0.0,
-                "perf_ytd": r[18] or 0.0
+                "livePrice": abs_data.get("live price"),
+                "roe": abs_data.get("roe", 0.0),
+                "perf_1w": get_ret("1w_return"),
+                "perf_1m": get_ret("1m_return"),
+                "perf_3m": get_ret("3m_return"),
+                "perf_6m": get_ret("6m_return"),
+                "perf_1y": get_ret("1y_return"),
+                "perf_ytd": get_ret("ytd_return")
             })
             
         return {
