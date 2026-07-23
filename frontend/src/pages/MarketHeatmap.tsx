@@ -81,7 +81,7 @@ export const MarketHeatmap = () => {
     });
     observer.observe(containerRef.current);
     return () => observer.disconnect();
-  }, []);
+  }, [isLoading]);
 
   const { data: stocks, isLoading } = useQuery({
     queryKey: ['allStocks'],
