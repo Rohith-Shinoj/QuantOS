@@ -69,6 +69,11 @@ export const MarketHeatmap = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoveredNode, setHoveredNode] = useState<any>(null);
 
+  const { data: stocks, isLoading } = useQuery({
+    queryKey: ['allStocks'],
+    queryFn: () => fetchAllStocks({ limit: 1000 }),
+  });
+
   useEffect(() => {
     if (!containerRef.current) return;
     const observer = new ResizeObserver((entries) => {
@@ -82,11 +87,6 @@ export const MarketHeatmap = () => {
     observer.observe(containerRef.current);
     return () => observer.disconnect();
   }, [isLoading]);
-
-  const { data: stocks, isLoading } = useQuery({
-    queryKey: ['allStocks'],
-    queryFn: () => fetchAllStocks({ limit: 1000 }),
-  });
 
   const rootNode = useMemo(() => {
     if (!stocks || dimensions.width === 0 || dimensions.height === 0) return null;
