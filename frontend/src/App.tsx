@@ -17,6 +17,7 @@ import { ETFSnapshot } from './pages/ETFSnapshot';
 import { AIResearchDesk } from './pages/AIResearchDesk';
 import { MutualFunds } from './pages/MutualFunds';
 import { MutualFundSnapshot } from './pages/MutualFundSnapshot';
+import { CryptoLive } from './pages/CryptoLive';
 import { TerminalLayout } from './layouts/TerminalLayout';
 import { useAppStore } from './store';
 
@@ -49,6 +50,7 @@ function App() {
           <Route path="portfolio" element={<PortfolioTracker />} />
           <Route path="mutual-funds" element={<MutualFunds />} />
           <Route path="watchlists" element={<Watchlists />} />
+          <Route path="crypto" element={<CryptoLive />} />
           <Route path="/stocks/:slug" element={<TerminalLayout />} />
           <Route path="/etf" element={<ETFs />} />
           <Route path="/etf/:slug" element={<ETFSnapshot />} />

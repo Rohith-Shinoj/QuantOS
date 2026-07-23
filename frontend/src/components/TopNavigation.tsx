@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { GlobalSearch } from './GlobalSearch';
-import { Activity, Target, Search, LineChart, BrainCircuit, Map, RefreshCw, Lock, Briefcase, Sun, Moon, BarChart2 } from 'lucide-react';
+import { Activity, Target, Search, LineChart, BrainCircuit, Map, List, Notebook, RefreshCw, Lock, Briefcase, Sun, Moon, BarChart2, Zap } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { fetchAllStocks } from '../api';
 
@@ -40,11 +40,11 @@ export const TopNavigation = () => {
     { name: 'Stocks', path: '/stocks', icon: <BarChart2 size={16} /> },
     { name: 'ETFs', path: '/etf', icon: <Target size={16} /> },
     { name: 'Mutual Funds', path: '/mutual-funds', icon: <LineChart size={16} /> },
-    { name: 'Screen', path: '/screener', icon: <Target size={16} /> },
-    { name: 'Watchlists', path: '/watchlists', icon: <Search size={16} /> },
+    { name: 'Screen', path: '/screener', icon: <Search size={16} /> },
+    { name: 'Crypto', path: '/crypto', icon: <Zap size={16} /> },
+    { name: 'Watchlists', path: '/watchlists', icon: <Notebook size={16} /> },
     { name: 'Pairs Trading', path: '/pairs', icon: <LineChart size={16} /> },
-    { name: 'Portfolio Analyzer', path: '/portfolio', icon: <Briefcase size={16} /> }
-  ];
+    { name: 'Portfolio Analyzer', path: '/portfolio', icon: <Briefcase size={16} /> }  ];
 
   const handleSync = async () => {
     await queryClient.invalidateQueries({ queryKey: ['allStocks'] });
@@ -62,6 +62,7 @@ export const TopNavigation = () => {
           {navItems.map((item) => {
             const isActive = location.pathname.startsWith(item.path);
             const isPortfolio = item.path === '/portfolio';
+            const isCrypto = item.path === '/crypto';
             return (
               <Link
                 key={item.path}
@@ -72,8 +73,12 @@ export const TopNavigation = () => {
                       ? isActive
                         ? 'bg-purple-500/20 text-purple-300 border border-purple-500/50 shadow-[0_0_8px_rgba(168,85,247,0.35)]'
                         : 'text-purple-300 border border-purple-500/30 hover:bg-purple-500/10 hover:shadow-[0_0_6px_rgba(168,85,247,0.25)] shadow-[0_0_4px_rgba(168,85,247,0.15)]'
-                      : isActive 
-                        ? 'bg-surface-hover text-text-primary border border-border/50' 
+                      : isCrypto
+                        ? isActive
+                        ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/50 shadow-[0_0_8px_rgba(255,215,0,0.35)]'
+                          : 'text-yellow-300 border border-yellow-500/30 hover:bg-yellow-500/10 hover:shadow-[0_0_6px_rgba(255,215,0,0.25)] shadow-[0_0_4px_rgba(255,215,0,0.15)]'
+                        : isActive 
+                          ? 'bg-surface-hover text-text-primary border border-border/50' 
                         : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover/50 border border-transparent'
                   }`}
               >

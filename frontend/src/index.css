@@ -122,4 +122,11 @@
   .animate-ticker:hover {
     animation-play-state: paused;
   }
+  @keyframes flashTrade {
+    0% { background-color: rgba(255, 255, 255, 0.2); }
+    100% { background-color: transparent; }
+  }
+  .animate-trade-flash {
+    animation: flashTrade 0.8s ease-out;
+  }
 }

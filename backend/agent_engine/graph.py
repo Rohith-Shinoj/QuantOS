@@ -8,7 +8,7 @@ from langchain_core.runnables import RunnableConfig
 import os
 import json
 
-from agent_engine.tools import query_quant_database, fetch_macro_context, execute_duckdb_query
+from agent_engine.tools import query_quant_database, fetch_macro_context, execute_duckdb_query, query_crypto_live, execute_q_query
 from agent_engine.registry import COMPONENT_REGISTRY
 class InvestmentState(TypedDict):
     messages: Annotated[Sequence[BaseMessage], operator.add]
@@ -108,7 +108,7 @@ async def execution_node(state: InvestmentState, config: RunnableConfig):
     
     return {"messages": [response]}
 
-tool_node = ToolNode([query_quant_database, fetch_macro_context, execute_duckdb_query])
+tool_node = ToolNode([query_quant_database, fetch_macro_context, execute_duckdb_query, query_crypto_live, execute_q_query])
 
 def execution_router(state: InvestmentState) -> str:
     last_message = state["messages"][-1]

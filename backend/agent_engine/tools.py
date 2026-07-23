@@ -202,3 +202,101 @@ def execute_duckdb_query(query: str) -> str:
     except Exception as e:
         return f"SQL Execution Error: {str(e)}. Review your SQL syntax and try again, or inform the user."
 
+# ============================================================
+# Crypto / kdb+ Tools — Real-time market microstructure
+# ============================================================
+
+@tool
+def query_crypto_live(sym: str, metric: str) -> str:
+    """
+    Queries the real-time kdb+ database for live crypto market microstructure data.
+    Use this tool when the user asks about CURRENT or LIVE crypto prices, order book dynamics,
+    or intraday crypto patterns.
+
+    Args:
+        sym: Crypto symbol. One of: BTCUSDT, ETHUSDT, SOLUSDT, BNBUSDT, XRPUSDT, DOGEUSDT
+        metric: One of:
+            - 'vwap': Volume-Weighted Average Price for the current session
+            - 'orderbook': Current L2 order book (top 10 levels)
+            - 'imbalance': Bid/ask volume imbalance (-1 to +1)
+            - 'spread': Current bid-ask spread
+            - 'stats': Combined stats (volatility, tick rate, spread, VWAP)
+            - 'recent_trades': Last 20 trades
+    """
+    try:
+        import sys, os
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__))))
+        from crypto_api import KDBPool
+
+        if not KDBPool.is_connected():
+            return "Error: kdb+ Real-Time Database is not running. The crypto module is offline. Inform the user."
+
+        sym = sym.upper()
+        q_map = {
+            "vwap": f"vwap[`{sym}]",
+            "orderbook": f"orderBook[`{sym}]",
+            "imbalance": f"bookImbalance[`{sym}; 10]",
+            "spread": f"topOfBook[`{sym}]",
+            "stats": f"allStats[`{sym}]",
+            "recent_trades": f"recentTrades[`{sym}; 20]",
+        }
+
+        if metric not in q_map:
+            return f"Error: Unknown metric '{metric}'. Available: {', '.join(q_map.keys())}"
+
+        result = KDBPool.query_to_dict(q_map[metric])
+        if result is None:
+            return "Error: Query returned no data. The symbol may not be actively traded right now."
+
+        return json.dumps(result, indent=2, default=str)
+
+    except Exception as e:
+        return f"kdb+ Query Error: {str(e)}. Do not retry this exact query."
+
+
+@tool
+def execute_q_query(query: str) -> str:
+    """
+    Executes a raw q/kdb+ query against the crypto Real-Time Database.
+    Use this for complex, custom crypto analytics that the predefined metrics don't cover.
+
+    IMPORTANT RULES:
+    1. Only read queries are permitted. No side effects.
+    2. Results are capped at 100 rows.
+    3. Available tables: trade (time, sym, price, size, side), quote (time, sym, bid, ask, bsize, asize), depth (time, sym, level, bid, ask, bsize, asize)
+    4. Available analytics: vwap[sym], ohlcBars[sym; duration], bookImbalance[sym; levels], topOfBook[sym], rollVol[sym; window], tickRate[sym; minutes], recentTrades[sym; n], allStats[sym]
+
+    Example queries:
+    - "select vwap:size wavg price by 5 xbar time.minute from trade where sym=`BTCUSDT"
+    - "select count i, sum size by sym from trade"
+    - "ohlc1m[`ETHUSDT]"
+    """
+    try:
+        import sys, os
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__))))
+        from crypto_api import KDBPool
+
+        if not KDBPool.is_connected():
+            return "Error: kdb+ Real-Time Database is not running. Inform the user."
+
+        # Safety: block destructive operations
+        dangerous = ["delete", "insert", "update", "upsert", "system", "exit", "\\\\"]
+        query_lower = query.strip().lower()
+        for d in dangerous:
+            if query_lower.startswith(d):
+                return f"Error: '{d}' operations are not permitted for safety."
+
+        result = KDBPool.query_to_dict(query)
+        if result is None:
+            return "Query returned no data."
+
+        # Cap output
+        if isinstance(result, list) and len(result) > 100:
+            result = result[:100]
+
+        return json.dumps(result, indent=2, default=str)
+
+    except Exception as e:
+        return f"q Execution Error: {str(e)}. Review your q syntax."
+
+

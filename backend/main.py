@@ -30,6 +30,7 @@ load_dotenv(dotenv_path=env_path, override=True)
 from agent_api import router as agent_router
 from screener_api import router as screener_router, reload_screener_db
 from portfolio_api import router as portfolio_router
+from crypto_api import router as crypto_router
 from broker_scraper import fetch_broker_targets_from_mc
 
 app = FastAPI(title="Quant Dashboard API")
@@ -46,6 +47,7 @@ app.add_middleware(
 app.include_router(agent_router)
 app.include_router(screener_router)
 app.include_router(portfolio_router)
+app.include_router(crypto_router)
 
 # Use absolute path to resolve the symlink relative to this file
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -1382,7 +1384,7 @@ def get_landing_widgets():
             rs_rating = con.execute("SELECT slug, ticker, name, rs_rating, day_change, market_cap FROM stocks WHERE market_cap >= 5000 ORDER BY rs_rating DESC NULLS LAST LIMIT 10").fetchall()
             
             # Top Mutual Funds by AUM
-            top_mfs = con.execute("SELECT scheme_code, fund_name, category, return3y, aum FROM mutual_funds ORDER BY aum DESC NULLS LAST LIMIT 10").fetchall()
+            top_mfs = con.execute("SELECT scheme_code, fund_name, category, return3y, aum, nav, logo_url FROM mutual_funds ORDER BY aum DESC NULLS LAST LIMIT 10").fetchall()
             
             # Top ETFs by Market Cap
             top_etfs = con.execute("SELECT slug, ticker, name, dayChange, marketCap FROM etfs ORDER BY marketCap DESC NULLS LAST LIMIT 10").fetchall()
@@ -1394,7 +1396,7 @@ def get_landing_widgets():
             "market_caps": [{"slug": r[0], "ticker": r[1], "name": r[2], "marketCap": r[3], "day_change": r[4], "pe_ratio": r[5]} for r in market_caps],
             "inst_accum": [{"slug": r[0], "ticker": r[1], "name": r[2], "inst_accum": r[3], "day_change": r[4], "marketCap": r[5]} for r in inst_accum],
             "rs_rating": [{"slug": r[0], "ticker": r[1], "name": r[2], "rs_rating": r[3], "day_change": r[4], "marketCap": r[5]} for r in rs_rating],
-            "top_mfs": [{"slug": r[0], "name": r[1], "category": r[2], "return3y": r[3], "aum": r[4]} for r in top_mfs],
+            "top_mfs": [{"slug": r[0], "name": r[1], "category": r[2], "return3y": r[3], "aum": r[4], "nav": r[5], "logo_url": r[6]} for r in top_mfs],
             "top_etfs": [{"slug": r[0], "ticker": r[1], "name": r[2], "day_change": r[3], "marketCap": r[4]} for r in top_etfs],
             "indices": [{"slug": r[0], "ticker": r[1], "name": r[2], "marketCap": r[3], "day_change": r[4]} for r in indices]
         }

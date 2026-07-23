@@ -836,9 +836,9 @@ export const LandingPage = () => {
   const topFunds = (landingWidgets?.top_mfs || []).map((mf: any) => ({
     slug: mf.slug,
     ticker: mf.name,
-    livePrice: '0',
+    livePrice: mf.nav ? String(mf.nav) : '0',
     day_change: `${mf.return3y || 0}%`,
-    logo_url: null,
+    logo_url: mf.logo_url || null,
     is_mf: true
   }));
   const topETFs = (landingWidgets?.top_etfs || []).map((etf: any) => ({

@@ -1,0 +1,1396 @@
+Tickerplant initialized. Log: :/Users/rohith/groww/tickdb/logs/2026.07.23.log
+=== Finugreek Tickerplant ===
+Port: 5010
+Tables: depth, quote, trade
+Waiting for connections...
+Client disconnected: 0
+Client connected: 9
+Connected to Tickerplant on port 5010
+=== Finugreek Real-Time Database ===
+Port: 5011
+Tables: depth, quote, trade
+Analytics loaded: vwap, ohlcBars, orderBook, bookImbalance, rollVol, tickRate, recentTrades, allStats
+Ready for queries.
+Client connected: 10
+INFO:     Started server process [9629]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+
+Welcome to KDB-X Community Edition!
+For Community support, please visit https://kx.com/slack
+Tutorials can be found at https://github.com/KxSystems/tutorials
+Ready to go beyond the Community Edition? Email preview@kx.com
+
+[KDBPool] Connected to RDB
+INFO:     127.0.0.1:63201 - "GET /api/crypto/ohlc/BTCUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63203 - "GET /api/crypto/trades/BTCUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63205 - "GET /api/crypto/orderbook/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63207 - "GET /api/crypto/stats/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63209 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63211 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection closed
+INFO:     127.0.0.1:63213 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:63445 - "GET /api/crypto/trades/BTCUSDT?n=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63616 - "GET /api/crypto/stats/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63862 - "GET /api/crypto/ohlc/BTCUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63864 - "GET /api/crypto/trades/BTCUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63866 - "GET /api/crypto/orderbook/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63868 - "GET /api/crypto/stats/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63870 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63872 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection closed
+INFO:     127.0.0.1:63874 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:63870 - "GET /api/search_index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63870 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63941 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64032 - "GET /api/crypto/stats/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64078 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64100 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64380 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64404 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64426 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64471 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:64471 - "GET /api/landing_widgets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64471 - "GET /api/stocks/reliance-industries-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64482 - "GET /api/macro HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64486 - "GET /api/stocks/bharti-airtel-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64471 - "GET /api/stocks/tata-consultancy-services-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64488 - "GET /api/stocks/hdfc-bank-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64471 - "GET /api/stocks/larsen-toubro-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64482 - "GET /api/stocks/bajaj-finance-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64486 - "GET /api/stocks/life-insurance-corporation-of-india HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64489 - "GET /api/stocks/icici-bank-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64471 - "GET /api/stocks/nifty HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64482 - "OPTIONS /api/stocks/batch HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64486 - "OPTIONS /api/quotes/refresh-batch HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64488 - "GET /api/stocks/hindustan-unilever-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64490 - "GET /api/stocks/state-bank-of-india HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64486 - "POST /api/stocks/batch HTTP/1.1" 200 OK
+
+[BACKEND] Starting refresh-batch for 20 slugs: ['reliance-industries-ltd', 'bharti-airtel-ltd', 'hdfc-bank-ltd', 'icici-bank-ltd', 'state-bank-of-india', 'tata-consultancy-services-ltd', 'bajaj-finance-ltd', 'life-insurance-corporation-of-india', 'larsen-toubro-ltd', 'hindustan-unilever-ltd', 'india-vix', 'multi-commodity-exchange-of-india-ltd', 'nifty-metal', 'nifty-it', 'nifty', 'sp-bse-sensex', 'nifty-total-market-index', 'nifty-midcap', 'nifty-smallcap-100', 'nifty-bank']
+[BACKEND] Finished refresh-batch. Took 2.15 seconds.
+
+INFO:     127.0.0.1:64482 - "POST /api/quotes/refresh-batch HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64482 - "OPTIONS /api/admin/log HTTP/1.1" 200 OK
+
+[FRONTEND TRACE]:
+[0.0ms] Extracted 20 slugs
+[14503.1ms] fetchBatchLiveQuotes network call completed
+[0.7ms] landingWidgets cache update completed
+[0.7ms] Individual stockData cache updates completed
+[14504.5ms] Total frontend handleSyncMarket execution time
+
+INFO:     127.0.0.1:64482 - "POST /api/admin/log HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64535 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection closed
+INFO:     127.0.0.1:64537 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:64542 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64549 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64572 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64594 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64618 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64669 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:64976 - "GET /api/crypto/ohlc/BTCUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64978 - "GET /api/crypto/trades/BTCUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64980 - "GET /api/crypto/orderbook/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64982 - "GET /api/crypto/stats/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64984 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64986 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:64988 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:64978 - "GET /api/search_index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64978 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65260 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:65260 - "GET /api/crypto/ohlc/BTCUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65277 - "GET /api/crypto/trades/BTCUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65280 - "GET /api/crypto/orderbook/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65281 - "GET /api/crypto/stats/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65283 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65285 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:65287 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:65277 - "GET /api/search_index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65277 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:65277 - "GET /api/crypto/ohlc/BTCUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65324 - "GET /api/crypto/trades/BTCUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65326 - "GET /api/crypto/orderbook/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65328 - "GET /api/crypto/stats/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65330 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65332 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection closed
+INFO:     127.0.0.1:65334 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:65330 - "GET /api/search_index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65437 - "GET /api/crypto/ohlc/BTCUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65502 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49298 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:49298 - "GET /api/crypto/ohlc/BTCUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49311 - "GET /api/crypto/trades/BTCUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49313 - "GET /api/crypto/orderbook/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49315 - "GET /api/crypto/stats/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49317 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49319 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:49321 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:49317 - "GET /api/crypto/ohlc/BTCUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49311 - "GET /api/crypto/trades/BTCUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49315 - "GET /api/crypto/orderbook/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49313 - "GET /api/crypto/stats/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49317 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49332 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection closed
+INFO:     127.0.0.1:49334 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:49317 - "GET /api/search_index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49401 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:49401 - "GET /api/crypto/ohlc/XRPUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49407 - "GET /api/crypto/trades/XRPUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49409 - "GET /api/crypto/orderbook/XRPUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49411 - "GET /api/crypto/stats/XRPUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49413 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:49411 - "GET /api/crypto/ohlc/BNBUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49409 - "GET /api/crypto/trades/BNBUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49407 - "GET /api/crypto/orderbook/BNBUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49401 - "GET /api/crypto/stats/BNBUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49415 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:49409 - "GET /api/crypto/ohlc/SOLUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49407 - "GET /api/crypto/trades/SOLUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49401 - "GET /api/crypto/orderbook/SOLUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49411 - "GET /api/crypto/stats/SOLUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49421 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:49407 - "GET /api/crypto/ohlc/ETHUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49411 - "GET /api/crypto/trades/ETHUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49401 - "GET /api/crypto/orderbook/ETHUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49409 - "GET /api/crypto/stats/ETHUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49423 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:49429 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:49411 - "GET /api/mutual_funds?limit=100&sort_by=aum&sort_order=desc HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49485 - "GET /api/stocks?limit=1000 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49567 - "GET /api/crypto/ohlc/BTCUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49583 - "GET /api/stocks?limit=1000 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49611 - "GET /api/crypto/trades/BTCUSDT?n=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49685 - "GET /api/stocks/the-federal-bank-ltd HTTP/1.1" 200 OK
+News empty in DB, fetching live news for the-federal-bank-ltd (FEDERALBNK)...
+INFO:     127.0.0.1:49693 - "GET /api/news/the-federal-bank-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49694 - "GET /api/stocks/the-federal-bank-ltd/related HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49693 - "GET /api/news/the-federal-bank-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49685 - "GET /api/quotes/live/the-federal-bank-ltd HTTP/1.1" 200 OK
+Error fetching targets for FEDERALBNK: Trendlyne returned status 405
+INFO:     127.0.0.1:49695 - "GET /api/stocks/the-federal-bank-ltd/targets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49725 - "GET /api/crypto/ohlc/BTCUSDT?bar=1m HTTP/1.1" 200 OK
+Client disconnected: 9
+Tickerplant initialized. Log: :/Users/rohith/groww/tickdb/logs/2026.07.23.log
+=== Finugreek Tickerplant ===
+Port: 5010
+Tables: depth, quote, trade
+Waiting for connections...
+Client disconnected: 0
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [9629]
+Client connected: 10
+Connected to Tickerplant on port 5010
+=== Finugreek Real-Time Database ===
+Port: 5011
+Tables: depth, quote, trade
+Analytics loaded: vwap, ohlcBars, orderBook, bookImbalance, rollVol, tickRate, recentTrades, allStats
+Ready for queries.
+Client connected: 11
+INFO:     Started server process [12028]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+============================================================
+Finugreek Feed Handler — Binance → kdb+ Tickerplant
+Symbols: BTCUSDT, ETHUSDT, SOLUSDT, BNBUSDT, XRPUSDT, DOGEUSDT
+Tickerplant: localhost:5010
+============================================================
+
+Welcome to KDB-X Community Edition!
+For Community support, please visit https://kx.com/slack
+Tutorials can be found at https://github.com/KxSystems/tutorials
+Ready to go beyond the Community Edition? Email preview@kx.com
+
+[Publisher] Connected to Tickerplant at localhost:5010
+[Feed] Connecting to Binance... (6 symbols, 12 streams)
+[Feed] Connected to Binance WebSocket
+[Stats] Trades: 90 | Depth: 357 | Quotes: 357 | Rate: 9.0 trades/sec | Errors: 0 | Uptime: 10s
+[Stats] Trades: 331 | Depth: 778 | Quotes: 778 | Rate: 16.5 trades/sec | Errors: 0 | Uptime: 20s
+[Stats] Trades: 493 | Depth: 1162 | Quotes: 1162 | Rate: 16.4 trades/sec | Errors: 0 | Uptime: 30s
+[Stats] Trades: 1274 | Depth: 1643 | Quotes: 1643 | Rate: 31.8 trades/sec | Errors: 0 | Uptime: 40s
+[Stats] Trades: 1364 | Depth: 2030 | Quotes: 2030 | Rate: 27.2 trades/sec | Errors: 0 | Uptime: 50s
+[Stats] Trades: 2338 | Depth: 2442 | Quotes: 2442 | Rate: 38.9 trades/sec | Errors: 0 | Uptime: 60s
+[Stats] Trades: 2679 | Depth: 2874 | Quotes: 2874 | Rate: 38.2 trades/sec | Errors: 0 | Uptime: 70s
+[Stats] Trades: 3318 | Depth: 3294 | Quotes: 3294 | Rate: 41.4 trades/sec | Errors: 0 | Uptime: 80s
+[Stats] Trades: 3577 | Depth: 3699 | Quotes: 3699 | Rate: 39.6 trades/sec | Errors: 0 | Uptime: 90s
+[Stats] Trades: 4564 | Depth: 4179 | Quotes: 4179 | Rate: 45.5 trades/sec | Errors: 0 | Uptime: 100s
+[Stats] Trades: 4939 | Depth: 4626 | Quotes: 4626 | Rate: 44.8 trades/sec | Errors: 0 | Uptime: 110s
+[Stats] Trades: 5135 | Depth: 5005 | Quotes: 5005 | Rate: 42.7 trades/sec | Errors: 0 | Uptime: 120s
+[Stats] Trades: 7733 | Depth: 5485 | Quotes: 5485 | Rate: 59.3 trades/sec | Errors: 0 | Uptime: 130s
+[Stats] Trades: 10565 | Depth: 5984 | Quotes: 5984 | Rate: 75.2 trades/sec | Errors: 0 | Uptime: 140s
+[Stats] Trades: 10998 | Depth: 6471 | Quotes: 6471 | Rate: 73.1 trades/sec | Errors: 0 | Uptime: 150s
+[Stats] Trades: 15290 | Depth: 7012 | Quotes: 7012 | Rate: 95.3 trades/sec | Errors: 0 | Uptime: 160s
+[Stats] Trades: 17246 | Depth: 7534 | Quotes: 7534 | Rate: 101.2 trades/sec | Errors: 0 | Uptime: 170s
+[Stats] Trades: 18457 | Depth: 8017 | Quotes: 8017 | Rate: 102.3 trades/sec | Errors: 0 | Uptime: 181s
+[Stats] Trades: 18855 | Depth: 8473 | Quotes: 8473 | Rate: 99.0 trades/sec | Errors: 0 | Uptime: 191s
+[Stats] Trades: 19096 | Depth: 8884 | Quotes: 8884 | Rate: 95.2 trades/sec | Errors: 0 | Uptime: 201s
+[Stats] Trades: 19447 | Depth: 9293 | Quotes: 9293 | Rate: 92.3 trades/sec | Errors: 0 | Uptime: 211s
+[Stats] Trades: 19643 | Depth: 9705 | Quotes: 9705 | Rate: 89.0 trades/sec | Errors: 0 | Uptime: 221s
+[Stats] Trades: 19722 | Depth: 10051 | Quotes: 10051 | Rate: 85.5 trades/sec | Errors: 0 | Uptime: 231s
+[Stats] Trades: 19928 | Depth: 10434 | Quotes: 10434 | Rate: 82.8 trades/sec | Errors: 0 | Uptime: 241s
+[Stats] Trades: 20119 | Depth: 10790 | Quotes: 10790 | Rate: 80.3 trades/sec | Errors: 0 | Uptime: 251s
+[Stats] Trades: 20931 | Depth: 11180 | Quotes: 11180 | Rate: 80.3 trades/sec | Errors: 0 | Uptime: 261s
+[Stats] Trades: 21408 | Depth: 11590 | Quotes: 11590 | Rate: 79.1 trades/sec | Errors: 0 | Uptime: 271s
+[Stats] Trades: 22240 | Depth: 12038 | Quotes: 12038 | Rate: 79.2 trades/sec | Errors: 0 | Uptime: 281s
+[Stats] Trades: 24205 | Depth: 12549 | Quotes: 12549 | Rate: 83.3 trades/sec | Errors: 0 | Uptime: 291s
+[Stats] Trades: 24696 | Depth: 12952 | Quotes: 12952 | Rate: 82.1 trades/sec | Errors: 0 | Uptime: 301s
+[Stats] Trades: 25230 | Depth: 13387 | Quotes: 13387 | Rate: 81.2 trades/sec | Errors: 0 | Uptime: 311s
+[Stats] Trades: 25694 | Depth: 13819 | Quotes: 13819 | Rate: 80.1 trades/sec | Errors: 0 | Uptime: 321s
+[Stats] Trades: 26827 | Depth: 14263 | Quotes: 14263 | Rate: 81.1 trades/sec | Errors: 0 | Uptime: 331s
+[Stats] Trades: 27259 | Depth: 14704 | Quotes: 14704 | Rate: 80.0 trades/sec | Errors: 0 | Uptime: 341s
+[Stats] Trades: 27850 | Depth: 15107 | Quotes: 15107 | Rate: 79.4 trades/sec | Errors: 0 | Uptime: 351s
+[Stats] Trades: 28969 | Depth: 15546 | Quotes: 15546 | Rate: 80.3 trades/sec | Errors: 0 | Uptime: 361s
+[Stats] Trades: 29499 | Depth: 15974 | Quotes: 15974 | Rate: 79.5 trades/sec | Errors: 0 | Uptime: 371s
+[Stats] Trades: 29599 | Depth: 16345 | Quotes: 16345 | Rate: 77.7 trades/sec | Errors: 0 | Uptime: 381s
+[Stats] Trades: 30171 | Depth: 16721 | Quotes: 16721 | Rate: 77.2 trades/sec | Errors: 0 | Uptime: 391s
+[Stats] Trades: 30524 | Depth: 17153 | Quotes: 17153 | Rate: 76.1 trades/sec | Errors: 0 | Uptime: 401s
+[Stats] Trades: 30621 | Depth: 17525 | Quotes: 17525 | Rate: 74.5 trades/sec | Errors: 0 | Uptime: 411s
+[Stats] Trades: 30998 | Depth: 17921 | Quotes: 17921 | Rate: 73.6 trades/sec | Errors: 0 | Uptime: 421s
+[Stats] Trades: 31122 | Depth: 18303 | Quotes: 18303 | Rate: 72.2 trades/sec | Errors: 0 | Uptime: 431s
+[Stats] Trades: 32223 | Depth: 18726 | Quotes: 18726 | Rate: 73.0 trades/sec | Errors: 0 | Uptime: 441s
+[Stats] Trades: 32768 | Depth: 19162 | Quotes: 19162 | Rate: 72.6 trades/sec | Errors: 0 | Uptime: 451s
+[Stats] Trades: 34360 | Depth: 19605 | Quotes: 19605 | Rate: 74.5 trades/sec | Errors: 0 | Uptime: 461s
+[Stats] Trades: 34702 | Depth: 20008 | Quotes: 20008 | Rate: 73.6 trades/sec | Errors: 0 | Uptime: 471s
+[Stats] Trades: 35026 | Depth: 20422 | Quotes: 20422 | Rate: 72.8 trades/sec | Errors: 0 | Uptime: 481s
+[Stats] Trades: 35140 | Depth: 20838 | Quotes: 20838 | Rate: 71.5 trades/sec | Errors: 0 | Uptime: 491s
+[Stats] Trades: 36227 | Depth: 21304 | Quotes: 21304 | Rate: 72.3 trades/sec | Errors: 0 | Uptime: 501s
+[Stats] Trades: 37665 | Depth: 21770 | Quotes: 21770 | Rate: 73.7 trades/sec | Errors: 0 | Uptime: 511s
+[Stats] Trades: 37756 | Depth: 22182 | Quotes: 22182 | Rate: 72.4 trades/sec | Errors: 0 | Uptime: 521s
+[Stats] Trades: 38372 | Depth: 22594 | Quotes: 22594 | Rate: 72.2 trades/sec | Errors: 0 | Uptime: 531s
+[Stats] Trades: 39957 | Depth: 23007 | Quotes: 23007 | Rate: 73.8 trades/sec | Errors: 0 | Uptime: 541s
+[Stats] Trades: 40471 | Depth: 23432 | Quotes: 23432 | Rate: 73.4 trades/sec | Errors: 0 | Uptime: 551s
+[Stats] Trades: 40856 | Depth: 23839 | Quotes: 23839 | Rate: 72.8 trades/sec | Errors: 0 | Uptime: 561s
+[Stats] Trades: 41001 | Depth: 24221 | Quotes: 24221 | Rate: 71.8 trades/sec | Errors: 0 | Uptime: 571s
+[Stats] Trades: 41884 | Depth: 24657 | Quotes: 24657 | Rate: 72.0 trades/sec | Errors: 0 | Uptime: 581s
+[Stats] Trades: 42729 | Depth: 25118 | Quotes: 25118 | Rate: 72.2 trades/sec | Errors: 0 | Uptime: 591s
+[Stats] Trades: 43297 | Depth: 25542 | Quotes: 25542 | Rate: 72.0 trades/sec | Errors: 0 | Uptime: 601s
+[Stats] Trades: 43399 | Depth: 25921 | Quotes: 25921 | Rate: 71.0 trades/sec | Errors: 0 | Uptime: 611s
+[Stats] Trades: 43576 | Depth: 26315 | Quotes: 26315 | Rate: 70.1 trades/sec | Errors: 0 | Uptime: 622s
+
+[Feed] Received signal 15, shutting down...
+[Feed] Shutting down...
+
+[Feed] Final stats — Trades: 43772, Depth: 26630, Errors: 0
+
+Welcome to KDB-X Community Edition!
+For Community support, please visit https://kx.com/slack
+Tutorials can be found at https://github.com/KxSystems/tutorials
+Ready to go beyond the Community Edition? Email preview@kx.com
+
+[KDBPool] Connected to RDB
+INFO:     127.0.0.1:49807 - "GET /api/crypto/ohlc/BTCUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49906 - "OPTIONS /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49906 - "POST /api/screener/stocks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49926 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection closed
+INFO:     127.0.0.1:49928 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:49965 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:49998 - "GET /api/crypto/ohlc/BTCUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50000 - "GET /api/crypto/trades/BTCUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50002 - "GET /api/crypto/orderbook/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50004 - "GET /api/crypto/stats/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50006 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50008 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:50010 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:50006 - "GET /api/search_index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50053 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50103 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:50103 - "GET /api/crypto/ohlc/BTCUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50124 - "GET /api/crypto/trades/BTCUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50126 - "GET /api/crypto/orderbook/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50128 - "GET /api/crypto/stats/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50130 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50132 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:50134 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:50124 - "GET /api/search_index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50177 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50200 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50205 - "GET /api/crypto/stats/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50293 - "GET /api/crypto/orderbook/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50400 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50568 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50815 - "GET /api/crypto/status HTTP/1.1" 200 OK
+Client disconnected: 10
+INFO:     Shutting down
+INFO:     connection closed
+Tickerplant initialized. Log: :/Users/rohith/groww/tickdb/logs/2026.07.23.log
+=== Finugreek Tickerplant ===
+Port: 5010
+Tables: depth, quote, trade
+Waiting for connections...
+Client disconnected: 0
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [12028]
+Client connected: 10
+Connected to Tickerplant on port 5010
+=== Finugreek Real-Time Database ===
+Port: 5011
+Tables: depth, quote, trade
+Analytics loaded: vwap, ohlcBars, orderBook, bookImbalance, rollVol, tickRate, recentTrades, allStats
+Ready for queries.
+Client connected: 11
+============================================================
+Finugreek Feed Handler — Binance → kdb+ Tickerplant
+Symbols: BTCUSDT, ETHUSDT, SOLUSDT, BNBUSDT, XRPUSDT, DOGEUSDT
+Tickerplant: localhost:5010
+============================================================
+
+Welcome to KDB-X Community Edition!
+For Community support, please visit https://kx.com/slack
+Tutorials can be found at https://github.com/KxSystems/tutorials
+Ready to go beyond the Community Edition? Email preview@kx.com
+
+[Publisher] Connected to Tickerplant at localhost:5010
+[Feed] Connecting to Binance... (6 symbols, 12 streams)
+[Feed] Connected to Binance WebSocket
+[Stats] Trades: 1454 | Depth: 440 | Quotes: 440 | Rate: 145.4 trades/sec | Errors: 0 | Uptime: 10s
+[Stats] Trades: 1698 | Depth: 849 | Quotes: 849 | Rate: 84.8 trades/sec | Errors: 0 | Uptime: 20s
+[Stats] Trades: 1791 | Depth: 1226 | Quotes: 1226 | Rate: 59.6 trades/sec | Errors: 0 | Uptime: 30s
+[Stats] Trades: 2210 | Depth: 1618 | Quotes: 1618 | Rate: 55.1 trades/sec | Errors: 0 | Uptime: 40s
+[Stats] Trades: 2414 | Depth: 2016 | Quotes: 2016 | Rate: 48.1 trades/sec | Errors: 0 | Uptime: 50s
+[Stats] Trades: 3374 | Depth: 2454 | Quotes: 2454 | Rate: 56.1 trades/sec | Errors: 0 | Uptime: 60s
+[Stats] Trades: 4820 | Depth: 2887 | Quotes: 2887 | Rate: 68.7 trades/sec | Errors: 0 | Uptime: 70s
+[Stats] Trades: 5498 | Depth: 3321 | Quotes: 3321 | Rate: 68.5 trades/sec | Errors: 0 | Uptime: 80s
+[Stats] Trades: 5913 | Depth: 3730 | Quotes: 3730 | Rate: 65.5 trades/sec | Errors: 0 | Uptime: 90s
+[Stats] Trades: 6653 | Depth: 4172 | Quotes: 4172 | Rate: 66.4 trades/sec | Errors: 0 | Uptime: 100s
+[Stats] Trades: 7084 | Depth: 4587 | Quotes: 4587 | Rate: 64.3 trades/sec | Errors: 0 | Uptime: 110s
+[Stats] Trades: 7325 | Depth: 4960 | Quotes: 4960 | Rate: 60.9 trades/sec | Errors: 0 | Uptime: 120s
+[Stats] Trades: 7391 | Depth: 5345 | Quotes: 5345 | Rate: 56.7 trades/sec | Errors: 0 | Uptime: 130s
+[Stats] Trades: 7781 | Depth: 5720 | Quotes: 5720 | Rate: 55.5 trades/sec | Errors: 0 | Uptime: 140s
+[Stats] Trades: 8915 | Depth: 6181 | Quotes: 6181 | Rate: 59.3 trades/sec | Errors: 0 | Uptime: 150s
+[Stats] Trades: 9046 | Depth: 6592 | Quotes: 6592 | Rate: 56.4 trades/sec | Errors: 0 | Uptime: 160s
+[Stats] Trades: 9100 | Depth: 6989 | Quotes: 6989 | Rate: 53.4 trades/sec | Errors: 0 | Uptime: 170s
+[Stats] Trades: 9771 | Depth: 7391 | Quotes: 7391 | Rate: 54.2 trades/sec | Errors: 0 | Uptime: 180s
+[Stats] Trades: 9850 | Depth: 7783 | Quotes: 7783 | Rate: 51.7 trades/sec | Errors: 0 | Uptime: 190s
+[Stats] Trades: 9972 | Depth: 8159 | Quotes: 8159 | Rate: 49.8 trades/sec | Errors: 0 | Uptime: 200s
+[Stats] Trades: 10425 | Depth: 8552 | Quotes: 8552 | Rate: 49.5 trades/sec | Errors: 0 | Uptime: 210s
+
+[Feed] Received signal 15, shutting down...
+[Feed] Shutting down...
+
+[Feed] Final stats — Trades: 10449, Depth: 8674, Errors: 0
+INFO:     Started server process [12925]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+
+Welcome to KDB-X Community Edition!
+For Community support, please visit https://kx.com/slack
+Tutorials can be found at https://github.com/KxSystems/tutorials
+Ready to go beyond the Community Edition? Email preview@kx.com
+
+[KDBPool] Connected to RDB
+INFO:     127.0.0.1:50887 - "GET /api/crypto/orderbook/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50895 - "GET /api/crypto/orderbook/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50887 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50898 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:50916 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50888 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51020 - "GET /api/crypto/status HTTP/1.1" 200 OK
+Client disconnected: 10
+Tickerplant initialized. Log: :/Users/rohith/groww/tickdb/logs/2026.07.23.log
+=== Finugreek Tickerplant ===
+Port: 5010
+Tables: depth, quote, trade
+Waiting for connections...
+Client disconnected: 0
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [12925]
+Client connected: 9
+Connected to Tickerplant on port 5010
+=== Finugreek Real-Time Database ===
+Port: 5011
+Tables: depth, quote, trade
+Analytics loaded: vwap, ohlcBars, orderBook, bookImbalance, rollVol, tickRate, recentTrades, allStats
+Ready for queries.
+Client connected: 10
+INFO:     Started server process [13193]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+============================================================
+Finugreek Feed Handler — Binance → kdb+ Tickerplant
+Symbols: BTCUSDT, ETHUSDT, SOLUSDT, BNBUSDT, XRPUSDT, DOGEUSDT
+Tickerplant: localhost:5010
+============================================================
+
+Welcome to KDB-X Community Edition!
+For Community support, please visit https://kx.com/slack
+Tutorials can be found at https://github.com/KxSystems/tutorials
+Ready to go beyond the Community Edition? Email preview@kx.com
+
+[Publisher] Connected to Tickerplant at localhost:5010
+[Feed] Connecting to Binance... (6 symbols, 12 streams)
+[Feed] Connected to Binance WebSocket
+[Stats] Trades: 653 | Depth: 387 | Quotes: 387 | Rate: 65.2 trades/sec | Errors: 0 | Uptime: 10s
+[Stats] Trades: 2371 | Depth: 845 | Quotes: 845 | Rate: 118.4 trades/sec | Errors: 0 | Uptime: 20s
+[Stats] Trades: 3245 | Depth: 1275 | Quotes: 1275 | Rate: 108.1 trades/sec | Errors: 0 | Uptime: 30s
+[Stats] Trades: 4019 | Depth: 1723 | Quotes: 1723 | Rate: 100.4 trades/sec | Errors: 0 | Uptime: 40s
+[Stats] Trades: 4131 | Depth: 2135 | Quotes: 2135 | Rate: 82.5 trades/sec | Errors: 0 | Uptime: 50s
+
+[Feed] Received signal 15, shutting down...
+[Feed] Shutting down...
+
+[Feed] Final stats — Trades: 4163, Depth: 2242, Errors: 0
+
+Welcome to KDB-X Community Edition!
+For Community support, please visit https://kx.com/slack
+Tutorials can be found at https://github.com/KxSystems/tutorials
+Ready to go beyond the Community Edition? Email preview@kx.com
+
+[KDBPool] Connected to RDB
+INFO:     127.0.0.1:51167 - "GET /api/crypto/ohlc/BTCUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51171 - "GET /api/crypto/trades/BTCUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51173 - "GET /api/crypto/orderbook/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51175 - "GET /api/crypto/stats/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51178 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51179 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection closed
+INFO:     127.0.0.1:51181 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:51178 - "GET /api/search_index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51178 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51229 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51312 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51439 - "GET /api/crypto/ohlc/BTCUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51447 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51473 - "GET /api/crypto/orderbook/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51542 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51663 - "GET /api/crypto/stats/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51664 - "GET /api/crypto/ohlc/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51665 - "GET /api/crypto/trades/BTCUSDT?n=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51666 - "GET /api/crypto/orderbook/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51777 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51875 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51939 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:51939 - "GET /api/crypto/ohlc/BTCUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51960 - "GET /api/crypto/trades/BTCUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51962 - "GET /api/crypto/orderbook/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51964 - "GET /api/crypto/stats/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51966 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51968 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:51970 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:51960 - "GET /api/crypto/ohlc/BTCUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51966 - "GET /api/crypto/trades/BTCUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51964 - "GET /api/crypto/orderbook/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51962 - "GET /api/crypto/stats/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51939 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51982 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection closed
+INFO:     127.0.0.1:51984 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:51939 - "GET /api/search_index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51939 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:51939 - "GET /api/crypto/ohlc/BTCUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52004 - "GET /api/crypto/trades/BTCUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52006 - "GET /api/crypto/orderbook/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52007 - "GET /api/crypto/stats/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52010 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52011 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection closed
+INFO:     127.0.0.1:52013 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:52010 - "GET /api/search_index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52010 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52016 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52018 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:52018 - "GET /api/crypto/ohlc/ETHUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52022 - "GET /api/crypto/trades/ETHUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52024 - "WebSocket /ws/crypto" [accepted]
+INFO:     127.0.0.1:52025 - "GET /api/crypto/orderbook/ETHUSDT HTTP/1.1" 200 OK
+INFO:     connection open
+INFO:     127.0.0.1:52026 - "GET /api/crypto/stats/ETHUSDT HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:52026 - "GET /api/crypto/ohlc/SOLUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52025 - "GET /api/crypto/trades/SOLUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52022 - "GET /api/crypto/orderbook/SOLUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52018 - "GET /api/crypto/stats/SOLUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52028 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:52025 - "GET /api/crypto/ohlc/BNBUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52018 - "GET /api/crypto/trades/BNBUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52022 - "GET /api/crypto/orderbook/BNBUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52026 - "GET /api/crypto/stats/BNBUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52030 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:52018 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:52018 - "GET /api/crypto/ohlc/XRPUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52026 - "GET /api/crypto/trades/XRPUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52022 - "GET /api/crypto/orderbook/XRPUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52025 - "GET /api/crypto/stats/XRPUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52032 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:52026 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52035 - "GET /api/crypto/stats/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52037 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52039 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52042 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52044 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52060 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52098 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:52098 - "GET /api/crypto/ohlc/BTCUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52108 - "GET /api/crypto/trades/BTCUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52109 - "GET /api/crypto/orderbook/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52112 - "GET /api/crypto/stats/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52113 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52115 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:52117 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:52108 - "GET /api/search_index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52108 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52125 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52131 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:52131 - "GET /api/crypto/ohlc/BTCUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52141 - "GET /api/crypto/trades/BTCUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52142 - "GET /api/crypto/orderbook/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52145 - "WebSocket /ws/crypto" [accepted]
+INFO:     127.0.0.1:52146 - "GET /api/crypto/stats/BTCUSDT HTTP/1.1" 200 OK
+INFO:     connection open
+INFO:     127.0.0.1:52148 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:52150 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:52141 - "GET /api/search_index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52141 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52159 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52163 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:52163 - "GET /api/crypto/ohlc/DOGEUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52171 - "GET /api/crypto/trades/DOGEUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52173 - "GET /api/crypto/orderbook/DOGEUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52174 - "GET /api/crypto/stats/DOGEUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52175 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:52174 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:52174 - "GET /api/crypto/ohlc/BTCUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52173 - "GET /api/crypto/trades/BTCUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52171 - "GET /api/crypto/orderbook/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52163 - "GET /api/crypto/stats/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52188 - "WebSocket /ws/crypto" [accepted]
+INFO:     127.0.0.1:52190 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:52193 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:52173 - "GET /api/search_index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52173 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52197 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52221 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:52457 - "GET /api/crypto/ohlc/BTCUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52459 - "GET /api/crypto/trades/BTCUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52461 - "GET /api/crypto/orderbook/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52463 - "GET /api/crypto/stats/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52465 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52467 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:52469 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:52465 - "GET /api/search_index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52498 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52510 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52514 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52540 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52545 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52547 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52553 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52555 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:52555 - "GET /api/crypto/ohlc/ETHUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52558 - "GET /api/crypto/trades/ETHUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52560 - "GET /api/crypto/orderbook/ETHUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52562 - "GET /api/crypto/stats/ETHUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52563 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:52562 - "GET /api/crypto/ohlc/SOLUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52560 - "GET /api/crypto/trades/SOLUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52558 - "GET /api/crypto/orderbook/SOLUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52555 - "GET /api/crypto/stats/SOLUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52565 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:52560 - "GET /api/crypto/ohlc/BNBUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52558 - "GET /api/crypto/trades/BNBUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52555 - "GET /api/crypto/orderbook/BNBUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52562 - "GET /api/crypto/stats/BNBUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52567 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:52558 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:52558 - "GET /api/crypto/ohlc/XRPUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52562 - "GET /api/crypto/trades/XRPUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52555 - "GET /api/crypto/orderbook/XRPUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52560 - "GET /api/crypto/stats/XRPUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52569 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:52562 - "GET /api/crypto/ohlc/DOGEUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52560 - "GET /api/crypto/trades/DOGEUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52555 - "GET /api/crypto/orderbook/DOGEUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52558 - "GET /api/crypto/stats/DOGEUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52571 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:52560 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52573 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52581 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52611 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52613 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52630 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52636 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52644 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52649 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52663 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52665 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52673 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52681 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52688 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52693 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52696 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52699 - "GET /api/crypto/status HTTP/1.1" 200 OK
+============================================================
+Finugreek Feed Handler — Binance → kdb+ Tickerplant
+Symbols: BTCUSDT, ETHUSDT, SOLUSDT, BNBUSDT, XRPUSDT, DOGEUSDT
+Tickerplant: localhost:5010
+============================================================
+
+Welcome to KDB-X Community Edition!
+For Community support, please visit https://kx.com/slack
+Tutorials can be found at https://github.com/KxSystems/tutorials
+Ready to go beyond the Community Edition? Email preview@kx.com
+
+[Publisher] Connected to Tickerplant at localhost:5010
+[Feed] Connecting to Binance... (6 symbols, 12 streams)
+[Feed] Connected to Binance WebSocket
+[Stats] Trades: 80 | Depth: 347 | Quotes: 347 | Rate: 8.0 trades/sec | Errors: 0 | Uptime: 10s
+[Stats] Trades: 155 | Depth: 708 | Quotes: 708 | Rate: 7.7 trades/sec | Errors: 0 | Uptime: 20s
+[Stats] Trades: 460 | Depth: 1083 | Quotes: 1083 | Rate: 15.3 trades/sec | Errors: 0 | Uptime: 30s
+[Stats] Trades: 784 | Depth: 1474 | Quotes: 1474 | Rate: 19.6 trades/sec | Errors: 0 | Uptime: 40s
+[Stats] Trades: 1121 | Depth: 1821 | Quotes: 1821 | Rate: 22.4 trades/sec | Errors: 0 | Uptime: 50s
+[Stats] Trades: 1509 | Depth: 2185 | Quotes: 2185 | Rate: 25.1 trades/sec | Errors: 0 | Uptime: 60s
+[Stats] Trades: 1837 | Depth: 2538 | Quotes: 2538 | Rate: 26.2 trades/sec | Errors: 0 | Uptime: 70s
+[Stats] Trades: 2037 | Depth: 2895 | Quotes: 2895 | Rate: 25.4 trades/sec | Errors: 0 | Uptime: 80s
+[Stats] Trades: 2632 | Depth: 3268 | Quotes: 3268 | Rate: 29.2 trades/sec | Errors: 0 | Uptime: 90s
+[Stats] Trades: 3692 | Depth: 3710 | Quotes: 3710 | Rate: 36.9 trades/sec | Errors: 0 | Uptime: 100s
+[Stats] Trades: 3917 | Depth: 4138 | Quotes: 4138 | Rate: 35.6 trades/sec | Errors: 0 | Uptime: 110s
+[Stats] Trades: 4548 | Depth: 4574 | Quotes: 4574 | Rate: 37.9 trades/sec | Errors: 0 | Uptime: 120s
+[Stats] Trades: 4753 | Depth: 4972 | Quotes: 4972 | Rate: 36.5 trades/sec | Errors: 0 | Uptime: 130s
+[Stats] Trades: 5622 | Depth: 5392 | Quotes: 5392 | Rate: 40.1 trades/sec | Errors: 0 | Uptime: 140s
+[Stats] Trades: 5782 | Depth: 5834 | Quotes: 5834 | Rate: 38.5 trades/sec | Errors: 0 | Uptime: 150s
+[Stats] Trades: 5907 | Depth: 6232 | Quotes: 6232 | Rate: 36.9 trades/sec | Errors: 0 | Uptime: 160s
+[Stats] Trades: 6230 | Depth: 6603 | Quotes: 6603 | Rate: 36.6 trades/sec | Errors: 0 | Uptime: 170s
+[Stats] Trades: 6842 | Depth: 6986 | Quotes: 6986 | Rate: 38.0 trades/sec | Errors: 0 | Uptime: 180s
+[Stats] Trades: 6974 | Depth: 7371 | Quotes: 7371 | Rate: 36.6 trades/sec | Errors: 0 | Uptime: 190s
+[Stats] Trades: 7083 | Depth: 7708 | Quotes: 7708 | Rate: 35.3 trades/sec | Errors: 0 | Uptime: 200s
+[Stats] Trades: 7734 | Depth: 8099 | Quotes: 8099 | Rate: 36.8 trades/sec | Errors: 0 | Uptime: 210s
+[Stats] Trades: 8469 | Depth: 8520 | Quotes: 8520 | Rate: 38.4 trades/sec | Errors: 0 | Uptime: 220s
+[Stats] Trades: 8696 | Depth: 8896 | Quotes: 8896 | Rate: 37.7 trades/sec | Errors: 0 | Uptime: 230s
+[Stats] Trades: 9254 | Depth: 9281 | Quotes: 9281 | Rate: 38.5 trades/sec | Errors: 0 | Uptime: 240s
+[Stats] Trades: 9381 | Depth: 9641 | Quotes: 9641 | Rate: 37.4 trades/sec | Errors: 0 | Uptime: 251s
+[Stats] Trades: 9822 | Depth: 10029 | Quotes: 10029 | Rate: 37.7 trades/sec | Errors: 0 | Uptime: 261s
+[Stats] Trades: 11234 | Depth: 10510 | Quotes: 10510 | Rate: 41.5 trades/sec | Errors: 0 | Uptime: 271s
+[Stats] Trades: 12514 | Depth: 10986 | Quotes: 10986 | Rate: 44.6 trades/sec | Errors: 0 | Uptime: 281s
+[Stats] Trades: 13266 | Depth: 11395 | Quotes: 11395 | Rate: 45.6 trades/sec | Errors: 0 | Uptime: 291s
+[Stats] Trades: 15455 | Depth: 11865 | Quotes: 11865 | Rate: 51.4 trades/sec | Errors: 0 | Uptime: 301s
+[Stats] Trades: 15956 | Depth: 12333 | Quotes: 12333 | Rate: 51.4 trades/sec | Errors: 0 | Uptime: 311s
+[Stats] Trades: 16120 | Depth: 12735 | Quotes: 12735 | Rate: 50.3 trades/sec | Errors: 0 | Uptime: 321s
+[Stats] Trades: 17154 | Depth: 13223 | Quotes: 13223 | Rate: 51.9 trades/sec | Errors: 0 | Uptime: 331s
+[Stats] Trades: 17838 | Depth: 13639 | Quotes: 13639 | Rate: 52.4 trades/sec | Errors: 0 | Uptime: 341s
+[Stats] Trades: 18669 | Depth: 14052 | Quotes: 14052 | Rate: 53.2 trades/sec | Errors: 0 | Uptime: 351s
+[Stats] Trades: 19549 | Depth: 14459 | Quotes: 14459 | Rate: 54.2 trades/sec | Errors: 0 | Uptime: 361s
+[Stats] Trades: 20271 | Depth: 14884 | Quotes: 14884 | Rate: 54.7 trades/sec | Errors: 0 | Uptime: 371s
+[Stats] Trades: 20520 | Depth: 15301 | Quotes: 15301 | Rate: 53.9 trades/sec | Errors: 0 | Uptime: 381s
+[Stats] Trades: 20798 | Depth: 15734 | Quotes: 15734 | Rate: 53.2 trades/sec | Errors: 0 | Uptime: 391s
+[Stats] Trades: 20926 | Depth: 16125 | Quotes: 16125 | Rate: 52.2 trades/sec | Errors: 0 | Uptime: 401s
+[Stats] Trades: 21898 | Depth: 16525 | Quotes: 16525 | Rate: 53.3 trades/sec | Errors: 0 | Uptime: 411s
+[Stats] Trades: 22410 | Depth: 16948 | Quotes: 16948 | Rate: 53.3 trades/sec | Errors: 0 | Uptime: 421s
+[Stats] Trades: 22565 | Depth: 17303 | Quotes: 17303 | Rate: 52.4 trades/sec | Errors: 0 | Uptime: 431s
+[Stats] Trades: 22627 | Depth: 17655 | Quotes: 17655 | Rate: 51.3 trades/sec | Errors: 0 | Uptime: 441s
+[Stats] Trades: 22806 | Depth: 18063 | Quotes: 18063 | Rate: 50.6 trades/sec | Errors: 0 | Uptime: 451s
+[Stats] Trades: 23452 | Depth: 18469 | Quotes: 18469 | Rate: 50.9 trades/sec | Errors: 0 | Uptime: 461s
+[Stats] Trades: 24524 | Depth: 18890 | Quotes: 18890 | Rate: 52.1 trades/sec | Errors: 0 | Uptime: 471s
+[Stats] Trades: 25019 | Depth: 19311 | Quotes: 19311 | Rate: 52.0 trades/sec | Errors: 0 | Uptime: 481s
+[Stats] Trades: 25326 | Depth: 19699 | Quotes: 19699 | Rate: 51.6 trades/sec | Errors: 0 | Uptime: 491s
+[Stats] Trades: 26612 | Depth: 20109 | Quotes: 20109 | Rate: 53.1 trades/sec | Errors: 0 | Uptime: 501s
+[Stats] Trades: 26713 | Depth: 20524 | Quotes: 20524 | Rate: 52.3 trades/sec | Errors: 0 | Uptime: 511s
+[Stats] Trades: 26825 | Depth: 20885 | Quotes: 20885 | Rate: 51.5 trades/sec | Errors: 0 | Uptime: 521s
+[Stats] Trades: 27534 | Depth: 21283 | Quotes: 21283 | Rate: 51.9 trades/sec | Errors: 0 | Uptime: 531s
+[Stats] Trades: 28201 | Depth: 21680 | Quotes: 21680 | Rate: 52.1 trades/sec | Errors: 0 | Uptime: 541s
+[Stats] Trades: 28449 | Depth: 22071 | Quotes: 22071 | Rate: 51.6 trades/sec | Errors: 0 | Uptime: 551s
+[Stats] Trades: 29175 | Depth: 22459 | Quotes: 22459 | Rate: 52.0 trades/sec | Errors: 0 | Uptime: 561s
+[Stats] Trades: 31028 | Depth: 22930 | Quotes: 22930 | Rate: 54.3 trades/sec | Errors: 0 | Uptime: 571s
+[Stats] Trades: 31252 | Depth: 23337 | Quotes: 23337 | Rate: 53.8 trades/sec | Errors: 0 | Uptime: 581s
+[Stats] Trades: 31514 | Depth: 23699 | Quotes: 23699 | Rate: 53.3 trades/sec | Errors: 0 | Uptime: 591s
+[Stats] Trades: 33742 | Depth: 24088 | Quotes: 24088 | Rate: 56.1 trades/sec | Errors: 0 | Uptime: 601s
+[Stats] Trades: 34206 | Depth: 24497 | Quotes: 24497 | Rate: 56.0 trades/sec | Errors: 0 | Uptime: 611s
+[Stats] Trades: 34407 | Depth: 24850 | Quotes: 24850 | Rate: 55.4 trades/sec | Errors: 0 | Uptime: 621s
+[Stats] Trades: 34529 | Depth: 25222 | Quotes: 25222 | Rate: 54.7 trades/sec | Errors: 0 | Uptime: 631s
+[Stats] Trades: 35424 | Depth: 25610 | Quotes: 25610 | Rate: 55.3 trades/sec | Errors: 0 | Uptime: 641s
+[Stats] Trades: 35700 | Depth: 26010 | Quotes: 26010 | Rate: 54.8 trades/sec | Errors: 0 | Uptime: 651s
+[Stats] Trades: 37162 | Depth: 26419 | Quotes: 26419 | Rate: 56.2 trades/sec | Errors: 0 | Uptime: 661s
+[Stats] Trades: 38050 | Depth: 26878 | Quotes: 26878 | Rate: 56.7 trades/sec | Errors: 0 | Uptime: 671s
+[Stats] Trades: 38277 | Depth: 27245 | Quotes: 27245 | Rate: 56.2 trades/sec | Errors: 0 | Uptime: 681s
+[Stats] Trades: 38443 | Depth: 27633 | Quotes: 27633 | Rate: 55.6 trades/sec | Errors: 0 | Uptime: 691s
+[Stats] Trades: 38530 | Depth: 27999 | Quotes: 27999 | Rate: 54.9 trades/sec | Errors: 0 | Uptime: 701s
+[Stats] Trades: 38573 | Depth: 28325 | Quotes: 28325 | Rate: 54.2 trades/sec | Errors: 0 | Uptime: 711s
+[Stats] Trades: 38748 | Depth: 28681 | Quotes: 28681 | Rate: 53.7 trades/sec | Errors: 0 | Uptime: 721s
+[Stats] Trades: 39156 | Depth: 29029 | Quotes: 29029 | Rate: 53.5 trades/sec | Errors: 0 | Uptime: 731s
+[Stats] Trades: 39749 | Depth: 29398 | Quotes: 29398 | Rate: 53.6 trades/sec | Errors: 0 | Uptime: 741sINFO:     127.0.0.1:52703 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52707 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52709 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52713 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52716 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52760 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52832 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52842 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52851 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52871 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52908 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52911 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:52911 - "GET /api/crypto/ohlc/BTCUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52923 - "GET /api/crypto/trades/BTCUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52925 - "GET /api/crypto/orderbook/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52926 - "GET /api/crypto/stats/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52929 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52930 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:52932 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:52923 - "GET /api/search_index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52923 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52954 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52969 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52976 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52978 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52981 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53025 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53048 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:53089 - "GET /api/crypto/ohlc/BTCUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53091 - "GET /api/crypto/trades/BTCUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53093 - "GET /api/crypto/orderbook/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53095 - "GET /api/crypto/stats/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53097 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53099 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:53101 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:53091 - "GET /api/crypto/ohlc/BNBUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53097 - "GET /api/crypto/trades/BNBUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53095 - "GET /api/crypto/orderbook/BNBUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53093 - "GET /api/crypto/stats/BNBUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53105 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:53097 - "GET /api/search_index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53097 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53111 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53117 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53148 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53152 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53157 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:53157 - "GET /api/crypto/ohlc/BTCUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53168 - "GET /api/crypto/trades/BTCUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53172 - "GET /api/crypto/orderbook/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53173 - "GET /api/crypto/stats/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53175 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53176 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:53178 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:53168 - "GET /api/search_index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53188 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53190 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53193 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53195 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53197 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53200 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53216 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53234 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53236 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53239 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53269 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53278 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:53423 - "GET /api/crypto/ohlc/BTCUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53424 - "GET /api/crypto/trades/BTCUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53426 - "GET /api/crypto/orderbook/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53430 - "GET /api/crypto/stats/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53431 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53432 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:53434 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:53424 - "GET /api/search_index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53424 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:53424 - "GET /api/crypto/ohlc/BTCUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53457 - "GET /api/crypto/trades/BTCUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53460 - "GET /api/crypto/orderbook/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53462 - "GET /api/crypto/stats/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53463 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53465 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection closed
+INFO:     127.0.0.1:53467 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:53463 - "GET /api/search_index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53487 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53507 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53547 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:53547 - "GET /api/crypto/ohlc/BTCUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53559 - "GET /api/crypto/trades/BTCUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53561 - "GET /api/crypto/orderbook/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53562 - "GET /api/crypto/stats/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53565 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53566 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection closed
+INFO:     127.0.0.1:53568 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:53565 - "GET /api/search_index HTTP/1.1" 200 OK
+
+[Stats] Trades: 41863 | Depth: 29806 | Quotes: 29806 | Rate: 55.7 trades/sec | Errors: 0 | Uptime: 751s
+[Stats] Trades: 42458 | Depth: 30273 | Quotes: 30273 | Rate: 55.8 trades/sec | Errors: 0 | Uptime: 761s
+[Stats] Trades: 42797 | Depth: 30665 | Quotes: 30665 | Rate: 55.5 trades/sec | Errors: 0 | Uptime: 771s
+[Stats] Trades: 44321 | Depth: 31114 | Quotes: 31114 | Rate: 56.7 trades/sec | Errors: 0 | Uptime: 781s
+[Stats] Trades: 44449 | Depth: 31506 | Quotes: 31506 | Rate: 56.2 trades/sec | Errors: 0 | Uptime: 791s
+[Stats] Trades: 45996 | Depth: 31942 | Quotes: 31942 | Rate: 57.4 trades/sec | Errors: 0 | Uptime: 801s
+[Stats] Trades: 46280 | Depth: 32334 | Quotes: 32334 | Rate: 57.0 trades/sec | Errors: 0 | Uptime: 812s
+[Stats] Trades: 47107 | Depth: 32755 | Quotes: 32755 | Rate: 57.3 trades/sec | Errors: 0 | Uptime: 822s
+[Stats] Trades: 47722 | Depth: 33154 | Quotes: 33154 | Rate: 57.4 trades/sec | Errors: 0 | Uptime: 832s
+[Stats] Trades: 48385 | Depth: 33567 | Quotes: 33567 | Rate: 57.5 trades/sec | Errors: 0 | Uptime: 842s
+[Stats] Trades: 50379 | Depth: 34006 | Quotes: 34006 | Rate: 59.2 trades/sec | Errors: 0 | Uptime: 852s
+[Stats] Trades: 51560 | Depth: 34439 | Quotes: 34439 | Rate: 59.8 trades/sec | Errors: 0 | Uptime: 862s
+[Stats] Trades: 52230 | Depth: 34874 | Quotes: 34874 | Rate: 59.9 trades/sec | Errors: 0 | Uptime: 872s
+[Stats] Trades: 52470 | Depth: 35282 | Quotes: 35282 | Rate: 59.5 trades/sec | Errors: 0 | Uptime: 882s
+[Stats] Trades: 52650 | Depth: 35677 | Quotes: 35677 | Rate: 59.0 trades/sec | Errors: 0 | Uptime: 892s
+[Stats] Trades: 53738 | Depth: 36126 | Quotes: 36126 | Rate: 59.6 trades/sec | Errors: 0 | Uptime: 902s
+[Stats] Trades: 53935 | Depth: 36481 | Quotes: 36481 | Rate: 59.2 trades/sec | Errors: 0 | Uptime: 912s
+[Stats] Trades: 54170 | Depth: 36863 | Quotes: 36863 | Rate: 58.8 trades/sec | Errors: 0 | Uptime: 922s
+[Stats] Trades: 54486 | Depth: 37175 | Quotes: 37175 | Rate: 58.5 trades/sec | Errors: 0 | Uptime: 932s
+[Stats] Trades: 54531 | Depth: 37529 | Quotes: 37529 | Rate: 57.9 trades/sec | Errors: 0 | Uptime: 942s
+[Stats] Trades: 56348 | Depth: 37979 | Quotes: 37979 | Rate: 59.2 trades/sec | Errors: 0 | Uptime: 952s
+[Stats] Trades: 57587 | Depth: 38441 | Quotes: 38441 | Rate: 59.9 trades/sec | Errors: 0 | Uptime: 962s
+[Stats] Trades: 60071 | Depth: 38923 | Quotes: 38923 | Rate: 61.8 trades/sec | Errors: 0 | Uptime: 972s
+[Stats] Trades: 60955 | Depth: 39394 | Quotes: 39394 | Rate: 62.1 trades/sec | Errors: 0 | Uptime: 982s
+[Stats] Trades: 61495 | Depth: 39823 | Quotes: 39823 | Rate: 62.0 trades/sec | Errors: 0 | Uptime: 992s
+[Stats] Trades: 62562 | Depth: 40252 | Quotes: 40252 | Rate: 62.4 trades/sec | Errors: 0 | Uptime: 1002s
+[Stats] Trades: 62965 | Depth: 40692 | Quotes: 40692 | Rate: 62.2 trades/sec | Errors: 0 | Uptime: 1012s
+[Stats] Trades: 63857 | Depth: 41111 | Quotes: 41111 | Rate: 62.5 trades/sec | Errors: 0 | Uptime: 1022s
+[Stats] Trades: 64317 | Depth: 41517 | Quotes: 41517 | Rate: 62.3 trades/sec | Errors: 0 | Uptime: 1032s
+[Stats] Trades: 64805 | Depth: 41930 | Quotes: 41930 | Rate: 62.2 trades/sec | Errors: 0 | Uptime: 1042s
+[Stats] Trades: 66159 | Depth: 42365 | Quotes: 42365 | Rate: 62.9 trades/sec | Errors: 0 | Uptime: 1052s
+[Stats] Trades: 66330 | Depth: 42745 | Quotes: 42745 | Rate: 62.5 trades/sec | Errors: 0 | Uptime: 1062s
+[Stats] Trades: 67550 | Depth: 43199 | Quotes: 43199 | Rate: 63.0 trades/sec | Errors: 0 | Uptime: 1072s
+[Stats] Trades: 67922 | Depth: 43619 | Quotes: 43619 | Rate: 62.8 trades/sec | Errors: 0 | Uptime: 1082s
+[Stats] Trades: 68090 | Depth: 44023 | Quotes: 44023 | Rate: 62.3 trades/sec | Errors: 0 | Uptime: 1092s
+[Stats] Trades: 68131 | Depth: 44398 | Quotes: 44398 | Rate: 61.8 trades/sec | Errors: 0 | Uptime: 1102s
+[Stats] Trades: 68493 | Depth: 44818 | Quotes: 44818 | Rate: 61.6 trades/sec | Errors: 0 | Uptime: 1112s
+[Stats] Trades: 69375 | Depth: 45277 | Quotes: 45277 | Rate: 61.8 trades/sec | Errors: 0 | Uptime: 1122s
+[Stats] Trades: 69601 | Depth: 45688 | Quotes: 45688 | Rate: 61.5 trades/sec | Errors: 0 | Uptime: 1132s
+[Stats] Trades: 69936 | Depth: 46068 | Quotes: 46068 | Rate: 61.2 trades/sec | Errors: 0 | Uptime: 1142s
+[Stats] Trades: 70319 | Depth: 46442 | Quotes: 46442 | Rate: 61.0 trades/sec | Errors: 0 | Uptime: 1152s
+[Stats] Trades: 70489 | Depth: 46843 | Quotes: 46843 | Rate: 60.6 trades/sec | Errors: 0 | Uptime: 1162s
+[Stats] Trades: 71118 | Depth: 47281 | Quotes: 47281 | Rate: 60.7 trades/sec | Errors: 0 | Uptime: 1172s
+[Stats] Trades: 72077 | Depth: 47728 | Quotes: 47728 | Rate: 61.0 trades/sec | Errors: 0 | Uptime: 1182s
+[Stats] Trades: 75624 | Depth: 48208 | Quotes: 48208 | Rate: 63.4 trades/sec | Errors: 0 | Uptime: 1192s
+[Stats] Trades: 75842 | Depth: 48611 | Quotes: 48611 | Rate: 63.1 trades/sec | Errors: 0 | Uptime: 1202s
+[Stats] Trades: 76885 | Depth: 49039 | Quotes: 49039 | Rate: 63.4 trades/sec | Errors: 0 | Uptime: 1212s
+[Stats] Trades: 77961 | Depth: 49492 | Quotes: 49492 | Rate: 63.8 trades/sec | Errors: 0 | Uptime: 1222s
+[Stats] Trades: 78977 | Depth: 49958 | Quotes: 49958 | Rate: 64.1 trades/sec | Errors: 0 | Uptime: 1232s
+[Stats] Trades: 79337 | Depth: 50369 | Quotes: 50369 | Rate: 63.9 trades/sec | Errors: 0 | Uptime: 1242s
+[Stats] Trades: 79699 | Depth: 50748 | Quotes: 50748 | Rate: 63.6 trades/sec | Errors: 0 | Uptime: 1252s
+[Stats] Trades: 79933 | Depth: 51108 | Quotes: 51108 | Rate: 63.3 trades/sec | Errors: 0 | Uptime: 1262s
+[Stats] Trades: 82676 | Depth: 51598 | Quotes: 51598 | Rate: 65.0 trades/sec | Errors: 0 | Uptime: 1272s
+[Stats] Trades: 82910 | Depth: 52023 | Quotes: 52023 | Rate: 64.6 trades/sec | Errors: 0 | Uptime: 1282s
+[Stats] Trades: 83863 | Depth: 52499 | Quotes: 52499 | Rate: 64.9 trades/sec | Errors: 0 | Uptime: 1292s
+[Stats] Trades: 84201 | Depth: 52916 | Quotes: 52916 | Rate: 64.6 trades/sec | Errors: 0 | Uptime: 1303s
+[Stats] Trades: 84397 | Depth: 53303 | Quotes: 53303 | Rate: 64.3 trades/sec | Errors: 0 | Uptime: 1313s
+[Stats] Trades: 85777 | Depth: 53754 | Quotes: 53754 | Rate: 64.9 trades/sec | Errors: 0 | Uptime: 1323s
+[Stats] Trades: 86044 | Depth: 54176 | Quotes: 54176 | Rate: 64.6 trades/sec | Errors: 0 | Uptime: 1333s
+[Stats] Trades: 86462 | Depth: 54625 | Quotes: 54625 | Rate: 64.4 trades/sec | Errors: 0 | Uptime: 1343s
+[Stats] Trades: 87951 | Depth: 55093 | Quotes: 55093 | Rate: 65.0 trades/sec | Errors: 0 | Uptime: 1353s
+[Stats] Trades: 89152 | Depth: 55560 | Quotes: 55560 | Rate: 65.4 trades/sec | Errors: 0 | Uptime: 1363s
+[Stats] Trades: 90888 | Depth: 56041 | Quotes: 56041 | Rate: 66.2 trades/sec | Errors: 0 | Uptime: 1373s
+[Stats] Trades: 92074 | Depth: 56482 | Quotes: 56482 | Rate: 66.6 trades/sec | Errors: 0 | Uptime: 1383s
+[Stats] Trades: 93632 | Depth: 56929 | Quotes: 56929 | Rate: 67.2 trades/sec | Errors: 0 | Uptime: 1393s
+[Stats] Trades: 95191 | Depth: 57386 | Quotes: 57386 | Rate: 67.9 trades/sec | Errors: 0 | Uptime: 1403s
+[Stats] Trades: 96508 | Depth: 57869 | Quotes: 57869 | Rate: 68.3 trades/sec | Errors: 0 | Uptime: 1413s
+[Stats] Trades: 97069 | Depth: 58312 | Quotes: 58312 | Rate: 68.2 trades/sec | Errors: 0 | Uptime: 1423s
+[Stats] Trades: 97938 | Depth: 58795 | Quotes: 58795 | Rate: 68.4 trades/sec | Errors: 0 | Uptime: 1433s
+[Stats] Trades: 99614 | Depth: 59313 | Quotes: 59313 | Rate: 69.0 trades/sec | Errors: 0 | Uptime: 1443s
+[Stats] Trades: 100381 | Depth: 59708 | Quotes: 59708 | Rate: 69.1 trades/sec | Errors: 0 | Uptime: 1453s
+[Stats] Trades: 103636 | Depth: 60137 | Quotes: 60137 | Rate: 70.8 trades/sec | Errors: 0 | Uptime: 1463s
+[Stats] Trades: 108611 | Depth: 60790 | Quotes: 60790 | Rate: 73.7 trades/sec | Errors: 0 | Uptime: 1473s
+[Stats] Trades: 110011 | Depth: 61314 | Quotes: 61314 | Rate: 74.2 trades/sec | Errors: 0 | Uptime: 1483s
+[Stats] Trades: 110949 | Depth: 61784 | Quotes: 61784 | Rate: 74.3 trades/sec | Errors: 0 | Uptime: 1493s
+[Stats] Trades: 112402 | Depth: 62314 | Quotes: 62314 | Rate: 74.8 trades/sec | Errors: 0 | Uptime: 1503s
+[Stats] Trades: 112913 | Depth: 62786 | Quotes: 62786 | Rate: 74.6 trades/sec | Errors: 0 | Uptime: 1513s
+[Stats] Trades: 114012 | Depth: 63300 | Quotes: 63300 | Rate: 74.9 trades/sec | Errors: 0 | Uptime: 1523s
+[Stats] Trades: 114553 | Depth: 63764 | Quotes: 63764 | Rate: 74.7 trades/sec | Errors: 0 | Uptime: 1533sINFO:     127.0.0.1:53585 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53617 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:53617 - "GET /api/crypto/ohlc/BTCUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53626 - "GET /api/crypto/trades/BTCUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53628 - "GET /api/crypto/orderbook/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53632 - "GET /api/crypto/stats/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53633 - "WebSocket /ws/crypto" [accepted]
+INFO:     127.0.0.1:53634 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:53636 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:53626 - "GET /api/crypto/ohlc/XRPUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53617 - "GET /api/crypto/trades/XRPUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53634 - "GET /api/crypto/orderbook/XRPUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53632 - "GET /api/crypto/stats/XRPUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53638 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:53617 - "GET /api/search_index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53617 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:53617 - "GET /api/crypto/ohlc/DOGEUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53643 - "GET /api/crypto/trades/DOGEUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53645 - "WebSocket /ws/crypto" [accepted]
+INFO:     127.0.0.1:53646 - "GET /api/crypto/orderbook/DOGEUSDT HTTP/1.1" 200 OK
+INFO:     connection open
+INFO:     127.0.0.1:53647 - "GET /api/crypto/stats/DOGEUSDT HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:53672 - "GET /api/crypto/ohlc/BTCUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53674 - "GET /api/crypto/trades/BTCUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53677 - "GET /api/crypto/orderbook/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53678 - "GET /api/crypto/stats/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53680 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53682 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection closed
+INFO:     127.0.0.1:53684 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:53680 - "GET /api/search_index HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:53680 - "GET /api/crypto/ohlc/DOGEUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53678 - "GET /api/crypto/trades/DOGEUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53677 - "GET /api/crypto/orderbook/DOGEUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53674 - "GET /api/crypto/stats/DOGEUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53687 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:53678 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53716 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:53716 - "GET /api/crypto/ohlc/BTCUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53727 - "GET /api/crypto/trades/BTCUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53731 - "GET /api/crypto/orderbook/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53732 - "GET /api/crypto/stats/BTCUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53734 - "WebSocket /ws/crypto" [accepted]
+INFO:     127.0.0.1:53735 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:53737 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:53727 - "GET /api/crypto/ohlc/XRPUSDT?bar=1m HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53716 - "GET /api/crypto/trades/XRPUSDT?n=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53735 - "GET /api/crypto/orderbook/XRPUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53732 - "GET /api/crypto/stats/XRPUSDT HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53739 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:53716 - "GET /api/search_index HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53716 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53745 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:53745 - "GET /api/landing_widgets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53745 - "GET /api/stocks/reliance-industries-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53752 - "GET /api/macro HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53755 - "GET /api/stocks/bharti-airtel-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53745 - "GET /api/stocks/tata-consultancy-services-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53757 - "GET /api/stocks/hdfc-bank-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53745 - "GET /api/stocks/larsen-toubro-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53752 - "GET /api/stocks/bajaj-finance-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53755 - "GET /api/stocks/life-insurance-corporation-of-india HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53759 - "GET /api/stocks/icici-bank-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53745 - "GET /api/stocks/nifty HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53752 - "OPTIONS /api/stocks/batch HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53755 - "OPTIONS /api/quotes/refresh-batch HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53757 - "GET /api/stocks/hindustan-unilever-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53760 - "GET /api/stocks/state-bank-of-india HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53780 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection closed
+INFO:     127.0.0.1:53782 - "WebSocket /ws/crypto" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:53755 - "POST /api/stocks/batch HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53760 - "GET /api/crypto/status HTTP/1.1" 200 OK
+
+[BACKEND] Starting refresh-batch for 20 slugs: ['reliance-industries-ltd', 'bharti-airtel-ltd', 'hdfc-bank-ltd', 'icici-bank-ltd', 'state-bank-of-india', 'tata-consultancy-services-ltd', 'bajaj-finance-ltd', 'life-insurance-corporation-of-india', 'larsen-toubro-ltd', 'hindustan-unilever-ltd', 'india-vix', 'multi-commodity-exchange-of-india-ltd', 'nifty-metal', 'nifty-it', 'nifty', 'sp-bse-sensex', 'nifty-total-market-index', 'nifty-midcap', 'nifty-smallcap-100', 'nifty-bank']
+[BACKEND] Finished refresh-batch. Took 2.36 seconds.
+
+INFO:     127.0.0.1:53752 - "POST /api/quotes/refresh-batch HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53752 - "OPTIONS /api/admin/log HTTP/1.1" 200 OK
+
+[FRONTEND TRACE]:
+[0.0ms] Extracted 20 slugs
+[14925.7ms] fetchBatchLiveQuotes network call completed
+[0.3ms] landingWidgets cache update completed
+[0.3ms] Individual stockData cache updates completed
+[14926.3ms] Total frontend handleSyncMarket execution time
+
+INFO:     127.0.0.1:53752 - "POST /api/admin/log HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53752 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53823 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53845 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53867 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53889 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53913 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53924 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53927 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53946 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53965 - "GET /api/crypto/status HTTP/1.1" 200 OK
+INFO:     connection closed
+
+[BACKEND] Starting refresh-batch for 20 slugs: ['reliance-industries-ltd', 'bharti-airtel-ltd', 'hdfc-bank-ltd', 'icici-bank-ltd', 'state-bank-of-india', 'tata-consultancy-services-ltd', 'bajaj-finance-ltd', 'life-insurance-corporation-of-india', 'larsen-toubro-ltd', 'hindustan-unilever-ltd', 'india-vix', 'multi-commodity-exchange-of-india-ltd', 'nifty-metal', 'nifty-it', 'nifty', 'sp-bse-sensex', 'nifty-total-market-index', 'nifty-midcap', 'nifty-smallcap-100', 'nifty-bank']
+[BACKEND] Finished refresh-batch. Took 1.44 seconds.
+
+INFO:     127.0.0.1:53965 - "POST /api/quotes/refresh-batch HTTP/1.1" 200 OK
+
+[FRONTEND TRACE]:
+[0.0ms] Extracted 20 slugs
+[1454.0ms] fetchBatchLiveQuotes network call completed
+[0.2ms] landingWidgets cache update completed
+[0.3ms] Individual stockData cache updates completed
+[1454.5ms] Total frontend handleSyncMarket execution time
+
+INFO:     127.0.0.1:53965 - "POST /api/admin/log HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54072 - "GET /api/landing_widgets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54072 - "GET /api/stocks/reliance-industries-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54074 - "GET /api/macro HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54076 - "GET /api/stocks/bharti-airtel-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54072 - "GET /api/stocks/tata-consultancy-services-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54078 - "GET /api/stocks/hdfc-bank-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54072 - "GET /api/stocks/larsen-toubro-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54074 - "GET /api/stocks/bajaj-finance-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54076 - "GET /api/stocks/life-insurance-corporation-of-india HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54080 - "GET /api/stocks/icici-bank-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54072 - "GET /api/stocks/nifty HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54074 - "POST /api/stocks/batch HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54078 - "GET /api/stocks/hindustan-unilever-ltd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54082 - "GET /api/stocks/state-bank-of-india HTTP/1.1" 200 OK
+
+[BACKEND] Starting refresh-batch for 20 slugs: ['reliance-industries-ltd', 'bharti-airtel-ltd', 'hdfc-bank-ltd', 'icici-bank-ltd', 'state-bank-of-india', 'tata-consultancy-services-ltd', 'bajaj-finance-ltd', 'life-insurance-corporation-of-india', 'larsen-toubro-ltd', 'hindustan-unilever-ltd', 'india-vix', 'multi-commodity-exchange-of-india-ltd', 'nifty-metal', 'nifty-it', 'nifty', 'sp-bse-sensex', 'nifty-total-market-index', 'nifty-midcap', 'nifty-smallcap-100', 'nifty-bank']
+INFO:     127.0.0.1:54080 - "GET /api/search_index HTTP/1.1" 200 OK
+[BACKEND] Finished refresh-batch. Took 2.09 seconds.
+
+INFO:     127.0.0.1:54076 - "POST /api/quotes/refresh-batch HTTP/1.1" 200 OK
+
+[FRONTEND TRACE]:
+[0.0ms] Extracted 20 slugs
+[14590.1ms] fetchBatchLiveQuotes network call completed
+[0.9ms] landingWidgets cache update completed
+[2.8ms] Individual stockData cache updates completed
+[14593.8ms] Total frontend handleSyncMarket execution time
+
+INFO:     127.0.0.1:54076 - "POST /api/admin/log HTTP/1.1" 200 OK
+
+[Stats] Trades: 115789 | Depth: 64246 | Quotes: 64246 | Rate: 75.0 trades/sec | Errors: 0 | Uptime: 1543s
+[Stats] Trades: 117431 | Depth: 64718 | Quotes: 64718 | Rate: 75.6 trades/sec | Errors: 0 | Uptime: 1553s
+[Stats] Trades: 121652 | Depth: 65263 | Quotes: 65263 | Rate: 77.8 trades/sec | Errors: 0 | Uptime: 1563s
+[Stats] Trades: 124128 | Depth: 65807 | Quotes: 65807 | Rate: 78.9 trades/sec | Errors: 0 | Uptime: 1573s
+[Stats] Trades: 126297 | Depth: 66350 | Quotes: 66350 | Rate: 79.8 trades/sec | Errors: 0 | Uptime: 1583s
+[Stats] Trades: 127722 | Depth: 66871 | Quotes: 66871 | Rate: 80.2 trades/sec | Errors: 0 | Uptime: 1593s
+[Stats] Trades: 128761 | Depth: 67324 | Quotes: 67324 | Rate: 80.3 trades/sec | Errors: 0 | Uptime: 1603s
+[Stats] Trades: 129587 | Depth: 67785 | Quotes: 67785 | Rate: 80.3 trades/sec | Errors: 0 | Uptime: 1613s
+[Stats] Trades: 131074 | Depth: 68262 | Quotes: 68262 | Rate: 80.7 trades/sec | Errors: 0 | Uptime: 1623s
+[Stats] Trades: 131358 | Depth: 68707 | Quotes: 68707 | Rate: 80.4 trades/sec | Errors: 0 | Uptime: 1633s
+[Stats] Trades: 131640 | Depth: 69156 | Quotes: 69156 | Rate: 80.1 trades/sec | Errors: 0 | Uptime: 1643s
+[Stats] Trades: 132502 | Depth: 69577 | Quotes: 69577 | Rate: 80.1 trades/sec | Errors: 0 | Uptime: 1653s
+[Stats] Trades: 132660 | Depth: 69984 | Quotes: 69984 | Rate: 79.7 trades/sec | Errors: 0 | Uptime: 1663s
+[Stats] Trades: 132767 | Depth: 70385 | Quotes: 70385 | Rate: 79.3 trades/sec | Errors: 0 | Uptime: 1674s
+[Stats] Trades: 134051 | Depth: 70865 | Quotes: 70865 | Rate: 79.6 trades/sec | Errors: 0 | Uptime: 1684s
+[Stats] Trades: 135106 | Depth: 71330 | Quotes: 71330 | Rate: 79.8 trades/sec | Errors: 0 | Uptime: 1694s
+[Stats] Trades: 135934 | Depth: 71776 | Quotes: 71776 | Rate: 79.8 trades/sec | Errors: 0 | Uptime: 1704s
+[Stats] Trades: 137457 | Depth: 72283 | Quotes: 72283 | Rate: 80.2 trades/sec | Errors: 0 | Uptime: 1714s
+[Stats] Trades: 137894 | Depth: 72661 | Quotes: 72661 | Rate: 80.0 trades/sec | Errors: 0 | Uptime: 1724s
+[Stats] Trades: 139842 | Depth: 73206 | Quotes: 73206 | Rate: 80.7 trades/sec | Errors: 0 | Uptime: 1734s
+[Stats] Trades: 141888 | Depth: 73673 | Quotes: 73673 | Rate: 81.4 trades/sec | Errors: 0 | Uptime: 1744s
+[Stats] Trades: 144437 | Depth: 74174 | Quotes: 74174 | Rate: 82.4 trades/sec | Errors: 0 | Uptime: 1754s
+[Stats] Trades: 147026 | Depth: 74676 | Quotes: 74676 | Rate: 83.4 trades/sec | Errors: 0 | Uptime: 1764s
+[Stats] Trades: 149775 | Depth: 75227 | Quotes: 75227 | Rate: 84.4 trades/sec | Errors: 0 | Uptime: 1774s
+[Stats] Trades: 151100 | Depth: 75760 | Quotes: 75760 | Rate: 84.7 trades/sec | Errors: 0 | Uptime: 1784s
+[Stats] Trades: 151366 | Depth: 76225 | Quotes: 76225 | Rate: 84.4 trades/sec | Errors: 0 | Uptime: 1794s
+[Stats] Trades: 151486 | Depth: 76652 | Quotes: 76652 | Rate: 84.0 trades/sec | Errors: 0 | Uptime: 1804s
+[Stats] Trades: 151851 | Depth: 77087 | Quotes: 77087 | Rate: 83.7 trades/sec | Errors: 0 | Uptime: 1814s
+[Stats] Trades: 152496 | Depth: 77560 | Quotes: 77560 | Rate: 83.6 trades/sec | Errors: 0 | Uptime: 1824s
+[Stats] Trades: 152735 | Depth: 78032 | Quotes: 78032 | Rate: 83.3 trades/sec | Errors: 0 | Uptime: 1834s
+[Stats] Trades: 152807 | Depth: 78430 | Quotes: 78430 | Rate: 82.9 trades/sec | Errors: 0 | Uptime: 1844s
+[Stats] Trades: 153333 | Depth: 78862 | Quotes: 78862 | Rate: 82.7 trades/sec | Errors: 0 | Uptime: 1854s
+[Stats] Trades: 154112 | Depth: 79333 | Quotes: 79333 | Rate: 82.7 trades/sec | Errors: 0 | Uptime: 1864s
+[Stats] Trades: 154525 | Depth: 79777 | Quotes: 79777 | Rate: 82.5 trades/sec | Errors: 0 | Uptime: 1874s
+[Stats] Trades: 154961 | Depth: 80173 | Quotes: 80173 | Rate: 82.3 trades/sec | Errors: 0 | Uptime: 1884s
+[Stats] Trades: 156673 | Depth: 80672 | Quotes: 80672 | Rate: 82.7 trades/sec | Errors: 0 | Uptime: 1894s
+[Stats] Trades: 156908 | Depth: 81090 | Quotes: 81090 | Rate: 82.4 trades/sec | Errors: 0 | Uptime: 1904s
+[Stats] Trades: 156975 | Depth: 81452 | Quotes: 81452 | Rate: 82.0 trades/sec | Errors: 0 | Uptime: 1914s
+[Stats] Trades: 157055 | Depth: 81843 | Quotes: 81843 | Rate: 81.6 trades/sec | Errors: 0 | Uptime: 1924s
+[Stats] Trades: 157400 | Depth: 82268 | Quotes: 82268 | Rate: 81.4 trades/sec | Errors: 0 | Uptime: 1934s
+[Stats] Trades: 158844 | Depth: 82672 | Quotes: 82672 | Rate: 81.7 trades/sec | Errors: 0 | Uptime: 1944s
+[Stats] Trades: 161085 | Depth: 83199 | Quotes: 83199 | Rate: 82.4 trades/sec | Errors: 0 | Uptime: 1954s
+[Stats] Trades: 162187 | Depth: 83663 | Quotes: 83663 | Rate: 82.6 trades/sec | Errors: 0 | Uptime: 1964s
+[Stats] Trades: 162550 | Depth: 84113 | Quotes: 84113 | Rate: 82.3 trades/sec | Errors: 0 | Uptime: 1974s
+[Stats] Trades: 163697 | Depth: 84596 | Quotes: 84596 | Rate: 82.5 trades/sec | Errors: 0 | Uptime: 1984s
+[Stats] Trades: 164492 | Depth: 85043 | Quotes: 85043 | Rate: 82.5 trades/sec | Errors: 0 | Uptime: 1994s
+[Stats] Trades: 165417 | Depth: 85511 | Quotes: 85511 | Rate: 82.5 trades/sec | Errors: 0 | Uptime: 2004s
+[Stats] Trades: 166964 | Depth: 86045 | Quotes: 86045 | Rate: 82.9 trades/sec | Errors: 0 | Uptime: 2014s
+[Stats] Trades: 167989 | Depth: 86571 | Quotes: 86571 | Rate: 83.0 trades/sec | Errors: 0 | Uptime: 2024s
+[Stats] Trades: 169410 | Depth: 87079 | Quotes: 87079 | Rate: 83.3 trades/sec | Errors: 0 | Uptime: 2034s
+[Stats] Trades: 170622 | Depth: 87611 | Quotes: 87611 | Rate: 83.5 trades/sec | Errors: 0 | Uptime: 2044s
+[Stats] Trades: 172485 | Depth: 88134 | Quotes: 88134 | Rate: 84.0 trades/sec | Errors: 0 | Uptime: 2054s
+[Stats] Trades: 176191 | Depth: 88701 | Quotes: 88701 | Rate: 85.4 trades/sec | Errors: 0 | Uptime: 2064s
+[Stats] Trades: 178107 | Depth: 89207 | Quotes: 89207 | Rate: 85.9 trades/sec | Errors: 0 | Uptime: 2074s
+[Stats] Trades: 179008 | Depth: 89705 | Quotes: 89705 | Rate: 85.9 trades/sec | Errors: 0 | Uptime: 2084s
+[Stats] Trades: 180427 | Depth: 90226 | Quotes: 90226 | Rate: 86.2 trades/sec | Errors: 0 | Uptime: 2094s
+[Stats] Trades: 181539 | Depth: 90766 | Quotes: 90766 | Rate: 86.3 trades/sec | Errors: 0 | Uptime: 2104s
+[Stats] Trades: 182140 | Depth: 91240 | Quotes: 91240 | Rate: 86.1 trades/sec | Errors: 0 | Uptime: 2114s
+[Stats] Trades: 183259 | Depth: 91730 | Quotes: 91730 | Rate: 86.3 trades/sec | Errors: 0 | Uptime: 2124s
+[Stats] Trades: 183915 | Depth: 92198 | Quotes: 92198 | Rate: 86.2 trades/sec | Errors: 0 | Uptime: 2134s
+[Stats] Trades: 185082 | Depth: 92668 | Quotes: 92668 | Rate: 86.3 trades/sec | Errors: 0 | Uptime: 2144s
+[Stats] Trades: 186061 | Depth: 93168 | Quotes: 93168 | Rate: 86.4 trades/sec | Errors: 0 | Uptime: 2154s
+[Stats] Trades: 186524 | Depth: 93620 | Quotes: 93620 | Rate: 86.2 trades/sec | Errors: 0 | Uptime: 2164s
+[Stats] Trades: 187531 | Depth: 94147 | Quotes: 94147 | Rate: 86.2 trades/sec | Errors: 0 | Uptime: 2174s
+[Stats] Trades: 188472 | Depth: 94616 | Quotes: 94616 | Rate: 86.3 trades/sec | Errors: 0 | Uptime: 2184s
+[Stats] Trades: 188705 | Depth: 95102 | Quotes: 95102 | Rate: 86.0 trades/sec | Errors: 0 | Uptime: 2194s
+[Stats] Trades: 189147 | Depth: 95557 | Quotes: 95557 | Rate: 85.8 trades/sec | Errors: 0 | Uptime: 2204s
+[Stats] Trades: 189629 | Depth: 96054 | Quotes: 96054 | Rate: 85.6 trades/sec | Errors: 0 | Uptime: 2214s
+[Stats] Trades: 190667 | Depth: 96509 | Quotes: 96509 | Rate: 85.7 trades/sec | Errors: 0 | Uptime: 2224s
+[Stats] Trades: 191887 | Depth: 96980 | Quotes: 96980 | Rate: 85.9 trades/sec | Errors: 0 | Uptime: 2234s
+[Stats] Trades: 192888 | Depth: 97499 | Quotes: 97499 | Rate: 85.9 trades/sec | Errors: 0 | Uptime: 2244s
+[Stats] Trades: 193169 | Depth: 97965 | Quotes: 97965 | Rate: 85.7 trades/sec | Errors: 0 | Uptime: 2254s
+[Stats] Trades: 193901 | Depth: 98426 | Quotes: 98426 | Rate: 85.6 trades/sec | Errors: 0 | Uptime: 2264s
+[Stats] Trades: 194279 | Depth: 98884 | Quotes: 98884 | Rate: 85.4 trades/sec | Errors: 0 | Uptime: 2274s
+[Stats] Trades: 194578 | Depth: 99332 | Quotes: 99332 | Rate: 85.2 trades/sec | Errors: 0 | Uptime: 2284s
+[Stats] Trades: 194797 | Depth: 99752 | Quotes: 99752 | Rate: 84.9 trades/sec | Errors: 0 | Uptime: 2295s
+[Stats] Trades: 195182 | Depth: 100185 | Quotes: 100185 | Rate: 84.7 trades/sec | Errors: 0 | Uptime: 2305s
+[Stats] Trades: 196520 | Depth: 100654 | Quotes: 100654 | Rate: 84.9 trades/sec | Errors: 0 | Uptime: 2315sINFO:     127.0.0.1:58996 - "GET /api/landing_widgets HTTP/1.1" 200 OK
+
+[Stats] Trades: 197163 | Depth: 101175 | Quotes: 101175 | Rate: 84.8 trades/sec | Errors: 0 | Uptime: 2325s
+[Stats] Trades: 198386 | Depth: 101645 | Quotes: 101645 | Rate: 85.0 trades/sec | Errors: 0 | Uptime: 2335s
+[Stats] Trades: 198851 | Depth: 102105 | Quotes: 102105 | Rate: 84.8 trades/sec | Errors: 0 | Uptime: 2345s
+[Stats] Trades: 198962 | Depth: 102501 | Quotes: 102501 | Rate: 84.5 trades/sec | Errors: 0 | Uptime: 2355s
+[Stats] Trades: 199417 | Depth: 102923 | Quotes: 102923 | Rate: 84.3 trades/sec | Errors: 0 | Uptime: 2365s
+[Stats] Trades: 199960 | Depth: 103399 | Quotes: 103399 | Rate: 84.2 trades/sec | Errors: 0 | Uptime: 2375s
+[Stats] Trades: 200516 | Depth: 103845 | Quotes: 103845 | Rate: 84.1 trades/sec | Errors: 0 | Uptime: 2385s
+[Stats] Trades: 201552 | Depth: 104321 | Quotes: 104321 | Rate: 84.2 trades/sec | Errors: 0 | Uptime: 2395s
+[Stats] Trades: 202855 | Depth: 104805 | Quotes: 104805 | Rate: 84.4 trades/sec | Errors: 0 | Uptime: 2405s
+[Stats] Trades: 203197 | Depth: 105209 | Quotes: 105209 | Rate: 84.1 trades/sec | Errors: 0 | Uptime: 2415s
+[Stats] Trades: 204986 | Depth: 105698 | Quotes: 105698 | Rate: 84.5 trades/sec | Errors: 0 | Uptime: 2425s
+[Stats] Trades: 206522 | Depth: 106154 | Quotes: 106154 | Rate: 84.8 trades/sec | Errors: 0 | Uptime: 2435s
+[Stats] Trades: 207141 | Depth: 106629 | Quotes: 106629 | Rate: 84.7 trades/sec | Errors: 0 | Uptime: 2445s
+[Stats] Trades: 209982 | Depth: 107149 | Quotes: 107149 | Rate: 85.5 trades/sec | Errors: 0 | Uptime: 2455s
+[Stats] Trades: 210490 | Depth: 107605 | Quotes: 107605 | Rate: 85.4 trades/sec | Errors: 0 | Uptime: 2465s
+[Stats] Trades: 211475 | Depth: 108069 | Quotes: 108069 | Rate: 85.4 trades/sec | Errors: 0 | Uptime: 2475s
+[Stats] Trades: 212260 | Depth: 108550 | Quotes: 108550 | Rate: 85.4 trades/sec | Errors: 0 | Uptime: 2485s
+[Stats] Trades: 212545 | Depth: 108953 | Quotes: 108953 | Rate: 85.2 trades/sec | Errors: 0 | Uptime: 2495s
+[Stats] Trades: 213106 | Depth: 109398 | Quotes: 109398 | Rate: 85.1 trades/sec | Errors: 0 | Uptime: 2505s
+[Stats] Trades: 214581 | Depth: 109865 | Quotes: 109865 | Rate: 85.3 trades/sec | Errors: 0 | Uptime: 2515s
+[Stats] Trades: 215535 | Depth: 110322 | Quotes: 110322 | Rate: 85.4 trades/sec | Errors: 0 | Uptime: 2525s
+[Stats] Trades: 217177 | Depth: 110814 | Quotes: 110814 | Rate: 85.7 trades/sec | Errors: 0 | Uptime: 2535s
+[Stats] Trades: 218854 | Depth: 111329 | Quotes: 111329 | Rate: 86.0 trades/sec | Errors: 0 | Uptime: 2545s
+[Stats] Trades: 219630 | Depth: 111811 | Quotes: 111811 | Rate: 86.0 trades/sec | Errors: 0 | Uptime: 2555s
+[Stats] Trades: 219921 | Depth: 112249 | Quotes: 112249 | Rate: 85.7 trades/sec | Errors: 0 | Uptime: 2565s
+[Stats] Trades: 220115 | Depth: 112662 | Quotes: 112662 | Rate: 85.5 trades/sec | Errors: 0 | Uptime: 2575s
+[Stats] Trades: 220326 | Depth: 113096 | Quotes: 113096 | Rate: 85.2 trades/sec | Errors: 0 | Uptime: 2585s
+[Stats] Trades: 220430 | Depth: 113497 | Quotes: 113497 | Rate: 84.9 trades/sec | Errors: 0 | Uptime: 2595s
+[Stats] Trades: 220586 | Depth: 113930 | Quotes: 113930 | Rate: 84.7 trades/sec | Errors: 0 | Uptime: 2605s
+[Stats] Trades: 221378 | Depth: 114374 | Quotes: 114374 | Rate: 84.6 trades/sec | Errors: 0 | Uptime: 2615s
+[Stats] Trades: 221981 | Depth: 114812 | Quotes: 114812 | Rate: 84.6 trades/sec | Errors: 0 | Uptime: 2625s
+[Stats] Trades: 223794 | Depth: 115269 | Quotes: 115269 | Rate: 84.9 trades/sec | Errors: 0 | Uptime: 2635s
+[Stats] Trades: 224087 | Depth: 115667 | Quotes: 115667 | Rate: 84.7 trades/sec | Errors: 0 | Uptime: 2645s
+[Stats] Trades: 225311 | Depth: 116157 | Quotes: 116157 | Rate: 84.9 trades/sec | Errors: 0 | Uptime: 2655s
+[Stats] Trades: 225556 | Depth: 116544 | Quotes: 116544 | Rate: 84.6 trades/sec | Errors: 0 | Uptime: 2665s
+[Stats] Trades: 226289 | Depth: 116974 | Quotes: 116974 | Rate: 84.6 trades/sec | Errors: 0 | Uptime: 2675s
+[Stats] Trades: 226564 | Depth: 117357 | Quotes: 117357 | Rate: 84.4 trades/sec | Errors: 0 | Uptime: 2685s
+[Stats] Trades: 226831 | Depth: 117760 | Quotes: 117760 | Rate: 84.2 trades/sec | Errors: 0 | Uptime: 2695s
+[Stats] Trades: 227041 | Depth: 118169 | Quotes: 118169 | Rate: 83.9 trades/sec | Errors: 0 | Uptime: 2705s
+[Stats] Trades: 227279 | Depth: 118589 | Quotes: 118589 | Rate: 83.7 trades/sec | Errors: 0 | Uptime: 2716s
+[Stats] Trades: 227446 | Depth: 118982 | Quotes: 118982 | Rate: 83.5 trades/sec | Errors: 0 | Uptime: 2726s
+[Stats] Trades: 227746 | Depth: 119356 | Quotes: 119356 | Rate: 83.3 trades/sec | Errors: 0 | Uptime: 2736s
+[Stats] Trades: 228058 | Depth: 119730 | Quotes: 119730 | Rate: 83.1 trades/sec | Errors: 0 | Uptime: 2746s
+[Stats] Trades: 228783 | Depth: 120157 | Quotes: 120157 | Rate: 83.0 trades/sec | Errors: 0 | Uptime: 2756s
+[Stats] Trades: 229294 | Depth: 120559 | Quotes: 120559 | Rate: 82.9 trades/sec | Errors: 0 | Uptime: 2766s
+[Stats] Trades: 229578 | Depth: 120933 | Quotes: 120933 | Rate: 82.7 trades/sec | Errors: 0 | Uptime: 2776s
+[Stats] Trades: 229892 | Depth: 121371 | Quotes: 121371 | Rate: 82.5 trades/sec | Errors: 0 | Uptime: 2786s
+[Stats] Trades: 230918 | Depth: 121799 | Quotes: 121799 | Rate: 82.6 trades/sec | Errors: 0 | Uptime: 2796s
+[Stats] Trades: 231284 | Depth: 122213 | Quotes: 122213 | Rate: 82.4 trades/sec | Errors: 0 | Uptime: 2806s
+[Stats] Trades: 231382 | Depth: 122584 | Quotes: 122584 | Rate: 82.2 trades/sec | Errors: 0 | Uptime: 2816s
+[Stats] Trades: 231483 | Depth: 122928 | Quotes: 122928 | Rate: 81.9 trades/sec | Errors: 0 | Uptime: 2826s
+[Stats] Trades: 232692 | Depth: 123428 | Quotes: 123428 | Rate: 82.1 trades/sec | Errors: 0 | Uptime: 2836s
+[Stats] Trades: 232966 | Depth: 123858 | Quotes: 123858 | Rate: 81.9 trades/sec | Errors: 0 | Uptime: 2846s
+[Stats] Trades: 233721 | Depth: 124321 | Quotes: 124321 | Rate: 81.8 trades/sec | Errors: 0 | Uptime: 2856s
+[Stats] Trades: 233874 | Depth: 124756 | Quotes: 124756 | Rate: 81.6 trades/sec | Errors: 0 | Uptime: 2866s
+[Stats] Trades: 234645 | Depth: 125202 | Quotes: 125202 | Rate: 81.6 trades/sec | Errors: 0 | Uptime: 2876s
+[Stats] Trades: 234912 | Depth: 125565 | Quotes: 125565 | Rate: 81.4 trades/sec | Errors: 0 | Uptime: 2886s
+[Stats] Trades: 235024 | Depth: 125953 | Quotes: 125953 | Rate: 81.2 trades/sec | Errors: 0 | Uptime: 2896s
+[Stats] Trades: 235314 | Depth: 126348 | Quotes: 126348 | Rate: 81.0 trades/sec | Errors: 0 | Uptime: 2906s
+[Stats] Trades: 235453 | Depth: 126747 | Quotes: 126747 | Rate: 80.7 trades/sec | Errors: 0 | Uptime: 2916s
+[Stats] Trades: 235877 | Depth: 127131 | Quotes: 127131 | Rate: 80.6 trades/sec | Errors: 0 | Uptime: 2926s
+[Stats] Trades: 236804 | Depth: 127544 | Quotes: 127544 | Rate: 80.7 trades/sec | Errors: 0 | Uptime: 2936s
+[Stats] Trades: 238504 | Depth: 127987 | Quotes: 127987 | Rate: 81.0 trades/sec | Errors: 0 | Uptime: 2946s
+[Stats] Trades: 239538 | Depth: 128448 | Quotes: 128448 | Rate: 81.0 trades/sec | Errors: 0 | Uptime: 2956s
+[Stats] Trades: 239651 | Depth: 128845 | Quotes: 128845 | Rate: 80.8 trades/sec | Errors: 0 | Uptime: 2966s
+[Stats] Trades: 239798 | Depth: 129224 | Quotes: 129224 | Rate: 80.6 trades/sec | Errors: 0 | Uptime: 2976s
+[Stats] Trades: 240348 | Depth: 129643 | Quotes: 129643 | Rate: 80.5 trades/sec | Errors: 0 | Uptime: 2986s
+[Stats] Trades: 241259 | Depth: 130058 | Quotes: 130058 | Rate: 80.5 trades/sec | Errors: 0 | Uptime: 2996s
+[Stats] Trades: 241804 | Depth: 130518 | Quotes: 130518 | Rate: 80.4 trades/sec | Errors: 0 | Uptime: 3006s
+[Stats] Trades: 242249 | Depth: 130957 | Quotes: 130957 | Rate: 80.3 trades/sec | Errors: 0 | Uptime: 3016s
+[Stats] Trades: 242458 | Depth: 131357 | Quotes: 131357 | Rate: 80.1 trades/sec | Errors: 0 | Uptime: 3026s
+[Stats] Trades: 242701 | Depth: 131773 | Quotes: 131773 | Rate: 79.9 trades/sec | Errors: 0 | Uptime: 3036s
+[Stats] Trades: 244910 | Depth: 132249 | Quotes: 132249 | Rate: 80.4 trades/sec | Errors: 0 | Uptime: 3046s
+[Stats] Trades: 246312 | Depth: 132736 | Quotes: 132736 | Rate: 80.6 trades/sec | Errors: 0 | Uptime: 3056s
+[Stats] Trades: 248900 | Depth: 133262 | Quotes: 133262 | Rate: 81.2 trades/sec | Errors: 0 | Uptime: 3066s
+[Stats] Trades: 250067 | Depth: 133732 | Quotes: 133732 | Rate: 81.3 trades/sec | Errors: 0 | Uptime: 3076s
+[Stats] Trades: 250247 | Depth: 134207 | Quotes: 134207 | Rate: 81.1 trades/sec | Errors: 0 | Uptime: 3086s
+[Stats] Trades: 251184 | Depth: 134669 | Quotes: 134669 | Rate: 81.1 trades/sec | Errors: 0 | Uptime: 3096s
+[Stats] Trades: 252146 | Depth: 135154 | Quotes: 135154 | Rate: 81.2 trades/sec | Errors: 0 | Uptime: 3106s
+[Stats] Trades: 252923 | Depth: 135603 | Quotes: 135603 | Rate: 81.2 trades/sec | Errors: 0 | Uptime: 3116s
+[Stats] Trades: 253110 | Depth: 135977 | Quotes: 135977 | Rate: 81.0 trades/sec | Errors: 0 | Uptime: 3126s
+[Stats] Trades: 253328 | Depth: 136366 | Quotes: 136366 | Rate: 80.8 trades/sec | Errors: 0 | Uptime: 3136s
+[Stats] Trades: 253870 | Depth: 136792 | Quotes: 136792 | Rate: 80.7 trades/sec | Errors: 0 | Uptime: 3146s
+[Stats] Trades: 253964 | Depth: 137149 | Quotes: 137149 | Rate: 80.5 trades/sec | Errors: 0 | Uptime: 3156s
+[Stats] Trades: 254450 | Depth: 137569 | Quotes: 137569 | Rate: 80.4 trades/sec | Errors: 0 | Uptime: 3166s
+[Stats] Trades: 255050 | Depth: 138024 | Quotes: 138024 | Rate: 80.3 trades/sec | Errors: 0 | Uptime: 3176s
+[Stats] Trades: 255913 | Depth: 138410 | Quotes: 138410 | Rate: 80.3 trades/sec | Errors: 0 | Uptime: 3186s
+[Stats] Trades: 256020 | Depth: 138790 | Quotes: 138790 | Rate: 80.1 trades/sec | Errors: 0 | Uptime: 3196s
+[Stats] Trades: 256262 | Depth: 139228 | Quotes: 139228 | Rate: 79.9 trades/sec | Errors: 0 | Uptime: 3206s
+[Stats] Trades: 256898 | Depth: 139611 | Quotes: 139611 | Rate: 79.9 trades/sec | Errors: 0 | Uptime: 3216s
+[Stats] Trades: 257304 | Depth: 140033 | Quotes: 140033 | Rate: 79.7 trades/sec | Errors: 0 | Uptime: 3226s
+[Stats] Trades: 257609 | Depth: 140437 | Quotes: 140437 | Rate: 79.6 trades/sec | Errors: 0 | Uptime: 3236s
+[Stats] Trades: 257749 | Depth: 140827 | Quotes: 140827 | Rate: 79.4 trades/sec | Errors: 0 | Uptime: 3247s
+[Stats] Trades: 258008 | Depth: 141255 | Quotes: 141255 | Rate: 79.2 trades/sec | Errors: 0 | Uptime: 3257s
+[Stats] Trades: 258387 | Depth: 141708 | Quotes: 141708 | Rate: 79.1 trades/sec | Errors: 0 | Uptime: 3267s
+[Stats] Trades: 259054 | Depth: 142108 | Quotes: 142108 | Rate: 79.1 trades/sec | Errors: 0 | Uptime: 3277s
+[Stats] Trades: 259194 | Depth: 142516 | Quotes: 142516 | Rate: 78.9 trades/sec | Errors: 0 | Uptime: 3287s
+[Stats] Trades: 260227 | Depth: 142971 | Quotes: 142971 | Rate: 78.9 trades/sec | Errors: 0 | Uptime: 3297s
+[Stats] Trades: 261362 | Depth: 143440 | Quotes: 143440 | Rate: 79.0 trades/sec | Errors: 0 | Uptime: 3307s
+[Stats] Trades: 262058 | Depth: 143874 | Quotes: 143874 | Rate: 79.0 trades/sec | Errors: 0 | Uptime: 3317s
+[Stats] Trades: 262870 | Depth: 144304 | Quotes: 144304 | Rate: 79.0 trades/sec | Errors: 0 | Uptime: 3327s
+[Stats] Trades: 263124 | Depth: 144729 | Quotes: 144729 | Rate: 78.9 trades/sec | Errors: 0 | Uptime: 3337s
+[Stats] Trades: 263499 | Depth: 145114 | Quotes: 145114 | Rate: 78.7 trades/sec | Errors: 0 | Uptime: 3347s
+[Stats] Trades: 263630 | Depth: 145504 | Quotes: 145504 | Rate: 78.5 trades/sec | Errors: 0 | Uptime: 3357s
+[Stats] Trades: 264520 | Depth: 145952 | Quotes: 145952 | Rate: 78.6 trades/sec | Errors: 0 | Uptime: 3367s
+[Stats] Trades: 264730 | Depth: 146371 | Quotes: 146371 | Rate: 78.4 trades/sec | Errors: 0 | Uptime: 3377s
+[Stats] Trades: 266751 | Depth: 146872 | Quotes: 146872 | Rate: 78.8 trades/sec | Errors: 0 | Uptime: 3387s
+[Stats] Trades: 267348 | Depth: 147319 | Quotes: 147319 | Rate: 78.7 trades/sec | Errors: 0 | Uptime: 3397s
+[Stats] Trades: 267631 | Depth: 147799 | Quotes: 147799 | Rate: 78.6 trades/sec | Errors: 0 | Uptime: 3407s
+[Stats] Trades: 268008 | Depth: 148207 | Quotes: 148207 | Rate: 78.4 trades/sec | Errors: 0 | Uptime: 3417s
+[Stats] Trades: 268398 | Depth: 148612 | Quotes: 148612 | Rate: 78.3 trades/sec | Errors: 0 | Uptime: 3427s
+[Stats] Trades: 268752 | Depth: 148994 | Quotes: 148994 | Rate: 78.2 trades/sec | Errors: 0 | Uptime: 3437s
+[Stats] Trades: 270067 | Depth: 149423 | Quotes: 149423 | Rate: 78.3 trades/sec | Errors: 0 | Uptime: 3447s
+[Stats] Trades: 270351 | Depth: 149770 | Quotes: 149770 | Rate: 78.2 trades/sec | Errors: 0 | Uptime: 3457s
+[Stats] Trades: 270905 | Depth: 150124 | Quotes: 150124 | Rate: 78.1 trades/sec | Errors: 0 | Uptime: 3467s
+[Stats] Trades: 271273 | Depth: 150493 | Quotes: 150493 | Rate: 78.0 trades/sec | Errors: 0 | Uptime: 3477s
+[Stats] Trades: 271713 | Depth: 150925 | Quotes: 150925 | Rate: 77.9 trades/sec | Errors: 0 | Uptime: 3487s
+[Stats] Trades: 272212 | Depth: 151358 | Quotes: 151358 | Rate: 77.8 trades/sec | Errors: 0 | Uptime: 3497s
+[Stats] Trades: 272564 | Depth: 151777 | Quotes: 151777 | Rate: 77.7 trades/sec | Errors: 0 | Uptime: 3507s
+[Stats] Trades: 272729 | Depth: 152166 | Quotes: 152166 | Rate: 77.5 trades/sec | Errors: 0 | Uptime: 3517s
+[Stats] Trades: 272877 | Depth: 152534 | Quotes: 152534 | Rate: 77.4 trades/sec | Errors: 0 | Uptime: 3527s
+[Stats] Trades: 274405 | Depth: 153007 | Quotes: 153007 | Rate: 77.6 trades/sec | Errors: 0 | Uptime: 3537s
+[Stats] Trades: 274469 | Depth: 153393 | Quotes: 153393 | Rate: 77.4 trades/sec | Errors: 0 | Uptime: 3547s
+[Stats] Trades: 274587 | Depth: 153782 | Quotes: 153782 | Rate: 77.2 trades/sec | Errors: 0 | Uptime: 3558s
+[Stats] Trades: 275810 | Depth: 154217 | Quotes: 154217 | Rate: 77.3 trades/sec | Errors: 0 | Uptime: 3568s
+[Stats] Trades: 276337 | Depth: 154627 | Quotes: 154627 | Rate: 77.2 trades/sec | Errors: 0 | Uptime: 3578s
+[Stats] Trades: 277616 | Depth: 155040 | Quotes: 155040 | Rate: 77.4 trades/sec | Errors: 0 | Uptime: 3588s
+[Stats] Trades: 277884 | Depth: 155435 | Quotes: 155435 | Rate: 77.2 trades/sec | Errors: 0 | Uptime: 3598s
+[Stats] Trades: 278182 | Depth: 155822 | Quotes: 155822 | Rate: 77.1 trades/sec | Errors: 0 | Uptime: 3608s
+[Stats] Trades: 278986 | Depth: 156211 | Quotes: 156211 | Rate: 77.1 trades/sec | Errors: 0 | Uptime: 3618s
+[Stats] Trades: 280109 | Depth: 156656 | Quotes: 156656 | Rate: 77.2 trades/sec | Errors: 0 | Uptime: 3628s
+[Stats] Trades: 280320 | Depth: 157046 | Quotes: 157046 | Rate: 77.1 trades/sec | Errors: 0 | Uptime: 3638s
+[Stats] Trades: 281006 | Depth: 157481 | Quotes: 157481 | Rate: 77.0 trades/sec | Errors: 0 | Uptime: 3648s
+[Stats] Trades: 281343 | Depth: 157900 | Quotes: 157900 | Rate: 76.9 trades/sec | Errors: 0 | Uptime: 3658s
+[Stats] Trades: 282058 | Depth: 158344 | Quotes: 158344 | Rate: 76.9 trades/sec | Errors: 0 | Uptime: 3668s
+[Stats] Trades: 282419 | Depth: 158761 | Quotes: 158761 | Rate: 76.8 trades/sec | Errors: 0 | Uptime: 3678s
+[Stats] Trades: 282560 | Depth: 159172 | Quotes: 159172 | Rate: 76.6 trades/sec | Errors: 0 | Uptime: 3688s
+[Stats] Trades: 282799 | Depth: 159528 | Quotes: 159528 | Rate: 76.5 trades/sec | Errors: 0 | Uptime: 3698s
+[Stats] Trades: 283274 | Depth: 159882 | Quotes: 159882 | Rate: 76.4 trades/sec | Errors: 0 | Uptime: 3708s
+[Stats] Trades: 283522 | Depth: 160249 | Quotes: 160249 | Rate: 76.3 trades/sec | Errors: 0 | Uptime: 3718s
+[Stats] Trades: 283691 | Depth: 160643 | Quotes: 160643 | Rate: 76.1 trades/sec | Errors: 0 | Uptime: 3728s
+[Stats] Trades: 284916 | Depth: 161105 | Quotes: 161105 | Rate: 76.2 trades/sec | Errors: 0 | Uptime: 3738s
+[Stats] Trades: 289075 | Depth: 161646 | Quotes: 161646 | Rate: 77.1 trades/sec | Errors: 0 | Uptime: 3748s
+[Stats] Trades: 289620 | Depth: 162072 | Quotes: 162072 | Rate: 77.1 trades/sec | Errors: 0 | Uptime: 3758s
+[Stats] Trades: 290136 | Depth: 162484 | Quotes: 162484 | Rate: 77.0 trades/sec | Errors: 0 | Uptime: 3768s
+[Stats] Trades: 290394 | Depth: 162886 | Quotes: 162886 | Rate: 76.9 trades/sec | Errors: 0 | Uptime: 3778s
+[Stats] Trades: 290813 | Depth: 163273 | Quotes: 163273 | Rate: 76.8 trades/sec | Errors: 0 | Uptime: 3788s
+[Stats] Trades: 291217 | Depth: 163607 | Quotes: 163607 | Rate: 76.7 trades/sec | Errors: 0 | Uptime: 3798s
+[Stats] Trades: 292657 | Depth: 164099 | Quotes: 164099 | Rate: 76.9 trades/sec | Errors: 0 | Uptime: 3808s
+[Stats] Trades: 292928 | Depth: 164476 | Quotes: 164476 | Rate: 76.7 trades/sec | Errors: 0 | Uptime: 3818s
+[Stats] Trades: 293423 | Depth: 164877 | Quotes: 164877 | Rate: 76.7 trades/sec | Errors: 0 | Uptime: 3828s
+[Stats] Trades: 293592 | Depth: 165279 | Quotes: 165279 | Rate: 76.5 trades/sec | Errors: 0 | Uptime: 3838s

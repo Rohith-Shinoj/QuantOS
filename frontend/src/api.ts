@@ -161,3 +161,39 @@ export const fetchCaptureRatios = async () => {
   const res = await axios.get(`${API_BASE_URL}/funds/capture-ratios`);
   return res.data;
 };
+
+// ── Crypto (kdb+/q Real-Time) ──────────────────────────────
+export const fetchCryptoStatus = async () => {
+  const res = await axios.get(`${API_BASE_URL}/crypto/status`);
+  return res.data;
+};
+
+export const fetchCryptoVWAP = async (sym: string) => {
+  const res = await axios.get(`${API_BASE_URL}/crypto/vwap/${sym}`);
+  return res.data.data;
+};
+
+export const fetchCryptoOHLC = async (sym: string, bar = '1m') => {
+  const res = await axios.get(`${API_BASE_URL}/crypto/ohlc/${sym}`, { params: { bar } });
+  return res.data.data;
+};
+
+export const fetchCryptoOrderBook = async (sym: string) => {
+  const res = await axios.get(`${API_BASE_URL}/crypto/orderbook/${sym}`);
+  return res.data;
+};
+
+export const fetchCryptoImbalance = async (sym: string) => {
+  const res = await axios.get(`${API_BASE_URL}/crypto/imbalance/${sym}`);
+  return res.data.data;
+};
+
+export const fetchCryptoStats = async (sym: string) => {
+  const res = await axios.get(`${API_BASE_URL}/crypto/stats/${sym}`);
+  return res.data.data;
+};
+
+export const fetchCryptoTrades = async (sym: string, n = 100) => {
+  const res = await axios.get(`${API_BASE_URL}/crypto/trades/${sym}`, { params: { n } });
+  return res.data.data;
+};

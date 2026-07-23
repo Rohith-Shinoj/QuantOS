@@ -1227,7 +1227,7 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
         <div className="flex justify-between items-center z-10 relative">
           <div>
             <h2 className="text-3xl font-bold text-text-primary">Portfolio Analyzer</h2>
-            <p className="text-text-secondary mt-1">Dual-approach financial data aggregation powered by live prices & NAVs.</p>
+            <p className="text-text-secondary mt-1">Dual-portfolio financial data aggregation powered by live prices & NAVs.</p>
           </div>
           <div className="flex items-center gap-4">
             <button
