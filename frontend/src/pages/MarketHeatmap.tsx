@@ -363,9 +363,15 @@ export const MarketHeatmap = () => {
 
                 const color = getPerformanceColor(data.colorValue, colorBy);
                 
-                const isTiny = width < 45 || height < 35;
+                const isTiny = width < 38 || height < 28;
+                const isLarge = width >= 54 && height >= 48;
+                
+                const showLogo = isLarge || (isTiny && width >= 18 && height >= 18);
                 const showText = !isTiny;
-                const logoSize = isTiny ? Math.max(12, Math.min(width * 0.8, height * 0.8)) : Math.max(16, Math.min(width * 0.3, height * 0.3, 32));
+                
+                // Dynamic font size proportional to cell dimensions
+                const fontSizeName = Math.max(8, Math.min(width * 0.16, height * 0.16, 13));
+                const fontSizeVal = Math.max(8, Math.min(width * 0.14, height * 0.14, 11));
 
                 return (
                   <div
@@ -383,21 +389,37 @@ export const MarketHeatmap = () => {
                       pointerEvents: 'auto',
                       cursor: 'pointer'
                     }}
-                    className="flex flex-col items-center justify-center overflow-hidden hover:brightness-110 transition-all border border-[#131722]/20"
+                    className="flex flex-col items-center justify-center overflow-hidden hover:brightness-110 transition-all border border-[#131722]/20 p-0.5"
                   >
-                    <div className="flex flex-col items-center justify-center w-full h-full px-1">
-                      <div style={{ width: logoSize, height: logoSize }} className="rounded-full overflow-hidden bg-white shrink-0 flex items-center justify-center shadow-sm">
-                        <StockLogo ticker={data.name} name={data.fullName} className="w-full h-full object-cover" />
-                      </div>
+                    <div className="flex flex-col items-center justify-center w-full h-full gap-0.5 leading-none">
+                      {showLogo && (
+                        <div 
+                          style={{ 
+                            width: isLarge ? Math.min(width * 0.28, height * 0.28, 28) : Math.min(width * 0.5, height * 0.5, 18), 
+                            height: isLarge ? Math.min(width * 0.28, height * 0.28, 28) : Math.min(width * 0.5, height * 0.5, 18) 
+                          }} 
+                          className="rounded-full overflow-hidden bg-white shrink-0 flex items-center justify-center shadow-sm"
+                        >
+                          <StockLogo ticker={data.name} name={data.fullName} className="w-full h-full object-cover" />
+                        </div>
+                      )}
                       {showText && (
-                        <>
-                          <span className="text-text-primary font-semibold leading-none truncate w-full text-center mt-1" style={{ fontSize: Math.max(9, Math.min(width * 0.18, 14)), marginBottom: '4px' }}>
+                        <div className="flex flex-col items-center justify-center w-full min-w-0 leading-none">
+                          <span 
+                            className="text-text-primary font-semibold truncate w-full text-center leading-tight" 
+                            style={{ fontSize: fontSizeName }}
+                          >
                             {data.name}
                           </span>
-                          <span className="text-text-primary font-medium leading-none truncate w-full text-center" style={{ fontSize: Math.max(9, Math.min(width * 0.15, 12)) }}>
-                            {data.colorValue > 0 ? '+' : ''}{data.colorValue.toFixed(2)}%
-                          </span>
-                        </>
+                          {height >= 40 && (
+                            <span 
+                              className="text-text-primary font-medium truncate w-full text-center leading-tight" 
+                              style={{ fontSize: fontSizeVal }}
+                            >
+                              {data.colorValue > 0 ? '+' : ''}{data.colorValue.toFixed(2)}%
+                            </span>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -412,7 +434,7 @@ export const MarketHeatmap = () => {
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 bg-canvas border border-border shadow-2xl rounded-lg px-4 py-3 text-sm pointer-events-none transition-all duration-150 animate-in fade-in slide-in-from-bottom-4">
             <div className="flex items-center gap-3 pr-4 border-r border-border">
               <div className="w-8 h-8 rounded-full bg-white overflow-hidden shrink-0">
-                <StockLogo ticker={hoveredNode.slug} name={hoveredNode.name} className="w-full h-full" />
+                <StockLogo ticker={hoveredNode.name} name={hoveredNode.fullName} className="w-full h-full" />
               </div>
               <div>
                 <div className="text-text-primary font-bold leading-tight">{hoveredNode.name}</div>

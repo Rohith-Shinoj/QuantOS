@@ -859,13 +859,20 @@ export const LandingPage = () => {
   
   const indexAssets = landingWidgets?.indices || [];
 
+  const allWidgets = [
+    ...(landingWidgets?.indices || []),
+    ...(landingWidgets?.stocks || []),
+    ...(landingWidgets?.etfs || []),
+    ...(landingWidgets?.mutual_funds || [])
+  ];
+
   const coreSlugs = ['india-vix', 'sp-bse-sensex', 'multi-commodity-exchange-of-india-ltd'];
-  const coreAssets = coreSlugs.map(s => (landingWidgets?.indices || []).find((stock: any) => stock.slug === s)).filter(Boolean);
+  const coreAssets = coreSlugs.map(s => allWidgets.find((w: any) => w.slug === s)).filter(Boolean);
 
   const sectorAssets = indexAssets.filter((a: any) => !['nifty', 'sp-bse-sensex', 'india-vix'].includes(a.slug));
   
   const commoditySlugs = ['reliance-etf-gold-bees', 'nippon-life-india-asset-management-ltd-nippon-india-silver-etf'];
-  const commodityAssets = commoditySlugs.map(s => (landingWidgets?.indices || []).find((stock: any) => stock.slug === s)).filter(Boolean);
+  const commodityAssets = commoditySlugs.map(s => allWidgets.find((w: any) => w.slug === s)).filter(Boolean);
 
   const indicesToFetch = useMemo(() => {
     return Array.from(new Set([

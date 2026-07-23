@@ -6,6 +6,7 @@ import { ArrowUp, ArrowDown, ArrowUpDown, Download, ExternalLink, TrendingUp, Tr
 interface Props {
   data: any[];
   isLoading: boolean;
+  // mode?: 'stocks' | 'mutual_funds' | 'etfs' | 'all';
   mode?: 'stocks' | 'mutual_funds' | 'etfs';
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
@@ -85,9 +86,16 @@ export const ScreenerResultsTable: React.FC<Props> = ({
   };
 
   // Fixed columns always shown first
-  const fixedCols = mode === 'stocks'
-    ? ['ticker', 'name', 'market_cap_type']
-    : ['fund_name', 'category', 'risk'];
+  let fixedCols = ['ticker', 'name', 'market_cap_type']; // default
+  if (mode === 'stocks') {
+    fixedCols = ['ticker', 'name', 'market_cap_type'];
+  } else if (mode === 'mutual_funds') {
+    fixedCols = ['fund_name', 'category', 'risk'];
+  } else if (mode === 'etfs') {
+    fixedCols = ['ticker', 'name', 'etf_type'];
+  } else if (mode === 'all') {
+    fixedCols = ['ticker', 'name', 'type'];
+  }
 
   // Get all numeric/value columns from data (excluding fixed + logo)
   const extraCols = data.length > 0
@@ -206,7 +214,50 @@ export const ScreenerResultsTable: React.FC<Props> = ({
                     <div className="flex items-center gap-1">Cap <SortIcon col="market_cap_type" /></div>
                   </th>
                 </>
-              ) : (
+              ) : mode === 'etfs' ? (
+                <>
+                  <th
+                    className="px-3 py-2.5 text-[10px] font-bold text-text-primary/50 uppercase cursor-pointer hover:text-alpha group select-none min-w-[80px]"
+                    onClick={() => onSort?.('ticker')}
+                  >
+                    <div className="flex items-center gap-1">Ticker <SortIcon col="ticker" /></div>
+                  </th>
+                  <th
+                    className="px-3 py-2.5 text-[10px] font-bold text-text-primary/50 uppercase cursor-pointer hover:text-alpha group select-none min-w-[160px]"
+                    onClick={() => onSort?.('name')}
+                  >
+                    <div className="flex items-center gap-1">Name <SortIcon col="name" /></div>
+                  </th>
+                  <th
+                    className="px-3 py-2.5 text-[10px] font-bold text-text-primary/50 uppercase cursor-pointer hover:text-alpha group select-none min-w-[80px]"
+                    onClick={() => onSort?.('type')}
+                  >
+                    <div className="flex items-center gap-1">Type <SortIcon col="type" /></div>
+                  </th>
+                </>
+              ) : mode === 'all' ? (
+                <>
+                  <th
+                    className="px-3 py-2.5 text-[10px] font-bold text-text-primary/50 uppercase cursor-pointer hover:text-alpha group select-none min-w-[80px]"
+                    onClick={() => onSort?.('ticker')}
+                  >
+                    <div className="flex items-center gap-1">Ticker <SortIcon col="ticker" /></div>
+                  </th>
+                  <th
+                    className="px-3 py-2.5 text-[10px] font-bold text-text-primary/50 uppercase cursor-pointer hover:text-alpha group select-none min-w-[160px]"
+                    onClick={() => onSort?.('name')}
+                  >
+                    <div className="flex items-center gap-1">Name <SortIcon col="name" /></div>
+                  </th>
+                  <th
+                    className="px-3 py-2.5 text-[10px] font-bold text-text-primary/50 uppercase cursor-pointer hover:text-alpha group select-none min-w-[80px]"
+                    onClick={() => onSort?.('type')}
+                  >
+                    <div className="flex items-center gap-1">Type <SortIcon col="type" /></div>
+                  </th>
+                </>
+              ) 
+              : (
                 <>
                   <th
                     className="px-3 py-2.5 text-[10px] font-bold text-text-primary/50 uppercase cursor-pointer hover:text-alpha group select-none min-w-[200px]"
@@ -288,6 +339,34 @@ export const ScreenerResultsTable: React.FC<Props> = ({
                         'bg-orange-500/15 text-orange-400'
                       }`}>
                         {(row.market_cap_type || '').replace(' Cap', '')}
+                      </span>
+                    </td>
+                  </>
+                ) : mode === 'etfs' ? (
+                  <>
+                    <td className="px-3 py-2">
+                      <span className="text-xs font-bold text-alpha">{row.ticker}</span>
+                    </td>
+                    <td className="px-3 py-2 max-w-[200px]">
+                      <span className="text-xs text-text-primary truncate block">{row.name}</span>
+                    </td>
+                    <td className="px-3 py-2">
+                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-sm bg-blue-500/15 text-blue-400">
+                        {row.type || 'ETF'}
+                      </span>
+                    </td>
+                  </>
+                ) : mode === 'all' ? (
+                  <>
+                    <td className="px-3 py-2">
+                      <span className="text-xs font-bold text-alpha">{row.ticker}</span>
+                    </td>
+                    <td className="px-3 py-2 max-w-[200px]">
+                      <span className="text-xs text-text-primary truncate block">{row.name}</span>
+                    </td>
+                    <td className="px-3 py-2">
+                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-sm bg-purple-500/15 text-purple-400">
+                        {row.type || 'Unknown'}
                       </span>
                     </td>
                   </>

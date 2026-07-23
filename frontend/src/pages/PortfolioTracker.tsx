@@ -305,11 +305,6 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
       const fundName = mf?.fund_name || h.slug;
       
       let finalLogoUrl = mf?.logo_url;
-      if (!finalLogoUrl && fundName) {
-        const firstWord = fundName.split(' ')[0].toLowerCase();
-        if (firstWord === 'axis') finalLogoUrl = 'https://assets-netstorage.groww.in/mf-assets/logos/axis_groww.png';
-        else if (firstWord === 'nippon' || firstWord === 'reliance') finalLogoUrl = 'https://assets-netstorage.groww.in/mf-assets/logos/reliance_groww.png';
-      }
 
       return { name: fundName.substring(0, 15) + '...', slug: h.slug, ticker: h.slug, logoUrl: finalLogoUrl, value: val };
     }).sort((a, b) => b.value - a.value);
@@ -1461,11 +1456,6 @@ export const PortfolioTracker = ({ isPanel = false }: { isPanel?: boolean }) => 
                     title = mf?.fund_name || mf?.scheme_name || h.slug;
                     tickerForLogo = h.slug;
                     logoUrlForMF = mf?.logo_url;
-                    if (!logoUrlForMF && title) {
-                      const firstWord = title.split(' ')[0].toLowerCase();
-                      if (firstWord === 'axis') logoUrlForMF = 'https://assets-netstorage.groww.in/mf-assets/logos/axis_groww.png';
-                      else if (firstWord === 'nippon' || firstWord === 'reliance') logoUrlForMF = 'https://assets-netstorage.groww.in/mf-assets/logos/reliance_groww.png';
-                    }
                     const change = getMfDayChange(h.slug);
                     dayAmt = change.amount;
                     dayPct = change.pct;

@@ -224,7 +224,7 @@ export const Watchlists = ({ isPanel = false }: { isPanel?: boolean }) => {
                               </Link>
                               <div className="text-xs text-text-secondary truncate max-w-[200px] mt-1">{stock.name}</div>
                             </td>
-                            <td className="p-4 text-right tabular-nums">₹{stock.close ? stock.close.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : stock.livePrice || '-'}</td>
+                            <td className="p-4 text-right tabular-nums">{stock.close ? stock.close.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : stock.livePrice || '-'}</td>
                             <td className={`p-4 text-right tabular-nums font-bold ${getScoreColor(rsRating)}`}>{rsRating}</td>
                             <td className="p-4 text-center">
                               {hasAlert ? <AlertTriangle size={16} className="text-warning mx-auto" /> : <span className="text-text-secondary opacity-50">-</span>}

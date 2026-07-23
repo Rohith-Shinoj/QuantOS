@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   SlidersHorizontal, Plus, X, Settings2, ChevronDown,
-  Search, Layers, BarChart2, RefreshCw, TrendingUp
+  Search, Layers, BarChart2, RefreshCw, TrendingUp, Info
 } from 'lucide-react';
 import { ScreenerResultsTable } from '../components/ScreenerResultsTable';
 import { QueryBuilder, type QueryToken } from '../components/QueryBuilder';
@@ -11,11 +12,13 @@ interface Metric { key: string; label: string; group: string; type: string; opti
 
 // ─── Default columns per mode ─────────────────────────────────────────────────
 const DEFAULT_STOCK_COLS  = ['market_cap', 'live_price', 'day_change_pct', 'pe_ratio', 'roe', 'rs_rating', 'debt_to_equity', 'piotroski_f'];
-const DEFAULT_MF_COLS     = ['aum', 'nav', 'return1y', 'return3y', 'return5y', 'sip_return3y', 'expense_ratio', 'groww_rating'];
+const DEFAULT_MF_COLS     = ['aum', 'nav', 'return1y', 'return3y', 'return5y', 'sip_return3y', 'expense_ratio', 'category'];
 const DEFAULT_ETF_COLS    = ['aum', 'live_price', 'day_change_pct', 'return_1y', 'return_3y', 'expense_ratio', 'tracking_error', 'pe_ratio'];
+const DEFAULT_ALL_COLS    = ['live_price', 'day_change_pct', 'return_1y', 'return_3y'];
 const DEFAULT_STOCK_SORT  = 'market_cap';
 const DEFAULT_MF_SORT     = 'aum';
 const DEFAULT_ETF_SORT    = 'aum';
+const DEFAULT_ALL_SORT    = 'live_price';
 
 const OPS = ['>', '<', '>=', '<=', '=', '!='];
 
@@ -30,6 +33,9 @@ const GROUP_ORDER_MF = [
 ];
 const GROUP_ORDER_ETF = [
   'Identity','Price','Size & Cost','Valuation','Rank',
+];
+const GROUP_ORDER_ALL = [
+  'Identity', 'Common'
 ];
 
 // ─── Group accent colours ─────────────────────────────────────────────────────
@@ -56,21 +62,18 @@ const GROUP_COLORS: Record<string, string> = {
   'Returns (SIP)':    'text-teal-400',
   'Benchmark':        'text-purple-400',
   'Availability':     'text-slate-400',
+  'Common':           'text-emerald-400',
 };
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export const Screener: React.FC = () => {
-  const [mode, setMode]   = useState<'stocks' | 'mutual_funds' | 'etfs'>('stocks');
+  const [mode, setMode]   = useState<'stocks' | 'mutual_funds' | 'etfs' >('stocks');
   const [queryTokens, setQueryTokens] = useState<QueryToken[]>([]);
   const [columns, setColumns]   = useState<string[]>(DEFAULT_STOCK_COLS);
   const [sortBy, setSortBy]     = useState<string>(DEFAULT_STOCK_SORT);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [page, setPage]         = useState(1);
-  const [total, setTotal]       = useState(0);
-  const [results, setResults]   = useState<any[]>([]);
   const [allMetrics, setAllMetrics] = useState<Metric[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [filterPanelOpen, setFilterPanelOpen] = useState<string | null>(null);
   const [columnPanelOpen, setColumnPanelOpen] = useState(false);
   const [colSearch, setColSearch] = useState('');
@@ -98,9 +101,12 @@ export const Screener: React.FC = () => {
     } else if (mode === 'mutual_funds') {
       setColumns(DEFAULT_MF_COLS);
       setSortBy(DEFAULT_MF_SORT);
-    } else {
+    } else if (mode === 'etfs') {
       setColumns(DEFAULT_ETF_COLS);
       setSortBy(DEFAULT_ETF_SORT);
+    } else {
+      setColumns(DEFAULT_ALL_COLS);
+      setSortBy(DEFAULT_ALL_SORT);
     }
     setQueryTokens([]);
     setPage(1);
@@ -108,32 +114,51 @@ export const Screener: React.FC = () => {
     setPendingLogic(null);
   }, [mode]);
 
-  // Fetch
-  const latestReqRef = useRef(0);
-  const fetchResults = useCallback(async () => {
-    // Only fetch if query is empty or validly terminated
-    if (queryTokens.length > 0) {
-      const last = queryTokens[queryTokens.length - 1];
-      if (last.type !== 'value' && !(last.type === 'bracket' && last.value === ')')) {
-        return;
+  const prepareBalancedTokens = (tokens: QueryToken[]) => {
+    if (!tokens || tokens.length === 0) return [];
+    let openCount = 0;
+    let closeCount = 0;
+    tokens.forEach(t => {
+      if (t.type === 'bracket') {
+        if (t.value === '(') openCount++;
+        if (t.value === ')') closeCount++;
       }
-    }
+    });
 
-    const reqId = ++latestReqRef.current;
-    setIsLoading(true);
-    setError(null);
-    try {
+    const balanced = [...tokens];
+    const missing = openCount - closeCount;
+    for (let i = 0; i < missing; i++) {
+      balanced.push({ type: 'bracket', value: ')' });
+    }
+    return balanced;
+  };
+
+  const { data: queryData, isLoading, error: queryError, refetch: fetchResults } = useQuery({
+    queryKey: ['screener', mode, queryTokens, columns, sortBy, sortOrder, page],
+    queryFn: async () => {
+      // Only fetch if query is empty or validly terminated
+      if (queryTokens.length > 0) {
+        const last = queryTokens[queryTokens.length - 1];
+        if (last.type !== 'value' && !(last.type === 'bracket' && last.value === ')')) {
+          return null; // Return null if incomplete query
+        }
+      }
+
+      const balancedTokens = prepareBalancedTokens(queryTokens);
       const VITE_API_BASE = import.meta.env.VITE_API_URL || '/api';
       const endpoint = mode === 'stocks'
         ? `${VITE_API_BASE}/screener/stocks`
         : mode === 'etfs'
           ? `${VITE_API_BASE}/screener/etfs`
-          : `${VITE_API_BASE}/screener/mutual-funds`;
+          : mode === 'mutual_funds'
+            ? `${VITE_API_BASE}/screener/mutual-funds`
+            : `${VITE_API_BASE}/screener/all`;
+          
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          query_tokens: queryTokens,
+          query_tokens: balancedTokens,
           columns,
           sort_by: sortBy,
           sort_order: sortOrder,
@@ -141,30 +166,35 @@ export const Screener: React.FC = () => {
           limit: 100
         })
       });
-      if (reqId !== latestReqRef.current) return;
+      
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.detail || 'Screener API error');
       }
-      const json = await res.json();
-      setResults(json.data ?? []);
-      setTotal(json.total ?? 0);
-      if (json.available_metrics?.length) setAllMetrics(json.available_metrics);
-    } catch (e: any) {
-      if (reqId === latestReqRef.current) {
-        setError(e.message);
-      }
-    } finally {
-      if (reqId === latestReqRef.current) {
-        setIsLoading(false);
-      }
+      return await res.json();
     }
-  }, [mode, queryTokens, columns, sortBy, sortOrder, page]);
+  });
 
-  useEffect(() => { fetchResults(); }, [fetchResults]);
+  const results = queryData?.data ?? [];
+  const total = queryData?.total ?? 0;
+  const rawError = queryError ? queryError.message : null;
+
+  const error = useMemo(() => {
+    if (!rawError) return null;
+    if (rawError.includes('Parser Error') || rawError.includes('syntax error') || rawError.includes('ORDER')) {
+      return 'Incomplete query logic. Please complete your expression.';
+    }
+    return rawError;
+  }, [rawError]);
+
+  useEffect(() => {
+    if (queryData?.available_metrics?.length) {
+      setAllMetrics(queryData.available_metrics);
+    }
+  }, [queryData]);
 
   // ── Grouped metrics for panels ──────────────────────────────────────────────
-  const groupOrder = mode === 'stocks' ? GROUP_ORDER_STOCKS : mode === 'etfs' ? GROUP_ORDER_ETF : GROUP_ORDER_MF;
+  const groupOrder = mode === 'stocks' ? GROUP_ORDER_STOCKS : mode === 'etfs' ? GROUP_ORDER_ETF : mode === 'mutual_funds' ? GROUP_ORDER_MF : GROUP_ORDER_ALL;
   const grouped = groupOrder.reduce((acc, g) => {
     const ms = allMetrics.filter(m => m.group === g);
     if (ms.length) acc[g] = ms;
@@ -213,14 +243,14 @@ export const Screener: React.FC = () => {
           <div>
             <h1 className="text-base font-bold text-text-primary leading-tight">Screener Engine</h1>
             <p className="text-[11px] text-text-primary/30 leading-tight">
-              {total.toLocaleString()} {mode === 'stocks' ? 'stocks' : mode === 'etfs' ? 'ETFs' : 'funds'} · {allMetrics.length} metrics
+              {total.toLocaleString()} {mode === 'stocks' ? 'stocks' : mode === 'etfs' ? 'ETFs' : mode === 'mutual_funds' ? 'funds' : 'assets'} · {allMetrics.length} metrics
             </p>
           </div>
         </div>
 
         {/* Mode Toggle */}
         <div className="flex bg-surface-hover p-0.5 rounded-lg border border-border">
-          {(['stocks', 'etfs', 'mutual_funds'] as const).map(m => (
+          {(['stocks', 'etfs', 'mutual_funds', ] as const).map(m => (
             <button
               key={m}
               onClick={() => setMode(m)}
@@ -230,7 +260,9 @@ export const Screener: React.FC = () => {
                   : 'text-text-secondary hover:text-text-primary'
               }`}
             >
+              {/* {m === 'stocks' ? '📊 Stocks' : m === 'etfs' ? '📈 ETFs' : m === 'mutual_funds' ? '📉 Mutual Funds' : '🌐 All'} */}
               {m === 'stocks' ? '📊 Stocks' : m === 'etfs' ? '📈 ETFs' : '📉 Mutual Funds'}
+              
             </button>
           ))}
         </div>
@@ -276,7 +308,7 @@ export const Screener: React.FC = () => {
 
         {/* Refresh */}
         <button
-          onClick={fetchResults}
+          onClick={() => fetchResults()}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface border border-border text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-all"
           title="Refresh"
         >
@@ -299,7 +331,7 @@ export const Screener: React.FC = () => {
          {/* Category quick buttons */}
          <div className="flex items-center gap-1.5 flex-wrap" ref={filterPanelRef}>
             <span className="text-[10px] text-text-primary/30 uppercase font-bold tracking-widest mr-2">Categories</span>
-            {(mode === 'stocks' ? GROUP_ORDER_STOCKS : mode === 'etfs' ? GROUP_ORDER_ETF : GROUP_ORDER_MF).map(group => {
+            {(mode === 'stocks' ? GROUP_ORDER_STOCKS : mode === 'etfs' ? GROUP_ORDER_ETF : mode === 'mutual_funds' ? GROUP_ORDER_MF : GROUP_ORDER_ALL).map(group => {
                const groupMetrics = allMetrics.filter(m => m.group === group);
                if (!groupMetrics.length) return null;
                
@@ -340,8 +372,9 @@ export const Screener: React.FC = () => {
 
       {/* ── ERROR ──────────────────────────────────────────────────────────── */}
       {error && (
-        <div className="mx-6 mt-4 px-4 py-3 rounded-xl border border-red-500/20 bg-red-500/5 text-red-400 text-xs font-mono">
-          ⚠ {error}
+        <div className="mx-6 mt-4 px-4 py-2.5 rounded-lg border border-amber-500/20 bg-amber-500/10 text-amber-300 text-xs font-medium flex items-center gap-2">
+          <Info size={14} className="text-amber-400 shrink-0" />
+          <span>{error}</span>
         </div>
       )}
 

@@ -11,6 +11,7 @@ import { PairTrading } from './pages/PairTrading';
 import { PortfolioTracker } from './pages/PortfolioTracker';
 import { Watchlists } from './pages/Watchlists';
 import { LandingPage } from './pages/LandingPage';
+import { Stocks } from './pages/Stocks';
 import { ETFs } from './pages/ETFs';
 import { ETFSnapshot } from './pages/ETFSnapshot';
 import { AIResearchDesk } from './pages/AIResearchDesk';
@@ -42,6 +43,7 @@ function App() {
           <Route path="ai-research" element={<AIResearchDesk />} />
 
           <Route path="heatmap" element={<MarketHeatmap />} />
+          <Route path="stocks" element={<Stocks />} />
           <Route path="screener" element={<Screener />} />
           <Route path="pairs" element={<PairTrading />} />
           <Route path="portfolio" element={<PortfolioTracker />} />

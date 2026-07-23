@@ -60,9 +60,22 @@ export const QueryBuilder: React.FC<QueryBuilderProps> = ({ tokens, onChange, me
   const addToken = (token: QueryToken) => {
     const newTokens = [...tokens];
     newTokens.splice(activeIndex, 0, token);
+
+    // Graphic calculator visual auto-bracket balancing:
+    // If a value token is added inside an unclosed '(', auto-append ')' right after the value!
+    let nextIndex = activeIndex + 1;
+    if (token.type === 'value') {
+      const openCount = newTokens.filter(t => t.type === 'bracket' && t.value === '(').length;
+      const closeCount = newTokens.filter(t => t.type === 'bracket' && t.value === ')').length;
+      if (openCount > closeCount) {
+        newTokens.splice(nextIndex, 0, { type: 'bracket', value: ')' });
+        nextIndex += 1;
+      }
+    }
+
     onChange(newTokens);
     setSearch('');
-    setActiveIndex(activeIndex + 1);
+    setActiveIndex(nextIndex);
     inputRef.current?.focus();
     if (token.type === 'metric' || token.type === 'operator' || (token.type === 'bracket' && token.value === '(')) {
         setShowDropdown(true); // Keep dropdown open for next logical step

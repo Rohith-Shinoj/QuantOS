@@ -1,106 +1,175 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { fetchMutualFunds } from '../api';
 import { 
-  ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ZAxis,
-  Treemap
+  BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer
 } from 'recharts';
-import { Filter, TrendingUp, AlertTriangle, Shield, Maximize2, X } from 'lucide-react';
+import { Search, Filter, TrendingUp, BarChart2 } from 'lucide-react';
 import { MarketCaptureScatterplot } from './MutualFunds/MarketCaptureScatterplot';
 
 export const MutualFunds = () => {
-  const [funds, setFunds] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedFund, setSelectedFund] = useState<any | null>(null);
-  
-  // Filters
-  const [category, setCategory] = useState<string>('');
+  const [search, setSearch] = useState('');
+  const [category, setCategory] = useState<string>('All');
   const [sortBy, setSortBy] = useState<string>('aum');
 
-  useEffect(() => {
-    loadFunds();
-  }, [category, sortBy]);
+  const { data: response, isLoading: loading } = useQuery({
+    queryKey: ['mutualFunds', category, sortBy],
+    queryFn: () => fetchMutualFunds({
+      limit: 100,
+      category: category === 'All' ? undefined : category,
+      sort_by: sortBy,
+      sort_order: 'desc'
+    })
+  });
 
-  const loadFunds = async () => {
-    setLoading(true);
-    try {
-      const res = await fetchMutualFunds({
-        limit: 100,
-        category: category || undefined,
-        sort_by: sortBy,
-        sort_order: 'desc'
-      });
-      setFunds(res.data);
-    } catch (err) {
-      console.error(err);
-    }
-    setLoading(false);
-  };
+  const funds: any[] = response?.data || [];
 
-  // Extract holdings for modal
-  const getFundHoldings = (fund: any) => {
-    if (!fund.detailed_holdings) return [];
-    let holdings = [];
-    try {
-      holdings = typeof fund.detailed_holdings === 'string' ? JSON.parse(fund.detailed_holdings) : fund.detailed_holdings;
-    } catch(e) {}
-    
-    return holdings.map((h:any) => ({
-      name: h.company_name,
-      size: parseFloat(h.corpus_per) || 0,
-      sector: h.sector_name || 'Other'
-    })).filter((h:any) => h.size > 0);
-  };
+  // Filtered funds by search
+  const filteredFunds = useMemo(() => {
+    return funds.filter(f => {
+      const name = f.fund_name || f.scheme_name || '';
+      return !search || name.toLowerCase().includes(search.toLowerCase());
+    });
+  }, [funds, search]);
+
+  // Compute Category Average 3Y Return
+  const categoryData = useMemo(() => {
+    const map: Record<string, { totalReturn: number; count: number }> = {};
+    funds.forEach(f => {
+      const cat = f.sub_category || f.category || 'Other';
+      if (!map[cat]) map[cat] = { totalReturn: 0, count: 0 };
+      const r = parseFloat(f.return3y) || 0;
+      if (r > 0) {
+        map[cat].totalReturn += r;
+        map[cat].count += 1;
+      }
+    });
+
+    return Object.entries(map)
+      .filter(([, v]) => v.count >= 2)
+      .map(([cat, v]) => ({
+        category: cat.length > 14 ? cat.substring(0, 12) + '..' : cat,
+        avgReturn: parseFloat((v.totalReturn / v.count).toFixed(1))
+      }))
+      .sort((a, b) => b.avgReturn - a.avgReturn)
+      .slice(0, 7);
+  }, [funds]);
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-text-primary tracking-tight">Mutual Funds Dashboard</h1>
-          <p className="text-text-secondary mt-1 text-sm">Screen, analyze, and discover core portfolio holdings.</p>
-        </div>
+    <div className="w-full p-6 space-y-6">
+      {/* Clean Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-text-primary tracking-tight flex items-center gap-2">
+          <BarChart2 className="text-emerald-400" size={24} /> Mutual Funds Dashboard
+        </h1>
       </div>
 
-      {/* Top Visualizations Panel
-      <div className="w-full">
-        <div className="h-[500px]">
-          <MarketCaptureScatterplot />
-        </div>
-      </div> */}
-
-      {/* Screener Controls */}
-      <div className="bg-surface p-4 rounded-lg border border-border flex flex-col sm:flex-row gap-4 justify-between items-center">
-        <div className="flex items-center space-x-2">
-          <Filter className="w-4 h-4 text-text-secondary" />
-          <select 
-            className="bg-canvas border border-border rounded-md px-3 py-1.5 text-sm text-text-primary focus:outline-none focus:border-alpha"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-          >
-            <option value="">All Categories</option>
-            <option value="Equity">Equity</option>
-            <option value="Debt">Debt</option>
-            <option value="Hybrid">Hybrid</option>
-          </select>
-        </div>
+      {/* 2 Side-by-Side Visuals ($340px height) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
         
-        <div className="flex items-center space-x-2">
-          <span className="text-text-secondary text-sm">Sort By:</span>
-          <select 
-            className="bg-canvas border border-border rounded-md px-3 py-1.5 text-sm text-text-primary focus:outline-none focus:border-alpha"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-          >
-            <option value="aum">AUM (Highest)</option>
-            <option value="return3y">3Y Return</option>
-            <option value="return1y">1Y Return</option>
-            <option value="expense_ratio">Expense Ratio</option>
-          </select>
+        {/* Visual 1: Expense Ratio vs 3Y Return Scatter */}
+        <div className="bg-surface rounded-lg border border-border p-5 flex flex-col justify-between h-[340px]">
+          <MarketCaptureScatterplot funds={funds} />
+        </div>
+
+        {/* Visual 2: Category Average 3Y Return Bar Chart */}
+        <div className="bg-surface rounded-lg border border-border p-5 flex flex-col justify-between h-[340px]">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-sm font-bold text-text-primary flex items-center gap-2">
+                <TrendingUp size={16} className="text-indigo-400" /> Category Performance (3Y CAGR)
+              </h2>
+              <span className="text-[10px] text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded font-mono">
+                Category Averages
+              </span>
+            </div>
+            <p className="text-xs text-text-secondary mb-2">
+              Average 3-Year CAGR return across top mutual fund categories.
+            </p>
+          </div>
+
+          <div className="h-56 w-full">
+            {loading ? (
+              <div className="h-full flex items-center justify-center text-text-secondary text-xs">Loading chart...</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={categoryData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#2A2E39" />
+                  <XAxis dataKey="category" stroke="#8E94A4" fontSize={10} angle={-15} textAnchor="end" />
+                  <YAxis stroke="#8E94A4" fontSize={11} unit="%" />
+                  <RechartsTooltip
+                    content={({ payload, label }) => {
+                      if (!payload || !payload.length) return null;
+                      return (
+                        <div className="bg-surface-hover border border-border p-2 rounded shadow-xl text-xs space-y-1">
+                          <p className="font-bold text-text-primary">{label}</p>
+                          <p className="text-emerald-400 font-bold">Avg 3Y Return: {payload[0]?.value}%</p>
+                        </div>
+                      );
+                    }}
+                  />
+                  <Bar dataKey="avgReturn" fill="#10B981" radius={[4, 4, 0, 0]}>
+                    {categoryData.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={index === 0 ? '#10B981' : '#6366F1'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+
+      </div>
+
+      {/* Control Bar */}
+      <div className="bg-surface p-4 rounded-lg border border-border flex flex-col sm:flex-row gap-4 justify-between items-center w-full">
+        <div className="flex items-center gap-3 flex-1 w-full sm:w-auto">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-2.5 text-text-secondary" size={16} />
+            <input
+              type="text"
+              placeholder="Search mutual funds by name..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-canvas border border-border rounded-md pl-9 pr-4 py-1.5 text-sm text-text-primary placeholder:text-text-secondary focus:outline-none focus:border-alpha"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+          <div className="flex items-center space-x-2">
+            <Filter size={14} className="text-text-secondary" />
+            <select 
+              className="bg-canvas border border-border rounded-md px-3 py-1.5 text-sm text-text-primary focus:outline-none focus:border-alpha"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+            >
+              <option value="All">All Categories</option>
+              <option value="Equity">Equity</option>
+              <option value="Debt">Debt</option>
+              <option value="Hybrid">Hybrid</option>
+            </select>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <span className="text-text-secondary text-sm">Sort By:</span>
+            <select 
+              className="bg-canvas border border-border rounded-md px-3 py-1.5 text-sm text-text-primary focus:outline-none focus:border-alpha"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="aum">AUM (Highest)</option>
+              <option value="return3y">3Y Return</option>
+              <option value="return1y">1Y Return</option>
+              <option value="expense_ratio">Expense Ratio</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* Data Table */}
-      <div className="bg-surface rounded-lg border border-border overflow-hidden">
+      {/* Table */}
+      <div className="bg-surface rounded-lg border border-border overflow-hidden w-full">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -111,127 +180,59 @@ export const MutualFunds = () => {
                 <th className="px-6 py-3 font-medium text-text-secondary text-sm text-right">Expense Ratio</th>
                 <th className="px-6 py-3 font-medium text-text-secondary text-sm text-right">1Y Return</th>
                 <th className="px-6 py-3 font-medium text-text-secondary text-sm text-right">3Y Return</th>
-                {/* <th className="px-6 py-3 font-medium text-text-secondary text-sm text-center">Action</th> */}
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {loading ? (
-                <tr><td colSpan={7} className="p-8 text-center text-sm text-text-secondary">Loading funds...</td></tr>
-              ) : funds.map((fund, i) => (
-                <tr key={fund.id || i} className="hover:bg-surface-hover transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      {fund.logo_url ? (
-                        <img src={fund.logo_url} alt="AMC Logo" className="w-8 h-8 rounded-full bg-white object-contain border border-border" />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-surface-hover border border-border flex items-center justify-center text-xs font-bold text-text-secondary">
-                          {fund.amc ? fund.amc.substring(0, 2) : 'MF'}
+                <tr><td colSpan={6} className="p-8 text-center text-sm text-text-secondary">Loading funds...</td></tr>
+              ) : filteredFunds.length === 0 ? (
+                <tr><td colSpan={6} className="p-8 text-center text-sm text-text-secondary">No mutual funds match your search criteria.</td></tr>
+              ) : (
+                filteredFunds.map((fund, i) => (
+                  <tr key={fund.id || i} className="hover:bg-surface-hover transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        {fund.logo_url ? (
+                          <img src={fund.logo_url} alt="AMC Logo" className="w-7 h-7 rounded-full bg-white object-contain border border-border" />
+                        ) : (
+                          <div className="w-7 h-7 rounded-full bg-surface-hover border border-border flex items-center justify-center text-xs font-bold text-text-secondary">
+                            {fund.amc ? fund.amc.substring(0, 2) : 'MF'}
+                          </div>
+                        )}
+                        <div>
+                          <Link to={`/mutual-funds/${fund.scheme_code || fund.direct_search_id}`} className="font-bold text-sm text-text-primary hover:text-indigo-400 transition-colors">
+                            {fund.fund_name || fund.scheme_name}
+                          </Link>
+                          <div className="text-xs text-text-secondary mt-0.5">{fund.fund_manager}</div>
                         </div>
-                      )}
-                      <div>
-                        <Link to={`/mutual-funds/${fund.scheme_code || fund.direct_search_id}`} className="font-medium text-sm text-text-primary hover:text-indigo-400 transition-colors">
-                          {fund.fund_name || fund.scheme_name}
-                        </Link>
-                        <div className="text-xs text-text-secondary mt-0.5">{fund.fund_manager}</div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="px-2 py-1 bg-surface-hover rounded text-xs border border-border text-text-secondary">
-                      {fund.category} - {fund.sub_category}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right font-mono text-sm text-text-primary">
-                    ₹{fund.aum ? parseFloat(fund.aum).toLocaleString(undefined, {maximumFractionDigits: 0}) : '-'}
-                  </td>
-                  <td className="px-6 py-4 text-right font-mono text-sm">
-                    <span className={fund.expense_ratio > 1.0 ? "text-beta" : "text-alpha"}>
-                      {fund.expense_ratio}%
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right font-mono text-sm text-alpha">
-                    {fund.return1y}%
-                  </td>
-                  <td className="px-6 py-4 text-right font-mono text-sm font-bold text-alpha">
-                    {fund.return3y ? `${fund.return3y}%` : '-'}
-                  </td>
-                  {/* <td className="px-6 py-4 text-center">
-                    <button 
-                      onClick={() => setSelectedFund(fund)}
-                      className="p-1.5 bg-surface-hover text-text-secondary hover:text-text-primary rounded transition-colors"
-                    >
-                      <Maximize2 className="w-4 h-4" />
-                    </button>
-                  </td> */}
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="px-2 py-1 bg-surface-hover rounded text-xs border border-border text-text-secondary">
+                        {fund.category} - {fund.sub_category}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right font-mono text-sm text-text-primary">
+                      ₹{fund.aum ? parseFloat(fund.aum).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '-'}
+                    </td>
+                    <td className="px-6 py-4 text-right font-mono text-sm">
+                      <span className={parseFloat(fund.expense_ratio) <= 0.8 ? "text-emerald-400 font-bold" : "text-text-primary"}>
+                        {fund.expense_ratio}%
+                      </span>
+                    </td>
+                    <td className={`px-6 py-4 text-right font-mono text-sm font-bold ${parseFloat(fund.return1y) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {fund.return1y ? `${parseFloat(fund.return1y) > 0 ? '+' : ''}${parseFloat(fund.return1y).toFixed(2)}%` : '-'}
+                    </td>
+                    <td className={`px-6 py-4 text-right font-mono text-sm font-bold ${parseFloat(fund.return3y) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {fund.return3y ? `${parseFloat(fund.return3y) > 0 ? '+' : ''}${parseFloat(fund.return3y).toFixed(2)}%` : '-'}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
       </div>
-
-      {/* Detailed View Modal */}
-      {selectedFund && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-canvas/80 backdrop-blur-sm p-4">
-          <div className="bg-surface border border-border rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl">
-            <div className="sticky top-0 bg-surface/95 backdrop-blur border-b border-border p-6 flex justify-between items-center z-10">
-              <div>
-                <h2 className="text-xl font-bold text-text-primary">{selectedFund.fund_name || selectedFund.scheme_name}</h2>
-                <p className="text-sm text-text-secondary mt-1">{selectedFund.amc} • {selectedFund.category}</p>
-              </div>
-              <button onClick={() => setSelectedFund(null)} className="p-2 hover:bg-surface-hover rounded-full transition-colors">
-                <X className="w-5 h-5 text-text-secondary hover:text-text-primary" />
-              </button>
-            </div>
-            
-            <div className="p-6 space-y-6">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-canvas p-4 rounded-lg border border-border text-center">
-                  <div className="text-xs text-text-secondary mb-1">AUM</div>
-                  <div className="text-lg font-mono text-text-primary">₹{selectedFund.aum} Cr</div>
-                </div>
-                <div className="bg-canvas p-4 rounded-lg border border-border text-center">
-                  <div className="text-xs text-text-secondary mb-1">Expense Ratio</div>
-                  <div className="text-lg font-mono text-text-primary">{selectedFund.expense_ratio}%</div>
-                </div>
-                <div className="bg-canvas p-4 rounded-lg border border-border text-center">
-                  <div className="text-xs text-text-secondary mb-1">Risk</div>
-                  <div className="text-lg font-mono text-text-primary">{selectedFund.risk}</div>
-                </div>
-                <div className="bg-canvas p-4 rounded-lg border border-border text-center">
-                  <div className="text-xs text-text-secondary mb-1">3Y Return</div>
-                  <div className="text-lg font-mono font-bold text-alpha">{selectedFund.return3y}%</div>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-bold text-text-primary mb-4 uppercase tracking-wider">Holdings Allocation</h3>
-                {getFundHoldings(selectedFund).length > 0 ? (
-                  <div className="h-80 bg-canvas rounded-lg border border-border p-4">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <Treemap
-                        data={getFundHoldings(selectedFund)}
-                        dataKey="size"
-                        aspectRatio={4 / 3}
-                        stroke="#1A202C"
-                        fill="#3B82F6"
-                      >
-                        <RechartsTooltip contentStyle={{ backgroundColor: '#1A202C', borderColor: '#2D3748', borderRadius: '8px' }} />
-                      </Treemap>
-                    </ResponsiveContainer>
-                  </div>
-                ) : (
-                  <div className="h-40 bg-canvas rounded-lg border border-border flex flex-col items-center justify-center text-text-secondary">
-                    <AlertTriangle className="w-6 h-6 mb-2 opacity-50" />
-                    <p className="text-sm">Holdings data requires a --full-refresh scrape.</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
     </div>
   );
 };

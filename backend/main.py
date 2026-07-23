@@ -1265,7 +1265,21 @@ def get_mutual_funds(
         offset = (page - 1) * limit
         
         # Build query
-        select_fields = "scheme_code, fund_name, scheme_name, direct_search_id, category, logo_url" if minimal else "*"
+        if minimal:
+            select_fields = "scheme_code, fund_name, scheme_name, direct_search_id, category, logo_url"
+            columns = ["scheme_code", "fund_name", "scheme_name", "direct_search_id", "category", "logo_url"]
+        else:
+            select_fields = """
+                id, logo_url, amc, scheme_code, direct_search_id, fund_name, scheme_name, 
+                fund_manager, category, sub_category, aum, expense_ratio, return1y, return3y, 
+                detailed_holdings
+            """
+            columns = [
+                "id", "logo_url", "amc", "scheme_code", "direct_search_id", "fund_name", "scheme_name", 
+                "fund_manager", "category", "sub_category", "aum", "expense_ratio", "return1y", "return3y", 
+                "detailed_holdings"
+            ]
+            
         query = f"SELECT {select_fields} FROM mutual_funds"
         count_query = "SELECT COUNT(*) FROM mutual_funds"
         
@@ -1279,7 +1293,7 @@ def get_mutual_funds(
             count_query += where_clause
             
         # Add sorting
-        valid_sort_columns = ['aum', 'expense_ratio', 'return1y', 'return3y', 'groww_rating']
+        valid_sort_columns = ['aum', 'expense_ratio', 'return1y', 'return3y']
         if sort_by in valid_sort_columns:
             order = "ASC" if sort_order.lower() == "asc" else "DESC"
             query += f" ORDER BY {sort_by} {order} NULLS LAST"
@@ -1288,12 +1302,11 @@ def get_mutual_funds(
         query += f" LIMIT {limit} OFFSET {offset}"
         
         with db_lock:
-            df = db.execute(query).df()
+            result = db.execute(query).fetchall()
             total_count = db.execute(count_query).fetchone()[0]
         
-        # Safely convert Pandas DataFrame (with nested structs/arrays) to pure Python dicts
-        import json
-        records = json.loads(df.to_json(orient="records", date_format="iso"))
+        # Map tuples to dicts using explicit column names
+        records = [dict(zip(columns, r)) for r in result]
         
         return {
             "total": total_count,

@@ -394,6 +394,12 @@ def build_query(table: str, registry: dict, req: ScreenerRequest,
             where_sql_parts.append("AND")
         where_sql_parts.append("(json_extract_string(absolute_data, '$.\"live price\"') != '₹0.00')")
 
+    # Graphic calculator auto-bracket balancing
+    open_cnt = where_sql_parts.count("(")
+    close_cnt = where_sql_parts.count(")")
+    if open_cnt > close_cnt:
+        where_sql_parts.extend([")"] * (open_cnt - close_cnt))
+
     where_sql = " ".join(where_sql_parts) if where_sql_parts else "1=1"
 
     # ── ORDER BY clause ────────────────────────────────────────────────────
@@ -500,7 +506,6 @@ def screen_mf(req: ScreenerRequest):
             "category",
             "logo_url",
             "risk",
-            "groww_rating",
         ]
         main_sql, count_sql, params = build_query("mutual_funds", MF_METRICS, req, always)
 
@@ -545,7 +550,7 @@ ETF_METRICS: dict[str, tuple] = {
 
     # ── PRICE & RETURNS ───────────────────────────────────────────────────
     "live_price":     ("livePrice",     "Live Price (₹)",  "Price", "numeric", "Current market price of the ETF.", ""),
-    "day_change_pct": ("dayChangePerc", "Day Change %",     "Price", "numeric", "Percentage price change over the last trading day.", ""),
+    "day_change_pct": ("CASE WHEN dayChange LIKE '-%' THEN -TRY_CAST(REGEXP_EXTRACT(dayChange, '\\\\(([-0-9.]+)%\\\\)', 1) AS DOUBLE) ELSE TRY_CAST(REGEXP_EXTRACT(dayChange, '\\\\(([-0-9.]+)%\\\\)', 1) AS DOUBLE) END", "Day Change %",     "Price", "numeric", "Percentage price change over the last trading day.", ""),
     "return_1m":  ("TRY_CAST(json_extract_string(stats,'$.returns.return1M')  AS DOUBLE)", "1M Return %",  "Price", "numeric", "ETF return over last 1 month.", ""),
     "return_3m":  ("TRY_CAST(json_extract_string(stats,'$.returns.return3M')  AS DOUBLE)", "3M Return %",  "Price", "numeric", "ETF return over last 3 months.", ""),
     "return_6m":  ("TRY_CAST(json_extract_string(stats,'$.returns.return6M')  AS DOUBLE)", "6M Return %",  "Price", "numeric", "ETF return over last 6 months.", ""),
@@ -604,3 +609,81 @@ def screen_etfs(req: ScreenerRequest):
     except Exception as e:
         raise HTTPException(500, str(e))
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  ALL ASSETS SCREENER ENDPOINT
+# ─────────────────────────────────────────────────────────────────────────────
+ALL_METRICS: dict[str, tuple] = {
+    # ── IDENT ──────────────────────────────────────────────────────────────
+    "asset_type": ("type", "Asset Type", "Identity", "string", "Stock, ETF, or Mutual Fund.", ""),
+    
+    # ── COMMON METRICS ─────────────────────────────────────────────────────
+    "live_price":     ("live_price",     "Price/NAV (₹)",  "Common", "numeric", "Current price or NAV.", ""),
+    "day_change_pct": ("day_change_pct", "Day Change %",     "Common", "numeric", "Percentage price change over the last trading day.", ""),
+    "return_1y":      ("return_1y",      "1Y Return %",  "Common", "numeric", "Return over last 1 year.", ""),
+    "return_3y":      ("return_3y",      "3Y Return %",  "Common", "numeric", "Return over last 3 years.", ""),
+}
+
+@router.post("/api/screener/all")
+def screen_all(req: ScreenerRequest):
+    try:
+        con = get_con()
+        
+        # We define a CTE that harmonizes the columns we want for "ALL"
+        cte_sql = """
+        SELECT 
+            slug, ticker, name, 'Stock' AS type,
+            json_extract_string(absolute_data, '$.\"live price\"') AS live_price_raw,
+            TRY_CAST(REPLACE(REPLACE(live_price_raw, '₹', ''), ',', '') AS DOUBLE) AS live_price,
+            TRY_CAST(regexp_extract(COALESCE(json_extract_string(absolute_data,'$.\"day change\"'),''),'\\\\(([-0-9.]+)%\\\\)',1) AS DOUBLE) AS day_change_pct,
+            TRY_CAST(json_extract_string(absolute_data, '$.\"1y return\"') AS DOUBLE) AS return_1y,
+            TRY_CAST(json_extract_string(absolute_data, '$.\"3y return\"') AS DOUBLE) AS return_3y,
+            json_extract_string(header,'$.logoUrl') AS logo_url
+        FROM stocks
+        UNION ALL
+        SELECT 
+            slug, ticker, name, 'ETF' AS type,
+            CAST(livePrice AS VARCHAR) AS live_price_raw,
+            TRY_CAST(livePrice AS DOUBLE) AS live_price,
+            CASE WHEN dayChange LIKE '-%' THEN -TRY_CAST(REGEXP_EXTRACT(dayChange, '\\(([-0-9.]+)%\\)', 1) AS DOUBLE) ELSE TRY_CAST(REGEXP_EXTRACT(dayChange, '\\(([-0-9.]+)%\\)', 1) AS DOUBLE) END AS day_change_pct,
+            TRY_CAST(json_extract_string(stats,'$.returns.return1Y')  AS DOUBLE) AS return_1y,
+            TRY_CAST(json_extract_string(stats,'$.returns.return3Y')  AS DOUBLE) AS return_3y,
+            json_extract_string(header,'$.logoUrl') AS logo_url
+        FROM etfs
+        UNION ALL
+        SELECT 
+            scheme_code AS slug, scheme_code AS ticker, fund_name AS name, 'Mutual Fund' AS type,
+            CAST(nav AS VARCHAR) AS live_price_raw,
+            TRY_CAST(nav AS DOUBLE) AS live_price,
+            CASE WHEN dayChange LIKE '-%' THEN -TRY_CAST(REGEXP_EXTRACT(dayChange, '\\(([-0-9.]+)%\\)', 1) AS DOUBLE) ELSE TRY_CAST(REGEXP_EXTRACT(dayChange, '\\(([-0-9.]+)%\\)', 1) AS DOUBLE) END AS day_change_pct,
+            TRY_CAST(json_extract_string(stats,'$.returns.return1Y')  AS DOUBLE) AS return_1y,
+            TRY_CAST(json_extract_string(stats,'$.returns.return3Y')  AS DOUBLE) AS return_3y,
+            json_extract_string(header,'$.logoUrl') AS logo_url
+        FROM mutual_funds
+        """
+
+        always = [
+            "slug",
+            "ticker",
+            "name",
+            "type",
+            "logo_url",
+        ]
+        
+        main_sql, count_sql, params = build_query(f"({cte_sql})", ALL_METRICS, req, always)
+
+        df    = con.execute(main_sql,  params).df()
+        df    = df.replace({np.nan: None, np.inf: None, -np.inf: None})
+        data  = nan_safe(df.to_dict("records"))
+        count = con.execute(count_sql, params).fetchone()[0]
+
+        return {
+            "data": data,
+            "total": count,
+            "page": req.page,
+            "limit": req.limit,
+            "available_metrics": metrics_meta(ALL_METRICS, "all")
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, str(e))

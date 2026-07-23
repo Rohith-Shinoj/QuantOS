@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { GlobalSearch } from './GlobalSearch';
-import { Activity, Target, Search, LineChart, BrainCircuit, Map, RefreshCw, Lock, Briefcase, Sun, Moon } from 'lucide-react';
+import { Activity, Target, Search, LineChart, BrainCircuit, Map, RefreshCw, Lock, Briefcase, Sun, Moon, BarChart2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { fetchAllStocks } from '../api';
 
@@ -37,6 +37,7 @@ export const TopNavigation = () => {
   const navItems = [
     { name: 'Home', path: '/', icon: <Activity size={16} /> },
     { name: 'Heatmap', path: '/heatmap', icon: <Map size={16} /> },
+    { name: 'Stocks', path: '/stocks', icon: <BarChart2 size={16} /> },
     { name: 'ETFs', path: '/etf', icon: <Target size={16} /> },
     { name: 'Mutual Funds', path: '/mutual-funds', icon: <LineChart size={16} /> },
     { name: 'Screen', path: '/screener', icon: <Target size={16} /> },
